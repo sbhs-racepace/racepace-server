@@ -1,22 +1,39 @@
 import asyncio
+import os
+
+import aiohttp
 from sanic import Sanic
-from sanic.response import HTTPResponse
 import ujson
 
+from utils.response import json
+from utils.logic import generate_route
+
+dev_mode = bool(os.getenv('development')) # decides wether to deploy on server or run locally
+
+with open('data/config.json') as f:
+    config = ujson.loads(f.read())
 
 app = Sanic('majorproject')
 
-def json(data, status=200, headers=None):
-    return HTTPResponse(
-        ujson.dumps(data, indent=4), 
-        status=status,
-        headers=headers,
-        content_type='application/json'
-        )
-
-@app.get("/")
+@app.get('/')
 async def index(request):
-    return json({"hello": "World!"})
 
-if __name__ == "__main__":
-    app.run()
+
+    data = {
+        'message': 'Hello World!',
+        'success': True
+        }
+
+    return json(data)
+
+@app.get('/api/route')
+async def route(request):
+    '''Api endpoint to generate the route'''
+
+    data = request.json # get paramaters from requester (location, prefrences etc.)
+    nodes = [] # make a request to the api to get nodes around location.
+    route = generate_route(nodes, data)
+    return json(route)
+
+if __name__ == '__main__':
+    app.run() if dev_mode else app.run(host=config.get("host"), port=80)
