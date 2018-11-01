@@ -1,6 +1,6 @@
 import xml.etree.ElementTree as et
 import pickle
-tree = et.parse("interpreter")
+tree = et.parse("ways.txt")
 root = tree.getroot()
 ways = {}
 class Way:
@@ -19,10 +19,8 @@ for child in root:
         elif sub.tag == "tag":
             tags[sub.get("k")]=sub.get("v")
     ways[child.get("id")] = Way(nodes,tags)
-##with open("ways.txt","w") as f:
-##    pickle.dump(ways, f)
     
-tree = et.parse("interpreter1")
+tree = et.parse("nodes.txt")
 root = tree.getroot()
 nodes = {}
 class Node:
@@ -38,5 +36,3 @@ for child in root:
     for sub in child:
         tags[sub.get("k")]=sub.get("v")
     nodes[child.get("id")] = Node(pos,tags)
-##with open("nodes.txt","w") as f:
-##    pickle.dump(nodes, f)
