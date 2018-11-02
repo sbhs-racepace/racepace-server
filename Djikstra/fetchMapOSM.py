@@ -7,6 +7,9 @@ class Way:
     def __init__(self,nodes,tags):
         self.nodes = nodes
         self.tags = tags
+    
+    def __repr__(self):
+        return self.tags.get('name', str(self.tags))
 
 for child in root:
     if child.tag in {"note","meta"}:
