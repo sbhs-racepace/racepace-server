@@ -1,8 +1,10 @@
 import asyncio
+import traceback
 import os
 
 import aiohttp
 from sanic import Sanic
+from sanic.exceptions import SanicException
 import ujson
 
 from core.response import json
@@ -24,6 +26,21 @@ async def init(app, loop):
 async def aexit(app, loop):
     app.session.close()
 
+@app.exception(Exception)
+async def on_error(request, exception):
+    
+    data = {
+        'success': False,
+        'error': str(exception)
+    }
+
+    try:
+        raise(exception)
+    except:
+        traceback.print_exc()
+            
+    return json(data)
+
 @app.get('/')
 async def index(request):
 
@@ -35,7 +52,7 @@ async def index(request):
 
     return json(data)
 
-@app.get('/api/route')
+@app.get('api/route')
 async def route(request):
     '''Api endpoint to generate the route'''
 
@@ -52,10 +69,16 @@ async def route(request):
     async with app.session.get(way_endpoint) as response:
         waydata = await response.json()
 
-    map = Route(nodedata['elements'], waydata['elements'], preferences)
+    route = Route(nodedata['elements'], waydata['elements'], preferences)
     route.generate_route()
 
-    return json(route.json)
+    response = {
+        'success': True,
+        'message': 'soz m8 not implemented yet',
+        'data': route.json
+    }
+
+    return json(response)
 
 if __name__ == '__main__':
-    app.run() if dev_mode else app.run(host=config.get("host"), port=80)
+    app.run() if dev_mode else app.run(host=config.get('host'), port=80)
