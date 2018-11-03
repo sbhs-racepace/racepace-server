@@ -4,6 +4,7 @@ import copy, math
 def deg2rad(deg):
     rad = deg * math.pi/180
     return rad
+
 def dist(node1,node2):
     lat1,lon1 = nodes[node1].pos
     lat2,lon2 = nodes[node2].pos
@@ -24,6 +25,7 @@ class Node:
         self.tags = tags #Dictionary of tags (road names and other info
         self.neighbours = set() #Set of neighbour's node IDs
         self.dist = math.inf #Distance value for Dijkstra's algorithm
+    
 
 for child in root:
     if child.tag in {"note","meta"}:
@@ -37,10 +39,15 @@ for child in root:
 tree = et.parse("ways.txt")
 root = tree.getroot()
 ways = {}
+
+
 class Way:
     def __init__(self,nodes,tags):
         self.nodes = nodes
         self.tags = tags
+
+
+# TODO: YO SUNNY CAN u help transfer what u did here into the utils/route.py file? kinda hard to see whats going on here
 
 for child in root:
     if child.tag in {"note","meta"}:
