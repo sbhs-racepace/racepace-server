@@ -49,15 +49,18 @@ for child in root:
     tags_temp = {}
     for sub in child:
         if sub.tag == "nd":
-            id_ = int(sub.get("ref"))
+            id_ = int(sub.get("ref"))                
             if id_ in nodes:
                 nodes_temp.append(id_)
         elif sub.tag == "tag":
             tags_temp[sub.get("k")]=sub.get("v")
+    
     if "highway" not in tags_temp or len(nodes_temp) <= 1:
         continue
     nodes[nodes_temp[0]].neighbours.add(nodes_temp[1])
-    for i,nodeID in enumerate(nodes_temp[1:-1]):
+    for i,nodeID in enumerate(nodes_temp[1:-1],1):
+        if child.get("id") == "162293685":
+            print(nodes_temp[i-1],nodes_temp[i+1],nodeID,i)
         nodes[nodeID].neighbours.add(nodes_temp[i-1])
         nodes[nodeID].neighbours.add(nodes_temp[i+1])
     nodes[nodes_temp[-1]].neighbours.add(nodes_temp[-2])
@@ -85,9 +88,9 @@ while current != END:
     current = sorted(unvisited,key=lambda x:nodes[x].dist)[0]
 
 # Unsure about this part (how to get the shortest path once alg. has finished
-##current = START
-##path = []
-##while current != END:
-##    path.append(sorted(nodes[current].neighbours,key=lambda x:nodes[x].dist)[0])
-##    current = path[-1]
-##print(path)
+current = END
+path = []
+while current != START:
+    path.append(sorted(nodes[current].neighbours,key=lambda x:nodes[x].dist)[0])
+    current = path[-1]
+print(path)
