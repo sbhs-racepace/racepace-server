@@ -70,9 +70,9 @@ class Node:
         self.id = data.get('id')
         self.weight = 0 # weight value for djikstras algo??!? maybe in future ratings can affect the wieght
         self.neighbours = set()
-        self.pos = Position(
+        self.pos = Point(
             data.get('lat'),
-            data.get('long')
+            data.get('lon')
         )
 
         
@@ -88,8 +88,8 @@ class Route:
 
     def __init__(self, nodedata, waydata, preferences=None):
         # sunny can u help in the creation of the node objects
-        self._nodes = {n['id'] : Node(n) for n in nodedata} # stored in a dictionary for efficiency in next line
-        self.ways = [Way(w, [self._nodes[n] for n in w['nodes']]) for w in waydata]
+        self._nodes = {n['id'] : Node(n) for n in nodedata}
+        # self.ways = [[Way(w, [self._nodes[n] for n in w['nodes']]) for w in waydata]]
         self.preferences = preferences # things such as elevation/greenery etc
 
     @property
@@ -99,8 +99,8 @@ class Route:
     @property
     def json(self):
         """Returns a serializable output that can be sent as a response"""
-        
-        return {'message': 'soz m8 not implemented yet'}
+
+        return ['a', 'bunch', 'of', 'nodes', 'or', 'someshit']
     
     def generate_route(self):
         return NotImplemented
