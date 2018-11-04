@@ -24,3 +24,9 @@ You must have `python 3.7+` and `pipenv`. Clone the repository and run the follo
 pipenv install --dev
 ```
 
+To run the server navigate into the server folder and run `app.py`.
+
+```
+python3 app.py
+```
+Make sure to have an arbitrary environment variable named `development` so that the server deploys in development mode. You can do this by adding ```export development=1``` in your `.bash_profile` file.
