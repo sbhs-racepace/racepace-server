@@ -1,7 +1,8 @@
 # RacePace
-Software Design and Development Major Project
 
-<img src="https://img.shields.io/badge/python-3.7-brightgreen.svg?style=for-the-badge" alt="python 3.6" />
+#### Software Design and Development Major Project
+
+<img src="https://img.shields.io/badge/python-3.7-brightgreen.svg?style=for-the-badge" alt="python 3.6"/>
 
 ## Summary
 An app that generates the best running/cycling route for the user based on a variety of factors. A route can be specified by run type, elevation, greenery and other factors such as user ratings. Coaches can use this app to track and analyse multiple participants in realtime to help runners perform at a higher level.
