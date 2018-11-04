@@ -10,6 +10,7 @@ import ujson
 from core.response import json
 from core.route import Route
 from core.endpoints import Overpass 
+from core.debug import timed
 
 dev_mode = bool(os.getenv('development')) # decides wether to deploy on server or run locally
 
@@ -17,6 +18,11 @@ with open('data/config.json') as f:
     config = ujson.loads(f.read())
 
 app = Sanic('majorproject')
+
+async def fetch(url):
+    """Makes a http get request"""
+    async with app.session.get(url) as response:
+        return await response.json()
 
 @app.listener('before_server_start')
 async def init(app, loop):
@@ -52,7 +58,9 @@ async def index(request):
 
     return json(data)
 
-@app.get('api/route')
+
+@app.get('/api/route')
+@timed()
 async def route(request):
     '''Api endpoint to generate the route'''
 
@@ -63,11 +71,8 @@ async def route(request):
     node_endpoint = Overpass.NODE.format(location)
     way_endpoint = Overpass.WAY.format(location)
 
-    async with app.session.get(node_endpoint) as response:
-        nodedata = await response.json()
-    
-    async with app.session.get(way_endpoint) as response:
-        waydata = await response.json()
+    tasks = [fetch(node_endpoint), fetch(way_endpoint)]
+    nodedata, waydata = await asyncio.gather(*tasks) # concurrently make the two api calls
 
     route = Route(nodedata['elements'], waydata['elements'], preferences)
     route.generate_route()

@@ -8,6 +8,7 @@ LOCATION = "-33.910,151.106,-33.900,151.116"
 
 domain = "localhost:8000"
 
-resp = requests.get(f'http://{domain}/api/route', json={'location': LOCATION})
+for x in range(10):
+    resp = requests.get(f'http://{domain}/api/route', json={'location': LOCATION})
 
-print(resp.text)
+    print(resp.text)
