@@ -32,3 +32,4 @@ To run the server navigate into the `server` folder and run `app.py`.
 python3 app.py
 ```
 
+Make sure to copy the `.env.example` file and remove the `.example` suffix so you are left with `.env`, update the key value pairs accordingly. 
