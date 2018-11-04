@@ -14,8 +14,9 @@ RacePace is an application that generates the best running/cycling route for the
 * Clients will make requests to our API which generates a route based on given parameters using data from the Overpass API.
 * Realtime tracking in the future can be made possible through the use of websockets.
 
-#### Android Application:
-Ionic framework
+#### Client:
+* An android application using the Ionic framework
+* Uses web technologies
 
 ## Installing the server
 
