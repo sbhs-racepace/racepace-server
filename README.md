@@ -24,7 +24,7 @@ You must have `python 3.7+` and `pipenv`. Clone the repository and run the follo
 pipenv install --dev
 ```
 
-To run the server navigate into the server folder and run `app.py`.
+To run the server navigate into the `server` folder and run `app.py`.
 
 ```
 python3 app.py
