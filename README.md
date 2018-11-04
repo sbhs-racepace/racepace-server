@@ -15,3 +15,12 @@ An app that generates the best running/cycling route for the user based on a var
 
 #### Android Application:
 Ionic framework
+
+## Installing the server
+
+You must have `python 3.7+` and `pipenv`. Clone the repository and run the following command.
+
+```
+pipenv install --dev
+```
+
