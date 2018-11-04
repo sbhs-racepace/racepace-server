@@ -2,6 +2,7 @@ import asyncio
 import traceback
 import os
 
+import dotenv
 import aiohttp
 from sanic import Sanic
 from sanic.exceptions import SanicException
@@ -12,10 +13,8 @@ from core.route import Route
 from core.endpoints import Overpass 
 from core.debug import timed
 
-dev_mode = bool(os.getenv('development')) # decides wether to deploy on server or run locally
-
-with open('data/config.json') as f:
-    config = ujson.loads(f.read())
+dotenv.load_dotenv()
+dev_mode = bool(int(os.getenv('development'))) # decides wether to deploy on server or run locally
 
 app = Sanic('majorproject')
 
@@ -30,7 +29,7 @@ async def init(app, loop):
 
 @app.listener('after_server_stop')
 async def aexit(app, loop):
-    app.session.close()
+    await app.session.close()
 
 @app.exception(Exception)
 async def on_error(request, exception):
@@ -60,7 +59,7 @@ async def index(request):
 
 
 @app.get('/api/route')
-@timed()
+@timed
 async def route(request):
     '''Api endpoint to generate the route'''
 
@@ -75,7 +74,7 @@ async def route(request):
     nodedata, waydata = await asyncio.gather(*tasks) # concurrently make the two api calls
 
     route = Route(nodedata['elements'], waydata['elements'], preferences)
-    route.generate_route()
+    route.generate_route() 
 
     response = {
         'success': True,
@@ -86,4 +85,4 @@ async def route(request):
     return json(response)
 
 if __name__ == '__main__':
-    app.run() if dev_mode else app.run(host=config.get('host'), port=80)
+    app.run() if dev_mode else app.run(host=os.getenv('host'), port=80)
