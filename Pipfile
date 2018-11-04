@@ -10,6 +10,7 @@ ujson = "*"
 
 [dev-packages]
 requests = "*"
+v = {version = "*", editable = true}
 
 [requires]
 python_version = "3.7"
