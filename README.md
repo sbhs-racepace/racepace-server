@@ -31,4 +31,6 @@ python3 app.py
 ```
 Make sure to have an arbitrary environment variable named `development` so that the server deploys in development mode. You can do this by adding the following line in your `.bash_profile` file. 
 
-```export development=1```
+```
+export development=1
+```
