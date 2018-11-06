@@ -1,7 +1,9 @@
 # RacePace 
 #### Software Design and Development Major Project
 
-<img src="https://img.shields.io/badge/python-3.7-brightgreen.svg?style=for-the-badge" alt="python 3.6"/> <img src="https://img.shields.io/badge/ionic-3-skyblue.svg?style=for-the-badge" alt="ionic framework"/>
+<img src="https://forthebadge.com/images/badges/made-with-python.svg" alt="python 3.6"/> <img src="https://forthebadge.com/images/badges/powered-by-electricity.svg" alt="ionic framework"/>
+
+
 
 <a href="https://discord.gg/CpwayNM"><img src="https://discordapp.com/api/guilds/426251391988662276/widget.png?style=banner2" alt="" /></a>
 
