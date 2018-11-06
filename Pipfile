@@ -11,6 +11,7 @@ python-dotenv = "*"
 
 [dev-packages]
 requests = "*"
+sphinx = "*"
 v = {version = "*", editable = true}
 
 [requires]
