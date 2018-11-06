@@ -1,4 +1,4 @@
-import math
+import math, copy
 
 EARTH_RADIUS = 6371.009
 
@@ -67,7 +67,7 @@ class Point:
 
 class Node:
     def __init__(self, data):
-        self.id = data.get('id')
+        #self.id = data.get('id')
         self.weight = 0 # weight value for djikstras algo??!? maybe in future ratings can affect the wieght
         self.neighbours = set()
         self.pos = Point(
@@ -78,7 +78,7 @@ class Node:
         
 class Way:
     def __init__(self, data, nodes):
-        self.id = data.get('id')
+        #self.id = data.get('id')
         self.tags = data.get('tags')
         self.nodes = nodes
         
@@ -86,24 +86,46 @@ class Way:
 class Route:
     """Class that generates the route"""
 
-    def __init__(self, nodedata, waydata, preferences=None):
-        # sunny can u help in the creation of the node objects
-        self._nodes = {n['id'] : Node(n) for n in nodedata}
-        # self.ways = [[Way(w, [self._nodes[n] for n in w['nodes']]) for w in waydata]]
-        self.preferences = preferences # things such as elevation/greenery etc
+    def __init__(self, nodedata: dict, waydata: dict, from: int, to: int, preferences=None:dict):
+        self.nodes = nodedata
+        self.ways = waydata
+        self.from = from
+        self.to = from
+        self.pref = preferences
+        _route = []
 
     @property
     def nodes(self):
         return self._nodes.values()
 
     @property
-    def json(self):
+    def json(self) -> list:
         """Returns a serializable output that can be sent as a response"""
-
-        return ['a', 'bunch', 'of', 'nodes', 'or', 'someshit']
+        if _route == []:
+            self.generate_route()
+        return self._route
     
-    def generate_route(self):
-        return NotImplemented
+    def generate_route(self) -> None:
+        unvisited = copy.copy(self.nodes)
+        unvisited.pop(self.from)
+        current = self.from
+        self.nodes[self.from].dist = 0
+        #Generate graph
+        while current != self.to:
+            if current in self.nodes[current].neighbours:
+                self.nodes[current].neighbours.remove(current) #Removes self from list of neighbours (Bug with xml reading code)
+            for node in self.nodes[current].neighbours:
+                d = current - node + self.nodes[current].dist
+                if d < self.nodes[node].dist:
+                    self.nodes[node].dist = d
+            unvisited.pop(current,None)
+            current = sorted(unvisited,key=lambda x:self.nodes[x].dist)[0] #Find next node that has the lowest dist value
+        
+        #Work out a path using the graph
+        current = self.to
+        while current != self.from:
+            _route.append(sorted(nodes[current].neighbours,key=lambda x:nodes[x].dist)[0]) #Chooses the neighbour with the closest dist to start 
+            current = path[-1]
 
 if __name__ == '__main__':
     pass
