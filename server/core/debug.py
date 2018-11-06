@@ -4,6 +4,8 @@ from functools import wraps
 
 
 def timed(f):
+    """Decorator that prints out the time taken for a function to execute."""
+    
     coro = inspect.iscoroutinefunction(f)
 
     @wraps(f)
