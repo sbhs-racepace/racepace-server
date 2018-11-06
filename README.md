@@ -1,8 +1,7 @@
-# RacePace
+# RacePace <img src="https://img.shields.io/badge/python-3.7-brightgreen.svg?style=for-the-badge" alt="python 3.6"/> <img src="https://img.shields.io/badge/ionic-3-skyblue.svg?style=for-the-badge" alt="ionic framework"/>
 
 Software Design and Development Major Project
 
-<img src="https://img.shields.io/badge/python-3.7-brightgreen.svg?style=for-the-badge" alt="python 3.6"/>
 
 <a href="https://discord.gg/CpwayNM"><img src="https://discordapp.com/api/guilds/426251391988662276/widget.png?style=banner2" alt="" /></a>
 
