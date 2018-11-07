@@ -11,7 +11,7 @@ import ujson
 from core.response import json
 from core.route import Route
 from core.endpoints import Overpass 
-from core.debug import timed
+from core.utils import timed, cached
 
 dotenv.load_dotenv()
 dev_mode = bool(int(os.getenv('development'))) # decides wether to deploy on server or run locally
@@ -65,32 +65,28 @@ async def route(request):
     '''Api endpoint to generate the route'''
 
     data = request.json # get paramaters from requester (location, preferences etc.)
-    preferences = data.get('preferences') 
+    preferences = data.get('preferences')
+    bounding_box = data.get('bounding_box')
     start = data.get('start') #Lat + Lon seperated by comma
     end = data.get('end')
+
+    response = {
+        'success': True,
+        'data': None
+        }
     
     if start+end in routes:
-        response = {
-            'success': True,
-            'message': '',
-            'data': routes[start+end].json
-        }
-    else:
-        node_endpoint = Overpass.NODE.format(start+","+end)
-        way_endpoint = Overpass.WAY.format(start+","+end)
+        response['data'] = routes[start+end].json
+        return json(response)
+        
+    node_endpoint = Overpass.NODE.format(bounding_box)
+    way_endpoint = Overpass.WAY.format(bounding_box)
 
-        tasks = [fetch(node_endpoint), fetch(way_endpoint)]
-        nodedata, waydata = await asyncio.gather(*tasks) # concurrently make the two api calls
+    tasks = [fetch(node_endpoint), fetch(way_endpoint)]
+    nodedata, waydata = await asyncio.gather(*tasks) # concurrently make the two api calls
 
-        route = Route(nodedata['elements'], waydata['elements'], preferences, start, end)
-        route.generate_route()
-        routes[start+end] = route.json
-
-        response = {
-            'success': True,
-            'message': '',
-            'data': route.json
-        }
+    route = Route(nodedata['elements'], waydata['elements'], preferences, start, end)
+    routes[start+end] = response['data'] = route.json
 
     return json(response)
 
