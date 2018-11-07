@@ -15,6 +15,8 @@ class Point:
     """
 
     def __init__(self, latitude, longitude):
+        if longitude == "":
+            latitude, longitude= latitude.split(",")
         self.latitude = float(latitude)
         self.longitude = float(longitude)
 
@@ -53,6 +55,11 @@ class Point:
 
         return EARTH_RADIUS * c
 
+    def nodeID(self,nodes):
+        for n in nodes.values():
+            if n.pos - self < 1:
+                return n.id
+
     def __iter__(self):
         return iter((self.latitude, self.longitude))
 
@@ -67,8 +74,8 @@ class Point:
 
 class Node:
     def __init__(self, data):
-        #self.id = data.get('id')
-        self.weight = 0 # weight value for djikstras algo??!? maybe in future ratings can affect the wieght
+        self.id = data.get('id')
+        self.dist = math.inf # weight value for djikstras algo??!? maybe in future ratings can affect the wieght
         self.neighbours = set()
         self.pos = Point(
             data.get('lat'),
@@ -78,7 +85,7 @@ class Node:
         
 class Way:
     def __init__(self, data, nodes):
-        #self.id = data.get('id')
+        self.id = data.get('id')
         self.tags = data.get('tags')
         self.nodes = nodes
         
@@ -86,13 +93,13 @@ class Way:
 class Route:
     """Class that generates the route"""
 
-    def __init__(self, nodedata: dict, waydata: dict, from: int, to: int, preferences=None:dict):
+    def __init__(self, nodedata: dict, waydata: dict, start: str, end: str, preferences=None:dict):
         self.nodes = nodedata
         self.ways = waydata
-        self.from = from
-        self.to = from
+        self.start = Point(start).nodeID(nodedata)
+        self.end = Point(end).nodeID(nodedata)
         self.pref = preferences
-        _route = []
+        self._route = []
 
     @property
     def nodes(self):
@@ -107,24 +114,24 @@ class Route:
     
     def generate_route(self) -> None:
         unvisited = copy.copy(self.nodes)
-        unvisited.pop(self.from)
-        current = self.from
-        self.nodes[self.from].dist = 0
+        unvisited.pop(self.start)
+        current = self.start
+        self.nodes[self.start].dist = 0
         #Generate graph
-        while current != self.to:
+        while current != self.end:
             if current in self.nodes[current].neighbours:
                 self.nodes[current].neighbours.remove(current) #Removes self from list of neighbours (Bug with xml reading code)
             for node in self.nodes[current].neighbours:
-                d = current - node + self.nodes[current].dist
+                d = current.pos - node.pos + self.nodes[current].dist
                 if d < self.nodes[node].dist:
                     self.nodes[node].dist = d
             unvisited.pop(current,None)
             current = sorted(unvisited,key=lambda x:self.nodes[x].dist)[0] #Find next node that has the lowest dist value
         
         #Work out a path using the graph
-        current = self.to
-        while current != self.from:
-            _route.append(sorted(nodes[current].neighbours,key=lambda x:nodes[x].dist)[0]) #Chooses the neighbour with the closest dist to start 
+        current = self.end
+        while current != self.start:
+            self._route.append(sorted(nodes[current].neighbours,key=lambda x:nodes[x].dist)[0]) #Chooses the neighbour with the closest dist to start 
             current = path[-1]
 
 if __name__ == '__main__':
