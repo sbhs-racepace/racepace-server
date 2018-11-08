@@ -61,6 +61,7 @@ async def index(request):
 
 @app.get('/api/route')
 @timed
+@memoized
 async def route(request):
     '''Api endpoint to generate the route'''
 
@@ -74,10 +75,6 @@ async def route(request):
         'success': True,
         'data': None
         }
-    
-    if start+end in routes:
-        response['data'] = routes[start+end].json
-        return json(response)
         
     node_endpoint = Overpass.NODE.format(bounding_box)
     way_endpoint = Overpass.WAY.format(bounding_box)
@@ -85,10 +82,11 @@ async def route(request):
     tasks = [fetch(node_endpoint), fetch(way_endpoint)]
     nodedata, waydata = await asyncio.gather(*tasks) # concurrently make the two api calls
 
-    route = Route(nodedata['elements'], waydata['elements'], preferences, start, end)
-    routes[start+end] = response['data'] = route.json
+    nodes = {n['id']: Node.from_json(n) for n in nodedata['elements']}
+    ways = {w['id']: Way.from_json(w) for w in waydata['elements']}
 
-    return json(response)
+    route = Route.generate_route(nodes, ways, start, end)
+    return json(route.json)
 
 if __name__ == '__main__':
     app.run() if dev_mode else app.run(host=os.getenv('host'), port=80)
