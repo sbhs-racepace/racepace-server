@@ -5,8 +5,7 @@ import copy
 import json
 from math import inf
 
-
-EARTH_RADIUS = 6371.009
+EARTH_RADIUS = 6371000 #In metres
 
 class Point:
     """
@@ -72,12 +71,12 @@ class Point:
 
 
 class Node:
-    def __init__(self, id: int, position: Point, tags: list=[]):
+    def __init__(self, point: Point, id: str):
         self.id = id
-        self.pos = position
-        self.tags = tags
+        self.pos = point
+        self.ways = set() #Set of ways that it is a part of
 
-    def __eq__(self, other):
+    def __eq__(self, other: Point):
         return self.id == other.id
 
     @classmethod
@@ -92,7 +91,7 @@ class Node:
         return closest_node
 
 class Way:
-    def __init__(self, nodes, id, tags):
+    def __init__(self, nodes: list, id: str, tags):
         self.nodes = nodes
         self.id = id
         self.tags = tags
@@ -114,7 +113,10 @@ class Route:
         }
 
     @staticmethod
-    def find_neighbours(ways) -> dict:
+    def find_neighbours(ways: dict) -> dict:
+        """
+        Generates neighbours for every node in provided ways
+        """
         neighbours = {}
         for way in ways.values():
             way_nodes = way.nodes
@@ -129,35 +131,50 @@ class Route:
 
     @classmethod
     def generate_route(cls, nodes: dict, ways: dict, start: int, end: int, preferences: dict=None) -> Route:
+        """
+        Generates the shortest route to a destination
+        Uses A* with euclidean distance as heuristic
+        Uses tags to change cost of moving to nodes
+        """
         unvisited = set(node_id for node_id in nodes)
         visited = set()
         path_dict = dict((node,(inf,[node])) for node in nodes)
         neighbours = cls.find_neighbours(ways)
         path_dict[start] = (0,[start])
 
-        current = start
+        if end not in nodes: raise Exception('End node not in node space. Specify a valid node.')
+        elif start not in nodes: raise Exception('End node not in node space. Specify a valid node.')
+        else: current = start
+
         while True:
-            current_distance,current_path = path_dict[current]
+            current_cost,current_path = path_dict[current]
             current_neighbours = neighbours[current]
             for neighbour in current_neighbours:
                 if neighbour in unvisited:
-                    neighbour_distance,neighbour_path = path_dict[neighbour]
-                    neighbour_point = nodes[neighbour].pos
-                    relative_distance = nodes[current].pos.distance(neighbour_point)
-                    new_distance = relative_distance + current_distance
-                    if new_distance < neighbour_distance:
-                        path_dict[neighbour] = (new_distance,current_path + [neighbour])
+                    neighbour_cost,neighbour_path = path_dict[neighbour]
+                    relative_distance = nodes[currentf.pos - nodes[neighbourf.pos
+                    # Added tag cost based on preferences of tags and distance as a scaling factor
+                    #neighbour_tags = nodes[neighbour].tags
+                    tag_cost = 0 #relative_distance * sum(preferences[tag] for tag in neighbour_tags)
+
+                    new_cost = relative_distance + current_cost + tag_cost
+                    if new_cost < neighbour_cost:
+                        path_dict[neighbour] = (new_cost,current_path + [neighbour])
             unvisited.remove(current)
             visited.add(current)
             if end in visited:
                 break
             else:
-                min_distance,next_node = inf, None
+                min_value,next_node = inf, None
                 for node_id in unvisited:
                     current_distance,path = path_dict[node_id]
-                    if current_distance < min_distance: min_distance,next_node = current_distance,node_id
-                if min_distance == inf:
-                    raise Exception("Can't get to end node")
+                    #Heuristic value uses distance to endpoint to judge closenss
+                    heuristic_value = nodes[node_idf.pos - nodes[endf.pos
+
+                    current_value = current_distance + heuristic_value
+                    if current_value < min_value: min_value,next_node = current_value,node_id
+                if min_value == inf:
+                    raise Exception("End node cannot be reached")
                 else:
                     current = next_node
 
