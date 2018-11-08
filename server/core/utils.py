@@ -2,6 +2,14 @@ import time
 import inspect
 from functools import wraps
 
+def memoized(func):
+    func.cache = {}
+    @wraps(f)
+    async def wrapper(request):
+        if str(request.json) not in func.cache:
+            func.cache[request.json] = route = await func(request)
+        return route
+    return wrapper
 
 def timed(f):
     """Decorator that prints out the time taken for a function to execute."""
