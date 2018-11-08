@@ -4,11 +4,11 @@ import os
 
 import dotenv
 import aiohttp
+
 from sanic import Sanic
 from sanic.exceptions import SanicException
-import ujson
+from sanic.response import json
 
-from core.response import json
 from core.route import Route
 from core.endpoints import Overpass 
 from core.utils import timed, cached

@@ -152,7 +152,7 @@ class Route:
             for neighbour in current_neighbours:
                 if neighbour in unvisited:
                     neighbour_cost,neighbour_path = path_dict[neighbour]
-                    relative_distance = nodes[currentf.pos - nodes[neighbourf.pos
+                    relative_distance = nodes[current].pos - nodes[neighbour].pos
                     # Added tag cost based on preferences of tags and distance as a scaling factor
                     #neighbour_tags = nodes[neighbour].tags
                     tag_cost = 0 #relative_distance * sum(preferences[tag] for tag in neighbour_tags)
@@ -169,7 +169,7 @@ class Route:
                 for node_id in unvisited:
                     current_distance,path = path_dict[node_id]
                     #Heuristic value uses distance to endpoint to judge closenss
-                    heuristic_value = nodes[node_idf.pos - nodes[endf.pos
+                    heuristic_value = nodes[node_id].pos - nodes[end].pos
 
                     current_value = current_distance + heuristic_value
                     if current_value < min_value: min_value,next_node = current_value,node_id
