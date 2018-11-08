@@ -1,6 +1,10 @@
-import math, copy
+from __future__ import annotations
+
+import math
+import copy
 import json
 from math import inf
+
 
 EARTH_RADIUS = 6371.009
 
@@ -16,12 +20,12 @@ class Point:
         A floating point value in degrees representing longitude
     """
 
-    def __init__(self, *coords):
+    def __init__(self, *coords: float or str):
         latitude, longitude = coords if len(coords) > 1 else coords[0].split(',')
         self.latitude = float(latitude)
         self.longitude = float(longitude)
 
-    def distance(self, other) -> int:
+    def distance(self, other: Point) -> int:
         """
         Uses spherical geometry to calculate the surface distance between two points.
 
@@ -68,25 +72,22 @@ class Point:
 
 
 class Node:
-    def __init__(self, point, id):
+    def __init__(self, id: int, position: Point, tags: list=[]):
         self.id = id
-        self.point = point
+        self.pos = position
+        self.tags = tags
 
     def __eq__(self, other):
         return self.id == other.id
 
-    @staticmethod
-    def json_to_nodes(json_nodes):
-        formatted_nodes = {}
-        nodes = json_nodes['elements']
-        for node in nodes:
-            node_point = Point(node['lat'],node['lon'])
-            formatted_nodes[node['id']] = Node(node_point,node['id'])
-        return formatted_nodes
+    @classmethod
+    def from_json(cls, nodedata: dict) -> Node:
+        position = Point(nodedata['lat'], nodedata['lon'])
+        return cls(nodedata['id'], position)
 
-    def closest_node(self, nodes):
+    def closest_node(self, nodes: dict) -> Node:
         """Returns the closest node from a list of nodes"""
-        nodes = sorted(nodes.values(), key=lambda n: n.pos - self.point)
+        nodes = sorted(nodes.values(), key=lambda n: n.pos - self.pos)
         closest_node = nodes[0]
         return closest_node
 
@@ -96,18 +97,21 @@ class Way:
         self.id = id
         self.tags = tags
 
-    @staticmethod
-    def json_to_ways(json_ways):
-        formatted_ways = {}
-        ways = json_ways['elements']
-        for way in ways:
-            formatted_ways[way['id']] = Way(way['nodes'], way['id'], way['tags'])
-        return formatted_ways
+    @classmethod
+    def from_json(cls, way: dict):
+        return cls(way['nodes'], way['id'], way['tags'])
 
 class Route:
     def __init__(self, route: list, distance: int):
         self.route = route
         self.distance = distance
+    
+    @property
+    def json(self):
+        return { 
+            "success": True,
+            "data": self.route
+        }
 
     @staticmethod
     def find_neighbours(ways) -> dict:
@@ -123,12 +127,12 @@ class Route:
                 neighbours[node] |= node_neighbours
         return neighbours
 
-    @staticmethod
-    def generate_route(nodes: dict, ways: dict, start: str, end: str, preferences: dict=None) -> None:
+    @classmethod
+    def generate_route(cls, nodes: dict, ways: dict, start: int, end: int, preferences: dict=None) -> Route:
         unvisited = set(node_id for node_id in nodes)
         visited = set()
         path_dict = dict((node,(inf,[node])) for node in nodes)
-        neighbours = Route.find_neighbours(ways)
+        neighbours = cls.find_neighbours(ways)
         path_dict[start] = (0,[start])
 
         current = start
@@ -138,8 +142,8 @@ class Route:
             for neighbour in current_neighbours:
                 if neighbour in unvisited:
                     neighbour_distance,neighbour_path = path_dict[neighbour]
-                    neighbour_point = nodes[neighbour].point
-                    relative_distance = nodes[current].point.distance(neighbour_point)
+                    neighbour_point = nodes[neighbour].pos
+                    relative_distance = nodes[current].pos.distance(neighbour_point)
                     new_distance = relative_distance + current_distance
                     if new_distance < neighbour_distance:
                         path_dict[neighbour] = (new_distance,current_path + [neighbour])
@@ -158,12 +162,21 @@ class Route:
                     current = next_node
 
         route_distance, fastest_route = path_dict[end]
-        return Route(fastest_route,route_distance)
+        return cls(fastest_route,route_distance)
 
 if __name__ == '__main__':
-    ways = Way.json_to_ways(json.loads(open('ways.json').read()))
-    nodes = Node.json_to_nodes(json.loads(open('nodes.json').read()))
+    with open('ways.json') as f:
+        waydata = json.load(f).get('elements')
+    
+    with open('nodes.json') as f:
+        nodedata = json.load(f).get('elements')
+
+    ways = {w['id']: Way.from_json(w) for w in waydata}
+    nodes = {n['id']: Node.from_json(n) for n in nodedata}
+
     start = 1741123995
     end   = 1741124011
-    route = Route.generate_route(nodes,ways,start,end)
-    print(route.route,route.distance)
+
+    route = Route.generate_route(nodes, ways, start, end)
+
+    print(route.route, route.distance)
