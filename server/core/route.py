@@ -1,6 +1,6 @@
 import math, copy
 import json
-
+from math import inf
 
 EARTH_RADIUS = 6371.009
 
@@ -20,7 +20,6 @@ class Point:
         latitude, longitude = coords if len(coords) > 1 else coords[0].split(',')
         self.latitude = float(latitude)
         self.longitude = float(longitude)
-
 
     def distance(self, other) -> int:
         """
@@ -56,13 +55,6 @@ class Point:
 
         return EARTH_RADIUS * c
 
-    def closest_node(self, nodes):
-        """Returns the closest node from a list of nodes"""
-        nodes = sorted(nodes.values(), key=lambda n: n.pos - self)
-        closest_node = nodes[0]
-        return closest_node
-
-
     def __iter__(self):
         return iter((self.latitude, self.longitude))
 
@@ -76,105 +68,102 @@ class Point:
 
 
 class Node:
-    def __init__(self, data):
-        self.id = data.get('id')
-        self.dist = math.inf # weight value for djikstras algo??!? maybe in future ratings can affect the wieght
-        self.neighbours = set()
-        self.pos = Point(
-            data.get('lat'),
-            data.get('lon')
-        )
-    
+    def __init__(self, point, id):
+        self.id = id
+        self.point = point
+
     def __eq__(self, other):
         return self.id == other.id
 
+    @staticmethod
+    def json_to_nodes(json_nodes):
+        formatted_nodes = {}
+        nodes = json_nodes['elements']
+        for node in nodes:
+            node_point = Point(node['lat'],node['lon'])
+            formatted_nodes[node['id']] = Node(node_point,node['id'])
+        return formatted_nodes
+
+    def closest_node(self, nodes):
+        """Returns the closest node from a list of nodes"""
+        nodes = sorted(nodes.values(), key=lambda n: n.pos - self.point)
+        closest_node = nodes[0]
+        return closest_node
 
 class Way:
-    def __init__(self, route, data):
-        self.route = route
-        self.id = data.get('id')
-        self.tags = data.get('tags')
-<<<<<<< HEAD
+    def __init__(self, nodes, id, tags):
         self.nodes = nodes
+        self.id = id
+        self.tags = tags
 
+    @staticmethod
+    def json_to_ways(json_ways):
+        formatted_ways = {}
+        ways = json_ways['elements']
+        for way in ways:
+            formatted_ways[way['id']] = Way(way['nodes'], way['id'], way['tags'])
+        return formatted_ways
 
 class Route:
-    """Class that generates the route"""
+    def __init__(self, route: list, distance: int):
+        self.route = route
+        self.distance = distance
 
-    def __init__(self, nodedata: dict, waydata: dict, start: str, end: str, preferences:dict=None):
-        self.nodes = nodedata
-        self.ways = waydata
-        self.start = Point(start).nodeID(nodedata)
-        self.end = Point(end).nodeID(nodedata)
-=======
-        self.nodes = [route._nodes.get(n) for n in data.get('nodes')]
-        
-class Route:
-    """Class that generates the route"""
+    @staticmethod
+    def find_neighbours(ways) -> dict:
+        neighbours = {}
+        for way in ways.values():
+            way_nodes = way.nodes
+            for index, node in enumerate(way_nodes):
+                node_neighbours = set()
+                if (index - 1) > 0: node_neighbours.add(way_nodes[index - 1])
+                if (index + 1) < len(way_nodes): node_neighbours.add(way_nodes[index + 1])
+                if node not in neighbours:
+                    neighbours[node] = set()
+                neighbours[node] |= node_neighbours
+        return neighbours
 
-    def __init__(self, nodedata: dict, waydata: dict, start: str, end: str, preferences: dict=None):
-        self.nodes = {n['id']: Node(n) for n in nodedata}
-        self.ways = [Way(self, way) for way in waydata]
-        self.start = Point(start).closest_node(self.nodes)
-        self.end = Point(end).closest_node(self.nodes)
->>>>>>> 1e03458297f19cf00c46da1e8c15ddef4b0aaaf8
-        self.pref = preferences
-        self._route = []
+    @staticmethod
+    def generate_route(nodes: dict, ways: dict, start: str, end: str, preferences: dict=None) -> None:
+        unvisited = set(node_id for node_id in nodes)
+        visited = set()
+        path_dict = dict((node,(inf,[node])) for node in nodes)
+        neighbours = Route.find_neighbours(ways)
+        path_dict[start] = (0,[start])
 
-    @property
-    def json(self) -> list:
-        """Returns a serializable output that can be sent as a response"""
-        if self._route == []:
-            self.generate_route()
-        return self._route
+        current = start
+        while True:
+            current_distance,current_path = path_dict[current]
+            current_neighbours = neighbours[current]
+            for neighbour in current_neighbours:
+                if neighbour in unvisited:
+                    neighbour_distance,neighbour_path = path_dict[neighbour]
+                    neighbour_point = nodes[neighbour].point
+                    relative_distance = nodes[current].point.distance(neighbour_point)
+                    new_distance = relative_distance + current_distance
+                    if new_distance < neighbour_distance:
+                        path_dict[neighbour] = (new_distance,current_path + [neighbour])
+            unvisited.remove(current)
+            visited.add(current)
+            if end in visited:
+                break
+            else:
+                min_distance,next_node = inf, None
+                for node_id in unvisited:
+                    current_distance,path = path_dict[node_id]
+                    if current_distance < min_distance: min_distance,next_node = current_distance,node_id
+                if min_distance == inf:
+                    raise Exception("Can't get to end node")
+                else:
+                    current = next_node
 
-    def generate_route(self) -> None:
-        unvisited = copy.deepcopy(self._nodes)
-        unvisited.pop(self.start.id)
-        current = self.start
-        current.dist = 0
-
-        while current != self.end:
-<<<<<<< HEAD
-            if current in self.nodes[current].neighbours:
-                self.nodes[current].neighbours.remove(current) #Removes self from list of neighbours (Bug with xml reading code)
-            for node in self.nodes[current].neighbours:
-                d = current.pos - node.pos + self.nodes[current].dist
-                if d < self.nodes[node].dist:
-                    self.nodes[node].dist = d
-            unvisited.pop(current,None)
-            current = sorted(unvisited,key=lambda x:self.nodes[x].dist)[0] #Find next node that has the lowest dist value
-
-=======
-            if current in current.neighbours:
-                current.neighbours.remove(current) #Removes self from list of neighbours (Bug with xml reading code)
-            for node in current.neighbours:
-                d = current.pos - node.pos + current.dist
-                if d < node.dist:
-                    node.dist = d
-            unvisited.pop(current, None)
-            current = sorted(unvisited.values() ,key=lambda x: x.dist)[0] #Find next node that has the lowest dist value
-        
->>>>>>> 1e03458297f19cf00c46da1e8c15ddef4b0aaaf8
-        #Work out a path using the graph
-        current = self.end
-
-        while current != self.start:
-            self._route.append(sorted(nodes[current].neighbours,key=lambda x:nodes[x].dist)[0]) #Chooses the neighbour with the closest dist to start
-            current = path[-1]
+        route_distance, fastest_route = path_dict[end]
+        return Route(fastest_route,route_distance)
 
 if __name__ == '__main__':
-<<<<<<< HEAD
-    ways_json = json.loads(open('ways.json').read())
-    nodes_json = json.loads(open('nodes.json').read())
-    start = 1741123983
-    end = 
-    Route(nodes_json,ways_json,1741123983,end,{})
-    pass
-    # do testing here buddies
-=======
-    p1 = Point(-33.910,151.106)
-    p2 = Point(-33.900,151.116)
-
-    print(p1 - p2)
->>>>>>> 1e03458297f19cf00c46da1e8c15ddef4b0aaaf8
+    ways = Way.json_to_ways(json.loads(open('ways.json').read()))
+    nodes = Node.json_to_nodes(json.loads(open('nodes.json').read()))
+    start = 1741123995
+    end   = 1741124011
+    route = Route.generate_route(nodes,ways,start,end)
+    print(route.route,route.distance)
