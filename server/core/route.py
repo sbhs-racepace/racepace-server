@@ -169,7 +169,7 @@ class Route:
                 for node_id in unvisited:
                     current_distance,path = path_dict[node_id]
                     #Heuristic value uses distance to endpoint to judge closenss
-                    heuristic_value = nodes[node_idf.pos - nodes[endf.pos
+                    heuristic_value = nodes[node_id].pos - nodes[end].pos
 
                     current_value = current_distance + heuristic_value
                     if current_value < min_value: min_value,next_node = current_value,node_id
