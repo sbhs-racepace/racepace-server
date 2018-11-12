@@ -1,10 +1,37 @@
 import time
 import inspect
 from functools import wraps
+from threading import Timer
+from pathlib import Path
+import subprocess
+import atexit
+import platform
+import os
+
+import requests
+
+def start_ngrok():
+    '''Starts ngrok and returns the tunnel url'''
+    ngrok = subprocess.Popen(['ngrok', 'http', '8000'], stdout=subprocess.PIPE)
+    atexit.register(ngrok.terminate)
+    time.sleep(3)
+    localhost_url = "http://localhost:4040/api/tunnels"  # Url with tunnel details
+    response = requests.get(localhost_url).json()
+    tunnel_url = response['tunnels'][0]['public_url']  # Do the parsing of the get
+    tunnel_url = tunnel_url.replace("https", "http")
+
+    return tunnel_url
+
+def run_with_ngrok(app):
+    old_run = app.run
+    def new_run(*args, **kwargs):
+        app.ngrok_url = start_ngrok()
+        old_run(*args, **kwargs)
+    app.run = new_run
 
 def memoized(func):
     func.cache = {}
-    @wraps(f)
+    @wraps(func)
     async def wrapper(request):
         if str(request.json) not in func.cache:
             func.cache[request.json] = route = await func(request)
