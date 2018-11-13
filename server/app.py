@@ -2,13 +2,14 @@ import asyncio
 import subprocess
 import traceback
 import os
+import sys
 
 import dotenv
 import aiohttp
 import bcrypt
 
 from sanic import Sanic
-from sanic.exceptions import NotFound, InvalidUsage, abort
+from sanic.exceptions import SanicException, ServerError, abort
 from sanic.response import json
 from sanic.log import logger
 
@@ -17,7 +18,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from core.route import Route
 from core.enum import Overpass, Color
 from core.decorators import json_required, memoized
-from core.utils import run_with_ngrok, Snowflake
+from core.utils import run_with_ngrok, snowflake
 from core.discord import Embed, Webhook
 
 dotenv.load_dotenv()
@@ -27,8 +28,11 @@ status_icon = 'http://icons-for-free.com/free-icons/png/250/353838.png'
 
 app = Sanic('majorproject')
 
-if dev_mode:
+
+if len(sys.argv) > 1 and sys.argv[1] == '-ngrok':
     run_with_ngrok(app)
+else:
+    app.ngrok_url = None
 
 routes = {}
 
@@ -39,14 +43,13 @@ async def fetch(url):
 
 @app.listener('before_server_start')
 async def init(app, loop):
-    app.snowflake = Snowflake()
     app.session = aiohttp.ClientSession(loop=loop) # we use this to make web requests
     app.webhook = Webhook(os.getenv('webhook_url'), session=app.session, is_async=True)
     app.db = AsyncIOMotorClient(os.getenv('mongo_uri')).majorproject
 
     em = Embed(color=Color.green)
     em.set_author('[INFO] Starting Worker', url=app.ngrok_url)
-    em.add_field('Public URL', app.ngrok_url)
+    em.add_field('Public URL', app.ngrok_url) if app.ngrok_url else ...
 
     await app.webhook.send(embeds=em)
 
@@ -58,27 +61,45 @@ async def aexit(app, loop):
     await app.webhook.send(embeds=em)
     await app.session.close()
 
-@app.exception(Exception)
-async def on_error(request, exception):
-    
-    data = {
+@app.exception(SanicException)
+async def sanic_exception(request, exception):
+
+    response = {
         'success': False,
         'error': str(exception)
     }
 
-    if not isinstance(exception, (NotFound, InvalidUsage)):
+    try:
+        raise(exception)
+    except:
+        traceback.print_exc()
+
+    return json(response, status=exception.status_code)
+
+@app.exception(Exception)
+async def on_error(request, exception):
+    
+    response = {
+        'success': False,
+        'error': str(exception)
+    }
+
+    if not isinstance(exception, SanicException):
         try:
             raise(exception)
         except:
             excstr = traceback.format_exc()
             print(excstr)
-        
+            
+        if len(excstr) > 1000:
+            excstr = excstr[:1000] 
+
         em = Embed(color=Color.red)
         em.set_author('[ERROR] Exception occured on server')
         em.description = f'```py\n{excstr}```'
-        app.add_task(app.webhook.send('<@&511869566394040322>', embeds=em)) # ping developers when an error occurs
-            
-    return json(data)
+        app.add_task(app.webhook.send(embeds=em))
+        
+    return json(response, status=500)
 
 @app.get('/')
 async def index(request):
@@ -112,23 +133,24 @@ async def register(request):
     salt = bcrypt.gensalt()
     hashed = bcrypt.hashpw(password, salt)
 
-    if await account_exists(username):
+    if await account_exists(email):
         abort(403, 'email is already in use')
 
     document = {
-        "user_id": app.snowflake.generate_id(),
-        "email": email,
-        "password": hashed,
-        "salt": salt
+        "user_id": snowflake(),
+        "credentials": {
+            "email": email,
+            "password": hashed
+        }
     }
 
-    await app.db.insert_one(document)
+    await app.db.users.insert_one(document)
     return json({'success': True})
 
 @app.get('/api/login')
 @json_required
 async def login(request):
-    pass
+    return NotImplemented
 
 @app.get('/api/route')
 @memoized

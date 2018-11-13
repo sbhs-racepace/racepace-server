@@ -6,69 +6,53 @@ from sanic.log import logger
 
 import requests
 
+import time
+import random
 
-class Snowflake:
 
-    '''Generates a unique ID based on the Twitter Snowflake scheme'''
+EPOCH = 946702800
 
-    epoch = 1142974214000 # Tue, 21 Mar 2006 20:50:14.000 GMT
-    worker_id_bits = 5
-    data_center_id_bits = 5
-    max_worker_id = -1 ^ (-1 << worker_id_bits)
-    max_data_center_id = -1 ^ (-1 << data_center_id_bits)
-    sequence_bits = 12
-    worker_id_shift = sequence_bits
-    data_center_id_shift = sequence_bits + worker_id_bits
-    timestamp_left_shift = sequence_bits + worker_id_bits + data_center_id_bits
-    sequence_mask = -1 ^ (-1 << sequence_bits)
+TIMESTAMP_LENGTH = 41
+RANDOM_LENGTH = 23
 
-    def __init__(self, worker_id=1, data_center_id=1):
-        self.worker_id = worker_id
-        self.data_center_id = data_center_id
-        self.last_timestamp = -1
-        self.gen = self._generator()
+RANDOM_SHIFT = 0
+TIMESTAMP_SHIFT = 23
 
-    @staticmethod
-    def to_timestamp(snowflake: int) -> int:
-        snowflake = snowflake >> 22 
-        snowflake += self.epoch    # adjust for twitter epoch
-        snowflake = snowflake / 1000  # convert from milliseconds to seconds
-        return snowflake
+def pad_bytes_to_64(string):
+    return format(string, "064b")
 
-    def generate_id(self):
-        return self.gen.next()
+def binary(num, padding=True):
+    """Show binary digits of a number, pads to 64 bits unless specified."""
+    binary_digits = "{0:b}".format(int(num))
+    if not padding:
+        return binary_digits
+    return pad_bytes_to_64(int(num))
 
-    def _generator(sleep=lambda x: time.sleep(x/1000.0)):
-        assert self.worker_id >= 0 and self.worker_id <= self.max_worker_id
-        assert self.data_center_id >= 0 and self.data_center_id <= self.max_data_center_id
 
-        self.last_timestamp = -1
-        sequence = 0
+def extract_bits(data, shift, length):
+    """Extract a portion of a bit string. Similar to substr()."""
+    bitmask = ((1 << length) - 1) << shift
+    return ((data & bitmask) >> shift)
 
-        while True:
-            timestamp = long(time.time()*1000)
 
-            if self.last_timestamp > timestamp:
-                sleep(self.last_timestamp-timestamp)
-                continue
+def snowflake(timestamp=None, random_bits=None, epoch=EPOCH):
+    """Generate a 64 bit, roughly-ordered, globally-unique ID."""
+    second_time = timestamp if timestamp is not None else time.time()
+    second_time -= epoch
+    millisecond_time = int(second_time * 1000)
 
-            if self.last_timestamp == timestamp:
-                sequence = (sequence + 1) & self.sequence_mask
-                if sequence == 0:
-                    sequence = -1 & self.sequence_mask
-                    sleep(1)
-                    continue
-            else:
-                sequence = 0
+    randomness = random.SystemRandom().getrandbits(RANDOM_LENGTH)
+    randomness = random_bits if random_bits is not None else randomness
 
-            self.last_timestamp = timestamp
+    flake = (millisecond_time << TIMESTAMP_SHIFT) + randomness
 
-            yield (
-                ((timestamp-self.epoch) << self.timestamp_left_shift) |
-                (data_center_id << self.data_center_id_shift) |
-                (self.worker_id << self.worker_id_shift) |
-                sequence
-                )
+    return flake
+
+def parse_snowflake(flake):
+    """Parses a snowflake and returns a named tuple with the parts."""
+    timestamp = EPOCH + extract_bits(flake, TIMESTAMP_SHIFT, TIMESTAMP_LENGTH) / 1000.0
+    random = extract_bits(flake, RANDOM_SHIFT, RANDOM_LENGTH)
+    return (timestamp, random)
 
 
 def stop_ngrok(ngrok):
