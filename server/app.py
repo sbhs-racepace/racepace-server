@@ -5,14 +5,19 @@ import os
 
 import dotenv
 import aiohttp
+import bcrypt
 
 from sanic import Sanic
-from sanic.exceptions import SanicException, abort
+from sanic.exceptions import NotFound, InvalidUsage, abort
 from sanic.response import json
+from sanic.log import logger
+
+from motor.motor_asyncio import AsyncIOMotorClient
 
 from core.route import Route
-from core.endpoints import Overpass 
-from core.utils import timed, memoized, run_with_ngrok
+from core.enum import Overpass, Color
+from core.decorators import json_required, memoized
+from core.utils import run_with_ngrok, Snowflake
 from core.discord import Embed, Webhook
 
 dotenv.load_dotenv()
@@ -34,20 +39,21 @@ async def fetch(url):
 
 @app.listener('before_server_start')
 async def init(app, loop):
+    app.snowflake = Snowflake()
     app.session = aiohttp.ClientSession(loop=loop) # we use this to make web requests
     app.webhook = Webhook(os.getenv('webhook_url'), session=app.session, is_async=True)
+    app.db = AsyncIOMotorClient(os.getenv('mongo_uri')).majorproject
 
-    em = Embed(color=0x00FF00, timestamp=True)
-    em.set_author('Status: Server Starting', icon_url=status_icon)
-    em.add_field('Public url', app.ngrok_url, inline=False)
-    em.add_field('Domain', 'http://localhost:8000')
+    em = Embed(color=Color.green)
+    em.set_author('[INFO] Starting Worker', url=app.ngrok_url)
+    em.add_field('Public URL', app.ngrok_url)
 
     await app.webhook.send(embeds=em)
 
 @app.listener('after_server_stop')
 async def aexit(app, loop):
-    em = Embed(color=0xff3300, timestamp=True)
-    em.set_author('Status: Server Stopped', icon_url=status_icon)
+    em = Embed(color=Color.orange)
+    em.set_author('[INFO] Server Stopped')
 
     await app.webhook.send(embeds=em)
     await app.session.close()
@@ -60,10 +66,17 @@ async def on_error(request, exception):
         'error': str(exception)
     }
 
-    try:
-        raise(exception)
-    except:
-        traceback.print_exc()
+    if not isinstance(exception, (NotFound, InvalidUsage)):
+        try:
+            raise(exception)
+        except:
+            excstr = traceback.format_exc()
+            print(excstr)
+        
+        em = Embed(color=Color.red)
+        em.set_author('[ERROR] Exception occured on server')
+        em.description = f'```py\n{excstr}```'
+        app.add_task(app.webhook.send('<@&511869566394040322>', embeds=em)) # ping developers when an error occurs
             
     return json(data)
 
@@ -73,18 +86,57 @@ async def index(request):
     data = {
         'message': 'Welcome to the RacePace API',
         'success': True,
-        'endpoints' : ['/api/route']
+        'endpoints' : [
+            '/api/route',
+            '/api/register']
         }
 
     return json(data)
 
+async def account_exists(email):
+    return bool(await app.db.users.find_one({'email': email}))
+
+@app.patch('/api/users/<user_id>/update')
+async def update_user(request, user_id):
+    return NotImplemented
+
+@app.post('/api/register')
+@json_required
+async def register(request):
+    """Register a user into the database"""
+    data = request.json
+
+    email = data.get('email')
+    password = data.get('password')
+
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password, salt)
+
+    if await account_exists(username):
+        abort(403, 'email is already in use')
+
+    document = {
+        "user_id": app.snowflake.generate_id(),
+        "email": email,
+        "password": hashed,
+        "salt": salt
+    }
+
+    await app.db.insert_one(document)
+    return json({'success': True})
+
+@app.get('/api/login')
+@json_required
+async def login(request):
+    pass
+
 @app.get('/api/route')
-@timed
 @memoized
+@json_required
 async def route(request):
     '''Api endpoint to generate the route'''
 
-    data = request.json if request.json else abort(400, 'Request must have a json body.')
+    data = request.json
 
     preferences = data.get('preferences')
     bounding_box = data.get('bounding_box')
