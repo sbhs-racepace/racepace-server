@@ -4,9 +4,12 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+ujson = {version = "*", sys_platform = "== 'darwin'"}
 sanic = "*"
 aiohttp = "*"
 python-dotenv = "*"
+py-bcrypt = "*"
+motor = "*"
 
 [dev-packages]
 requests = "*"
