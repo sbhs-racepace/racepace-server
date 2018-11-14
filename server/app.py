@@ -1,5 +1,6 @@
 import asyncio
 import subprocess
+import datetime
 import traceback
 import os
 import sys
@@ -7,6 +8,7 @@ import sys
 import dotenv
 import aiohttp
 import bcrypt
+import jwt
 
 from sanic import Sanic
 from sanic.exceptions import SanicException, ServerError, abort
@@ -16,8 +18,8 @@ from sanic.log import logger
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from core.route import Route
-from core.enum import Overpass, Color
-from core.decorators import json_required, memoized
+from core.models import Overpass, Color, User
+from core.decorators import jsonrequired, memoized, authrequired
 from core.utils import run_with_ngrok, snowflake
 from core.discord import Embed, Webhook
 
@@ -43,6 +45,7 @@ async def fetch(url):
 
 @app.listener('before_server_start')
 async def init(app, loop):
+    app.secret = os.getenv('secret')
     app.session = aiohttp.ClientSession(loop=loop) # we use this to make web requests
     app.webhook = Webhook(os.getenv('webhook_url'), session=app.session, is_async=True)
     app.db = AsyncIOMotorClient(os.getenv('mongo_uri')).majorproject
@@ -114,47 +117,52 @@ async def index(request):
 
     return json(data)
 
-async def account_exists(email):
-    return bool(await app.db.users.find_one({'email': email}))
+async def find_account(email):
+    data = await app.db.users.find_one({'email': email})
+    return data
 
 @app.patch('/api/users/<user_id>/update')
+@authrequired
 async def update_user(request, user_id):
     return NotImplemented
 
 @app.post('/api/register')
-@json_required
+@jsonrequired
 async def register(request):
     """Register a user into the database"""
+
+    user = await User.register(request)
+
+    return json({'success': True})
+
+@app.post('/api/login')
+@jsonrequired
+async def login(request):
     data = request.json
 
     email = data.get('email')
     password = data.get('password')
 
-    salt = bcrypt.gensalt()
-    hashed = bcrypt.hashpw(password, salt)
+    query = {'credentials.email': email}
 
-    if await account_exists(email):
-        abort(403, 'email is already in use')
+    account = await User.find_account(app, **query)
+    
+    if account is None or not account.check_password(password):
+        abort(403, 'Credentials invalid.')
 
-    document = {
-        "user_id": snowflake(),
-        "credentials": {
-            "email": email,
-            "password": hashed
-        }
+    token = await account.issue_token()
+
+    response = {
+        'success': True,
+        'token': token
     }
 
-    await app.db.users.insert_one(document)
-    return json({'success': True})
+    return json(response)
 
-@app.get('/api/login')
-@json_required
-async def login(request):
-    return NotImplemented
 
 @app.get('/api/route')
 @memoized
-@json_required
+@authrequired
 async def route(request):
     '''Api endpoint to generate the route'''
 
