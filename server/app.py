@@ -30,13 +30,10 @@ status_icon = 'http://icons-for-free.com/free-icons/png/250/353838.png'
 
 app = Sanic('majorproject')
 
-
 if len(sys.argv) > 1 and sys.argv[1] == '-ngrok':
     run_with_ngrok(app)
 else:
     app.ngrok_url = None
-
-routes = {}
 
 async def fetch(url):
     """Makes a http get request"""
