@@ -7,6 +7,7 @@ import sys
 import dotenv
 import aiohttp
 import bcrypt
+import datetime
 
 from sanic import Sanic
 from sanic.exceptions import SanicException, ServerError, abort
@@ -35,6 +36,8 @@ else:
     app.ngrok_url = None
 
 routes = {}
+tokens = {}
+
 
 async def fetch(url):
     """Makes a http get request"""
@@ -140,7 +143,8 @@ async def register(request):
         "user_id": snowflake(),
         "credentials": {
             "email": email,
-            "password": hashed
+            "password": hashed,
+            "salt": salt
         }
     }
 
@@ -150,7 +154,25 @@ async def register(request):
 @app.get('/api/login')
 @json_required
 async def login(request):
-    return NotImplemented
+    data = request.json
+    email = data.get('email')
+    password = data.get('password')
+
+    if not await account_exists(email):
+        abort(403, 'email not found')
+    
+    userdata = app.db.users.find_one({"credentials": {"email": email}})
+    salt = userdata["credentials"]["salt"]
+    password_hash = userdata["credentials"]["password"]
+    if bcrypt.hashpw(password,salt) == password_hash:
+        token = bcrypt.gensalt()
+        while token in tokens:
+            token = bcrypt.gensalt()
+        tokens[token] = str(datetime.datetime.now())
+        return json({"success": True,
+                     "token":token})
+    else:
+        abort(403, 'invalid password')
 
 @app.get('/api/route')
 @memoized
