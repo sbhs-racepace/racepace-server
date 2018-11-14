@@ -10,6 +10,7 @@ aiohttp = "*"
 python-dotenv = "*"
 py-bcrypt = "*"
 motor = "*"
+pyjwt = "*"
 
 [dev-packages]
 requests = "*"
