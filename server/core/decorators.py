@@ -3,14 +3,30 @@ from functools import wraps
 from sanic.exceptions import abort
 import time
 
-def json_required(func):
+def jsonrequired(func):
     @wraps(func)
     async def wrapper(request, *args, **kwargs):
         if request.json is None:
             abort(400, 'Request must have a json body.')
         return await func(request, *args, **kwargs)
     return wrapper
+
+async def validate_token(request):
+    exists = await request.app.db.users.find_one({
+            'credentials.token': request.token
+            })
+    return exists is not None
     
+def authrequired(func):
+    @wraps(func)
+    @jsonrequired
+    async def wrapper(request, *args, **kwargs):
+        valid_token = await validate_token(request)
+        if not valid_token:
+            abort(401, "Invalid token")
+        return await func(request, *args, **kwargs)
+    return wrapper
+
 def memoized(func):
     func.cache = {}
     @wraps(func)
