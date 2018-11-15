@@ -1,23 +1,39 @@
 import asyncio
+import subprocess
+import datetime
 import traceback
 import os
+import sys
 
 import dotenv
 import aiohttp
-from sanic import Sanic
-from sanic.exceptions import SanicException
-import ujson
+import bcrypt
+import jwt
 
-from core.response import json
+from sanic import Sanic
+from sanic.exceptions import SanicException, ServerError, abort
+from sanic.response import json
+from sanic.log import logger
+
+from motor.motor_asyncio import AsyncIOMotorClient
+
 from core.route import Route
-from core.endpoints import Overpass 
-from core.utils import timed, cached
+from core.models import Overpass, Color, User
+from core.decorators import jsonrequired, memoized, authrequired
+from core.utils import run_with_ngrok, snowflake
+from core.discord import Embed, Webhook
 
 dotenv.load_dotenv()
 dev_mode = bool(int(os.getenv('development'))) # decides wether to deploy on server or run locally
 
+status_icon = 'http://icons-for-free.com/free-icons/png/250/353838.png'
+
 app = Sanic('majorproject')
-routes = {}
+
+if len(sys.argv) > 1 and sys.argv[1] == '-ngrok':
+    run_with_ngrok(app)
+else:
+    app.ngrok_url = None
 
 async def fetch(url):
     """Makes a http get request"""
@@ -26,16 +42,29 @@ async def fetch(url):
 
 @app.listener('before_server_start')
 async def init(app, loop):
+    app.secret = os.getenv('secret')
     app.session = aiohttp.ClientSession(loop=loop) # we use this to make web requests
+    app.webhook = Webhook(os.getenv('webhook_url'), session=app.session, is_async=True)
+    app.db = AsyncIOMotorClient(os.getenv('mongo_uri')).majorproject
+
+    em = Embed(color=Color.green)
+    em.set_author('[INFO] Starting Worker', url=app.ngrok_url)
+    em.add_field('Public URL', app.ngrok_url) if app.ngrok_url else ...
+
+    await app.webhook.send(embeds=em)
 
 @app.listener('after_server_stop')
 async def aexit(app, loop):
+    em = Embed(color=Color.orange)
+    em.set_author('[INFO] Server Stopped')
+
+    await app.webhook.send(embeds=em)
     await app.session.close()
 
-@app.exception(Exception)
-async def on_error(request, exception):
-    
-    data = {
+@app.exception(SanicException)
+async def sanic_exception(request, exception):
+
+    response = {
         'success': False,
         'error': str(exception)
     }
@@ -44,8 +73,33 @@ async def on_error(request, exception):
         raise(exception)
     except:
         traceback.print_exc()
+
+    return json(response, status=exception.status_code)
+
+@app.exception(Exception)
+async def on_error(request, exception):
+    
+    response = {
+        'success': False,
+        'error': str(exception)
+    }
+
+    if not isinstance(exception, SanicException):
+        try:
+            raise(exception)
+        except:
+            excstr = traceback.format_exc()
+            print(excstr)
             
-    return json(data)
+        if len(excstr) > 1000:
+            excstr = excstr[:1000] 
+
+        em = Embed(color=Color.red)
+        em.set_author('[ERROR] Exception occured on server')
+        em.description = f'```py\n{excstr}```'
+        app.add_task(app.webhook.send(embeds=em))
+        
+    return json(response, status=500)
 
 @app.get('/')
 async def index(request):
@@ -53,18 +107,67 @@ async def index(request):
     data = {
         'message': 'Welcome to the RacePace API',
         'success': True,
-        'endpoints' : ['/api/route']
+        'endpoints' : [
+            '/api/route',
+            '/api/register']
         }
 
     return json(data)
 
+async def find_account(email):
+    data = await app.db.users.find_one({'email': email})
+    return data
+
+@app.patch('/api/users/<user_id>/update')
+@authrequired
+async def update_user(request, user_id):
+    return NotImplemented
+
+@app.post('/api/register')
+@jsonrequired
+async def register(request):
+    """Register a user into the database"""
+
+    user = await User.register(request)
+
+    return json({'success': True})
+
+@app.post('/api/login')
+@jsonrequired
+async def login(request):
+    data = request.json
+
+    email = data.get('email')
+    password = data.get('password')
+
+    query = {'credentials.email': email}
+
+    account = await User.find_account(app, **query)
+    
+    if account is None or not account.check_password(password):
+        abort(403, 'Credentials invalid.')
+
+    token = await account.issue_token()
+
+    response = {
+        'success': True,
+        'token': token
+    }
+
+    return json(response)
+
 
 @app.get('/api/route')
-@timed
+@memoized
+@authrequired
 async def route(request):
     '''Api endpoint to generate the route'''
 
-    data = request.json # get paramaters from requester (location, preferences etc.)
+    data = request.json
+    
+    query = {'credentials.token':request.token}
+    user = User.find_account(request.app, query)
+
     preferences = data.get('preferences')
     bounding_box = data.get('bounding_box')
     start = data.get('start') #Lat + Lon seperated by comma
@@ -74,10 +177,6 @@ async def route(request):
         'success': True,
         'data': None
         }
-    
-    if start+end in routes:
-        response['data'] = routes[start+end].json
-        return json(response)
         
     node_endpoint = Overpass.NODE.format(bounding_box)
     way_endpoint = Overpass.WAY.format(bounding_box)
@@ -85,10 +184,24 @@ async def route(request):
     tasks = [fetch(node_endpoint), fetch(way_endpoint)]
     nodedata, waydata = await asyncio.gather(*tasks) # concurrently make the two api calls
 
-    route = Route(nodedata['elements'], waydata['elements'], preferences, start, end)
-    routes[start+end] = response['data'] = route.json
+    nodes = {n['id']: Node.from_json(n) for n in nodedata['elements']}
+    ways = {w['id']: Way.from_json(w) for w in waydata['elements']}
 
-    return json(response)
+    route = Route.generate_route(nodes, ways, start, end)
+    route.save_route(request.app.db) #save route to the database
+    user.share_route(request.app.db,route.id) #allow user to access route
+    return json(route.json)
+
+@app.get('/api/route/share')
+@authrequired
+async def route_share(request):
+    data = request.json
+    routeID = data.get('routeID')
+    userID = data.get('userID')
+
+    query = {'user_id': userID}
+    user = User.find_account(request.app,query)
+    user.share_route(request.app.db, routeID)
 
 if __name__ == '__main__':
     app.run() if dev_mode else app.run(host=os.getenv('host'), port=80)
