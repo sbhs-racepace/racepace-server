@@ -74,7 +74,7 @@ class Node:
     def __init__(self, point: Point, id: str):
         self.id = id
         self.pos = point
-        self.ways = set() #Set of ways that it is a part of
+        self.ways = set()
 
     def __eq__(self, other: Point):
         return self.id == other.id
@@ -105,13 +105,13 @@ class Route:
         self.route = route
         self.distance = distance
         self.id = None #ID in database
-    
+
     @property
     def json(self):
-        return { 
+        return {
             "success": True,
-            "route": self.route
-            "dist": self.distance
+            "route": self.route,
+            "dist": self.distance,
             "id": self.id
         }
 
@@ -132,14 +132,14 @@ class Route:
                 neighbours[node] |= node_neighbours
         return neighbours
 
-    @classmethod
-    def from_database(cls,db,routeID):
-        """
-        Creates a route object from a route stored in the database
-        """
-        route = await db.find_one({'id_':routeID})
-        return cls(**route['route'],routeID)
-    
+    # @classmethod
+    # def from_database(cls,db,routeID):
+    #     """
+    #     Creates a route object from a route stored in the database
+    #     """
+    #     route = await db.find_one({'id_':routeID})
+    #     return cls(**route['route'],routeID)
+
     @classmethod
     def generate_route(cls, nodes: dict, ways: dict, start: int, end: int, preferences: dict=None) -> Route:
         """
@@ -192,21 +192,21 @@ class Route:
         route_distance, fastest_route = path_dict[end]
         return cls(fastest_route,route_distance)
 
-    def save_route(self, db, userid):
-        #Adds to database of routes
-        document = {
-            "author":userid,
-            "route":{
-                "route":self.route,
-                "distance":self.distance,
-                }
-            }
-        self.id = await db.routes.insert_one(document).inserted_id
-        
+    # def save_route(self, db, userid):
+    #     #Adds to database of routes
+    #     document = {
+    #         "author":userid,
+    #         "route":{
+    #             "route":self.route,
+    #             "distance":self.distance,
+    #             }
+    #         }
+    #     self.id = await db.routes.insert_one(document).inserted_id
+
 if __name__ == '__main__':
     with open('ways.json') as f:
         waydata = json.load(f).get('elements')
-    
+
     with open('nodes.json') as f:
         nodedata = json.load(f).get('elements')
 
