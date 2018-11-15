@@ -110,8 +110,8 @@ class Route:
     def json(self):
         return { 
             "success": True,
-            "route": self.route
-            "dist": self.distance
+            "route": self.route,
+            "dist": self.distance,
             "id": self.id
         }
 
@@ -133,12 +133,12 @@ class Route:
         return neighbours
 
     @classmethod
-    def from_database(cls,db,routeID):
+    async def from_database(cls,db,routeID):
         """
         Creates a route object from a route stored in the database
         """
         route = await db.find_one({'id_':routeID})
-        return cls(**route['route'],routeID)
+        return cls(routeID, **route['route'])
     
     @classmethod
     def generate_route(cls, nodes: dict, ways: dict, start: int, end: int, preferences: dict=None) -> Route:
@@ -192,7 +192,7 @@ class Route:
         route_distance, fastest_route = path_dict[end]
         return cls(fastest_route,route_distance)
 
-    def save_route(self, db, userid):
+    async def save_route(self, db, userid):
         #Adds to database of routes
         document = {
             "author":userid,
