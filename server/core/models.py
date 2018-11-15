@@ -50,6 +50,7 @@ class User:
 
         document = {
             "user_id": snowflake(),
+            "routes": {},
             "credentials": {
                 "email": email,
                 "password": hashed,
@@ -96,6 +97,12 @@ class User:
 
     def check_password(self, password):
         return bcrypt.checkpw(password, self.credentials.password)
+
+    def share_route(self, db, routeID):
+        #db = request.app.db
+        await db.users.update_one(
+            {'user_id':self.id},
+            {'$addToSet': {'routes': routeID}})
 
 class Overpass:
     BASE = 'http://overpass-api.de/api/interpreter?data=[out:json];'

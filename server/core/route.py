@@ -101,15 +101,18 @@ class Way:
         return cls(way['nodes'], way['id'], way['tags'])
 
 class Route:
-    def __init__(self, route: list, distance: int):
+    def __init__(self, route: list, distance: int, routeID=None):
         self.route = route
         self.distance = distance
+        self.id = None #ID in database
     
     @property
     def json(self):
         return { 
             "success": True,
-            "data": self.route
+            "route": self.route
+            "dist": self.distance
+            "id": self.id
         }
 
     @staticmethod
@@ -129,6 +132,14 @@ class Route:
                 neighbours[node] |= node_neighbours
         return neighbours
 
+    @classmethod
+    def from_database(cls,db,routeID):
+        """
+        Creates a route object from a route stored in the database
+        """
+        route = await db.find_one({'id_':routeID})
+        return cls(**route['route'],routeID)
+    
     @classmethod
     def generate_route(cls, nodes: dict, ways: dict, start: int, end: int, preferences: dict=None) -> Route:
         """
@@ -181,6 +192,17 @@ class Route:
         route_distance, fastest_route = path_dict[end]
         return cls(fastest_route,route_distance)
 
+    def save_route(self, db, userid):
+        #Adds to database of routes
+        document = {
+            "author":userid,
+            "route":{
+                "route":self.route,
+                "distance":self.distance,
+                }
+            }
+        self.id = await db.routes.insert_one(document).inserted_id
+        
 if __name__ == '__main__':
     with open('ways.json') as f:
         waydata = json.load(f).get('elements')

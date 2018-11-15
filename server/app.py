@@ -164,6 +164,9 @@ async def route(request):
     '''Api endpoint to generate the route'''
 
     data = request.json
+    
+    query = {'credentials.token':request.token}
+    user = User.find_account(request.app, query)
 
     preferences = data.get('preferences')
     bounding_box = data.get('bounding_box')
@@ -185,7 +188,20 @@ async def route(request):
     ways = {w['id']: Way.from_json(w) for w in waydata['elements']}
 
     route = Route.generate_route(nodes, ways, start, end)
+    route.save_route(request.app.db) #save route to the database
+    user.share_route(request.app.db,route.id) #allow user to access route
     return json(route.json)
+
+@app.get('/api/route/share')
+@authrequired
+async def route_share(request):
+    data = request.json
+    routeID = data.get('routeID')
+    userID = data.get('userID')
+
+    query = {'user_id': userID}
+    user = User.find_account(request.app,query)
+    user.share_route(request.app.db, routeID)
 
 if __name__ == '__main__':
     app.run() if dev_mode else app.run(host=os.getenv('host'), port=80)
