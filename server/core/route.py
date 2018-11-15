@@ -132,6 +132,7 @@ class Route:
                 neighbours[node] |= node_neighbours
         return neighbours
 
+<<<<<<< HEAD
     # @classmethod
     # def from_database(cls,db,routeID):
     #     """
@@ -140,6 +141,16 @@ class Route:
     #     route = await db.find_one({'id_':routeID})
     #     return cls(**route['route'],routeID)
 
+=======
+    @classmethod
+    async def from_database(cls,db,routeID):
+        """
+        Creates a route object from a route stored in the database
+        """
+        route = await db.find_one({'id_':routeID})
+        return cls(routeID, **route['route'])
+    
+>>>>>>> 6b99eb602f55e4380f1d8bfa9feb24d98ad596d1
     @classmethod
     def generate_route(cls, nodes: dict, ways: dict, start: int, end: int, preferences: dict=None) -> Route:
         """
@@ -192,6 +203,7 @@ class Route:
         route_distance, fastest_route = path_dict[end]
         return cls(fastest_route,route_distance)
 
+<<<<<<< HEAD
     # def save_route(self, db, userid):
     #     #Adds to database of routes
     #     document = {
@@ -203,6 +215,19 @@ class Route:
     #         }
     #     self.id = await db.routes.insert_one(document).inserted_id
 
+=======
+    async def save_route(self, db, userid):
+        #Adds to database of routes
+        document = {
+            "author":userid,
+            "route":{
+                "route":self.route,
+                "distance":self.distance,
+                }
+            }
+        self.id = await db.routes.insert_one(document).inserted_id
+        
+>>>>>>> 6b99eb602f55e4380f1d8bfa9feb24d98ad596d1
 if __name__ == '__main__':
     with open('ways.json') as f:
         waydata = json.load(f).get('elements')
