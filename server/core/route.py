@@ -74,7 +74,7 @@ class Node:
     def __init__(self, point: Point, id: str):
         self.id = id
         self.pos = point
-        self.ways = set() #Set of ways that it is a part of
+        self.ways = set()
 
     def __eq__(self, other: Point):
         return self.id == other.id
@@ -105,10 +105,10 @@ class Route:
         self.route = route
         self.distance = distance
         self.id = None #ID in database
-    
+
     @property
     def json(self):
-        return { 
+        return {
             "success": True,
             "route": self.route,
             "dist": self.distance,
@@ -139,7 +139,7 @@ class Route:
         """
         route = await db.find_one({'id_':routeID})
         return cls(routeID, **route['route'])
-    
+
     @classmethod
     def generate_route(cls, nodes: dict, ways: dict, start: int, end: int, preferences: dict=None) -> Route:
         """
@@ -202,11 +202,11 @@ class Route:
                 }
             }
         self.id = await db.routes.insert_one(document).inserted_id
-        
+
 if __name__ == '__main__':
     with open('ways.json') as f:
         waydata = json.load(f).get('elements')
-    
+
     with open('nodes.json') as f:
         nodedata = json.load(f).get('elements')
 
