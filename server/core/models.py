@@ -98,7 +98,7 @@ class User:
     def check_password(self, password):
         return bcrypt.checkpw(password, self.credentials.password)
 
-    def share_route(self, db, routeID):
+    async def share_route(self, db, routeID):
         #db = request.app.db
         await db.users.update_one(
             {'user_id':self.id},
