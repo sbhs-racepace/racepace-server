@@ -111,19 +111,29 @@ async def index(request):
         'success': True,
         'endpoints' : [
             '/api/route',
-            '/api/register']
+            '/api/users/update',
+            '/api/register',
+            '/api/login']
         }
 
     return json(data)
 
-async def find_account(email):
-    data = await app.db.users.find_one({'email': email})
-    return data
-
-@app.patch('/api/users/<user_id>/update')
+@app.post('/api/users/update')
 @authrequired
-async def update_user(request, user_id):
-    return NotImplemented
+async def update_user(request):
+    """Change password"""
+    data = request.json
+    token = request.token
+    
+    userID = jwt.decode(token, app.secret)['sub']
+    query = {"user_id":userID}
+    user = await User.find_account(app, **query)
+    password = data.get('password')
+    salt = bcrypt.gensalt()
+    user.credentials.password = bcrypt.hashpw(password, salt)
+    await user.update_user(app.db)
+
+    return json({'success': True})
 
 @app.post('/api/register')
 @jsonrequired
@@ -153,7 +163,7 @@ async def login(request):
 
     response = {
         'success': True,
-        'token': token
+        'token': token.decode("utf-8")
     }
 
     return json(response)

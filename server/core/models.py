@@ -92,7 +92,7 @@ class User:
             {'user_id': self.id}, 
             {'$set': {'credentials.token': token}}
         )
-
+        
         return token
 
     def check_password(self, password):
@@ -103,6 +103,11 @@ class User:
         await db.users.update_one(
             {'user_id':self.id},
             {'$addToSet': {'routes': routeID}})
+
+    async def update_user(self,db):
+        await db.users.update_one(
+            {'user_id':self.id},
+            {'$set': {'credentials.password': self.credentials.password}})
 
 class Overpass:
     BASE = 'http://overpass-api.de/api/interpreter?data=[out:json];'
