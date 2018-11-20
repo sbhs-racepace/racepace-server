@@ -175,31 +175,28 @@ async def route(request):
     '''Api endpoint to generate the route'''
 
     data = request.json
-<<<<<<< HEAD
-
-    query = {'credentials.token':request.token}
-    user = User.find_account(request.app, query)
-=======
->>>>>>> f2543c22b70a9f7a3f26d8ab96424616d4aec01f
+##<<<<<<< HEAD
+##
+##    query = {'credentials.token':request.token}
+##    user = User.find_account(request.app, query)
+##=======
+##>>>>>>> f2543c22b70a9f7a3f26d8ab96424616d4aec01f
 
     preferences = data.get('preferences')
-    bounding_box = data.get('bounding_box')
+    bounding_box = data.get('bounding_box') #Coords seperated by spaces
     start = data.get('start') #Lat + Lon seperated by comma
     end = data.get('end')
 
-    response = {
-        'success': True,
-        'data': None
-        }
+    url = Overpass.REQ.format(bounding_box) #Generate url to query api
+    map_data = await fetch(url)
 
-    node_endpoint = Overpass.NODE.format(bounding_box)
-    way_endpoint = Overpass.WAY.format(bounding_box)
+    #Find where the node data ends and way data starts
+    for i,element in enumerate(resp['elements']):
+        if element['type']=="way":
+            break
 
-    tasks = [fetch(node_endpoint), fetch(way_endpoint)]
-    nodedata, waydata = await asyncio.gather(*tasks) # concurrently make the two api calls
-
-    nodes = {n['id']: Node.from_json(n) for n in nodedata['elements']}
-    ways = {w['id']: Way.from_json(w) for w in waydata['elements']}
+    nodes = {n['id']: Node.from_json(n) for n in resp['elements'][:i]}
+    ways = {w['id']: Way.from_json(w) for w in resp['elements'][i:]}
 
     route = Route.generate_route(nodes, ways, start, end)
     return json(route.json)

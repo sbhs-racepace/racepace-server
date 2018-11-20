@@ -1,9 +1,19 @@
-import requests
+import requests, json
 
-LOCATION = "-33.910,151.106,-33.900,151.116"
+LOCATION = "-33.91493 151.09928 -33.91543 151.11199 -33.89894 151.11237 -33.89769 151.09898"
 
-resp = requests.get(f"http://overpass-api.de/api/interpreter?data=[out:json];way({LOCATION});out;")
-print(resp.text) 
+req = f'''
+[out:json];
+(
+    way
+        ["highway"~"."]
+        (poly:"{LOCATION}");
+    >;
+);
+out;'''.replace("\n","").replace("\t","")
 
-resp = requests.get(f"http://overpass-api.de/api/interpreter?data=[out:json];node({LOCATION});out;")
-print(resp.text)
+resp = requests.get(f"http://overpass-api.de/api/interpreter?data={req}")
+resp = resp.json()
+print(resp.keys())
+
+    
