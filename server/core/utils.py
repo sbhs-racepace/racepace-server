@@ -3,9 +3,7 @@ import subprocess
 import atexit
 import os
 from sanic.log import logger
-
 import requests
-
 import time
 import random
 
@@ -17,6 +15,8 @@ RANDOM_LENGTH = 23
 
 RANDOM_SHIFT = 0
 TIMESTAMP_SHIFT = 23
+
+"""Password hashing"""
 
 def pad_bytes_to_64(string):
     return format(string, "064b")
