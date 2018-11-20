@@ -78,7 +78,7 @@ async def sanic_exception(request, exception):
 
 @app.exception(Exception)
 async def on_error(request, exception):
-    
+
     response = {
         'success': False,
         'error': str(exception)
@@ -90,15 +90,15 @@ async def on_error(request, exception):
         except:
             excstr = traceback.format_exc()
             print(excstr)
-            
+
         if len(excstr) > 1000:
-            excstr = excstr[:1000] 
+            excstr = excstr[:1000]
 
         em = Embed(color=Color.red)
         em.set_author('[ERROR] Exception occured on server')
         em.description = f'```py\n{excstr}```'
         app.add_task(app.webhook.send(embeds=em))
-        
+
     return json(response, status=500)
 
 @app.get('/')
@@ -143,7 +143,7 @@ async def login(request):
     query = {'credentials.email': email}
 
     account = await User.find_account(app, **query)
-    
+
     if account is None or not account.check_password(password):
         abort(403, 'Credentials invalid.')
 
@@ -164,7 +164,7 @@ async def route(request):
     '''Api endpoint to generate the route'''
 
     data = request.json
-    
+
     query = {'credentials.token':request.token}
     user = User.find_account(request.app, query)
 
@@ -177,7 +177,7 @@ async def route(request):
         'success': True,
         'data': None
         }
-        
+
     node_endpoint = Overpass.NODE.format(bounding_box)
     way_endpoint = Overpass.WAY.format(bounding_box)
 
