@@ -73,20 +73,26 @@ class Point:
 class Node:
     def __init__(self, point: Point, id: str):
         self.id = id
-        self.pos = point
+        self.point = point
         self.ways = set()
 
     def __eq__(self, other: Point):
         return self.id == other.id
 
+    @staticmethod
+    def json_to_nodes(json_nodes):
+        nodes = json_nodes['elements']
+        formatted_nodes = {node['id']: Node.from_json(node) for node in nodes}
+        return formatted_nodes
+
     @classmethod
     def from_json(cls, nodedata: dict) -> Node:
         position = Point(nodedata['lat'], nodedata['lon'])
-        return cls(nodedata['id'], position)
+        return cls(position, nodedata['id'])
 
     def closest_node(self, nodes: dict) -> Node:
         """Returns the closest node from a list of nodes"""
-        nodes = sorted(nodes.values(), key=lambda n: n.pos - self.pos)
+        nodes = sorted(nodes.values(), key=lambda n: n.point - self.point)
         closest_node = nodes[0]
         return closest_node
 
@@ -99,6 +105,12 @@ class Way:
     @classmethod
     def from_json(cls, way: dict):
         return cls(way['nodes'], way['id'], way['tags'])
+
+    @staticmethod
+    def json_to_ways(json_ways):
+        ways = json_ways['elements']
+        formatted_ways = {way['id']:Way.from_json(way) for way in ways}
+        return formatted_ways
 
 class Route:
     def __init__(self, route: list, distance: int, routeID=None):
@@ -114,6 +126,29 @@ class Route:
             "dist": self.distance,
             "id": self.id
         }
+
+    @staticmethod
+    def get_coordinate_units(location):
+        '''
+        Coordinate unit in terms of metres for localized area
+        '''
+        latitude,longitude = location
+        location.dist(Point(latitude,longitude + 1))
+        vert_unit = location.dist(Point(latitude,longitude + 1))
+        hor_unit  = location.dist(Point(latitude + 1,longitude))
+        return hor_unit,vert_unit
+
+    @classmethod
+    def get_square(cls,length,width,location):
+        hor_unit,vert_unit = cls.get_coordinate_units(location)
+        lat_unit = (width/2) / hor_unit
+        lon_unit = (length/2) / vert_unit
+        la1 = latitude - lat_unit
+        lo1 = longitude - lon_unit
+        la2 = latitude + lat_unit
+        lo2 = longitude + lon_unit
+        bounding_coords = ','.join(list(map(str,[la1,lo1,la2,lo2])))
+        return bounding_coords
 
     @staticmethod
     def find_neighbours(ways: dict) -> dict:
@@ -163,7 +198,7 @@ class Route:
             for neighbour in current_neighbours:
                 if neighbour in unvisited:
                     neighbour_cost,neighbour_path = path_dict[neighbour]
-                    relative_distance = nodes[current].pos - nodes[neighbour].pos
+                    relative_distance = nodes[current].point - nodes[neighbour].point
                     # Added tag cost based on preferences of tags and distance as a scaling factor
                     #neighbour_tags = nodes[neighbour].tags
                     tag_cost = 0 #relative_distance * sum(preferences[tag] for tag in neighbour_tags)
@@ -180,7 +215,7 @@ class Route:
                 for node_id in unvisited:
                     current_distance,path = path_dict[node_id]
                     #Heuristic value uses distance to endpoint to judge closenss
-                    heuristic_value = nodes[node_id].pos - nodes[end].pos
+                    heuristic_value = nodes[node_id].point - nodes[end].point
 
                     current_value = current_distance + heuristic_value
                     if current_value < min_value: min_value,next_node = current_value,node_id
@@ -204,18 +239,4 @@ class Route:
         self.id = await db.routes.insert_one(document).inserted_id
 
 if __name__ == '__main__':
-    with open('ways.json') as f:
-        waydata = json.load(f).get('elements')
-
-    with open('nodes.json') as f:
-        nodedata = json.load(f).get('elements')
-
-    ways = {w['id']: Way.from_json(w) for w in waydata}
-    nodes = {n['id']: Node.from_json(n) for n in nodedata}
-
-    start = 1741123995
-    end   = 1741124011
-
-    route = Route.generate_route(nodes, ways, start, end)
-
-    print(route.route, route.distance)
+    pass
