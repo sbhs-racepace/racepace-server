@@ -1,11 +1,11 @@
 import asyncio
 import subprocess
+import socket
 import datetime
 import traceback
 import os
 import sys
 
-import dotenv
 import aiohttp
 import bcrypt
 import jwt
@@ -23,7 +23,6 @@ from core.decorators import jsonrequired, memoized, authrequired
 from core.utils import run_with_ngrok, snowflake
 from core.discord import Embed, Webhook
 
-dotenv.load_dotenv()
 dev_mode = bool(int(os.getenv('development'))) # decides wether to deploy on server or run locally
 
 status_icon = 'http://icons-for-free.com/free-icons/png/250/353838.png'
@@ -49,6 +48,7 @@ async def init(app, loop):
 
     em = Embed(color=Color.green)
     em.set_author('[INFO] Starting Worker', url=app.ngrok_url)
+    em.set_footer(f'Host: {socket.gethostname()}')
     em.add_field('Public URL', app.ngrok_url) if app.ngrok_url else ...
 
     await app.webhook.send(embeds=em)
@@ -56,6 +56,7 @@ async def init(app, loop):
 @app.listener('after_server_stop')
 async def aexit(app, loop):
     em = Embed(color=Color.orange)
+    em.set_footer(f'Host: {socket.gethostname()}')
     em.set_author('[INFO] Server Stopped')
 
     await app.webhook.send(embeds=em)
@@ -97,6 +98,7 @@ async def on_error(request, exception):
         em = Embed(color=Color.red)
         em.set_author('[ERROR] Exception occured on server')
         em.description = f'```py\n{excstr}```'
+        em.set_footer(f'Host: {socket.gethostname()}')
         app.add_task(app.webhook.send(embeds=em))
 
     return json(response, status=500)
@@ -109,19 +111,29 @@ async def index(request):
         'success': True,
         'endpoints' : [
             '/api/route',
-            '/api/register']
+            '/api/users/update',
+            '/api/register',
+            '/api/login']
         }
 
     return json(data)
 
-async def find_account(email):
-    data = await app.db.users.find_one({'email': email})
-    return data
-
-@app.patch('/api/users/<user_id>/update')
+@app.post('/api/users/update')
 @authrequired
-async def update_user(request, user_id):
-    return NotImplemented
+async def update_user(request):
+    """Change password"""
+    data = request.json
+    token = request.token
+    
+    userID = jwt.decode(token, app.secret)['sub']
+    query = {"user_id":userID}
+    user = await User.find_account(app, **query)
+    password = data.get('password')
+    salt = bcrypt.gensalt()
+    user.credentials.password = bcrypt.hashpw(password, salt)
+    await user.update_user(app.db)
+
+    return json({'success': True})
 
 @app.post('/api/register')
 @jsonrequired
@@ -151,11 +163,10 @@ async def login(request):
 
     response = {
         'success': True,
-        'token': token
+        'token': token.decode("utf-8")
     }
 
     return json(response)
-
 
 @app.get('/api/route')
 @memoized
@@ -164,9 +175,12 @@ async def route(request):
     '''Api endpoint to generate the route'''
 
     data = request.json
+<<<<<<< HEAD
 
     query = {'credentials.token':request.token}
     user = User.find_account(request.app, query)
+=======
+>>>>>>> f2543c22b70a9f7a3f26d8ab96424616d4aec01f
 
     preferences = data.get('preferences')
     bounding_box = data.get('bounding_box')
@@ -188,20 +202,7 @@ async def route(request):
     ways = {w['id']: Way.from_json(w) for w in waydata['elements']}
 
     route = Route.generate_route(nodes, ways, start, end)
-    route.save_route(request.app.db) #save route to the database
-    user.share_route(request.app.db,route.id) #allow user to access route
     return json(route.json)
-
-@app.get('/api/route/share')
-@authrequired
-async def route_share(request):
-    data = request.json
-    routeID = data.get('routeID')
-    userID = data.get('userID')
-
-    query = {'user_id': userID}
-    user = User.find_account(request.app,query)
-    user.share_route(request.app.db, routeID)
 
 if __name__ == '__main__':
     app.run() if dev_mode else app.run(host=os.getenv('host'), port=80)
