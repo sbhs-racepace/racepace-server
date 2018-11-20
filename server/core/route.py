@@ -104,7 +104,8 @@ class Way:
 
     @classmethod
     def from_json(cls, way: dict):
-        return cls(way['nodes'], way['id'], way['tags'])
+        tags = way['tags'] if 'tags' in way else {}
+        return cls(way['nodes'], way['id'], tags)
 
     @staticmethod
     def json_to_ways(json_ways):
@@ -133,13 +134,13 @@ class Route:
         Coordinate unit in terms of metres for localized area
         '''
         latitude,longitude = location
-        location.dist(Point(latitude,longitude + 1))
-        vert_unit = location.dist(Point(latitude,longitude + 1))
-        hor_unit  = location.dist(Point(latitude + 1,longitude))
+        vert_unit = location - Point(latitude,longitude + 1)
+        hor_unit  = location - Point(latitude + 1,longitude)
         return hor_unit,vert_unit
 
     @classmethod
-    def get_square(cls,length,width,location):
+    def square_bounding(cls,length,width,location):
+        latitude,longitude = location
         hor_unit,vert_unit = cls.get_coordinate_units(location)
         lat_unit = (width/2) / hor_unit
         lon_unit = (length/2) / vert_unit
@@ -190,6 +191,7 @@ class Route:
 
         if end not in nodes: raise Exception('End node not in node space. Specify a valid node.')
         elif start not in nodes: raise Exception('End node not in node space. Specify a valid node.')
+        elif end not in neighbours or start not in neighbours: raise Exception('No connecting neighbour')
         else: current = start
 
         while True:
@@ -202,7 +204,6 @@ class Route:
                     # Added tag cost based on preferences of tags and distance as a scaling factor
                     #neighbour_tags = nodes[neighbour].tags
                     tag_cost = 0 #relative_distance * sum(preferences[tag] for tag in neighbour_tags)
-
                     new_cost = relative_distance + current_cost + tag_cost
                     if new_cost < neighbour_cost:
                         path_dict[neighbour] = (new_cost,current_path + [neighbour])
@@ -216,7 +217,6 @@ class Route:
                     current_distance,path = path_dict[node_id]
                     #Heuristic value uses distance to endpoint to judge closenss
                     heuristic_value = nodes[node_id].point - nodes[end].point
-
                     current_value = current_distance + heuristic_value
                     if current_value < min_value: min_value,next_node = current_value,node_id
                 if min_value == inf:
