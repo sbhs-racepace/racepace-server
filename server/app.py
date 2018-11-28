@@ -19,7 +19,7 @@ from dhooks import Webhook, Embed
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from core.route import Route
-from core.models import Overpass, Color, User
+from core.models import Overpass, Color, User, UserBase
 from core.decorators import jsonrequired, memoized, authrequired
 from core.utils import run_with_ngrok, snowflake
 
@@ -45,6 +45,7 @@ async def init(app, loop):
     app.session = aiohttp.ClientSession(loop=loop) # we use this to make web requests
     app.webhook = Webhook(os.getenv('webhook_url'), session=app.session, is_async=True)
     app.db = AsyncIOMotorClient(os.getenv('mongo_uri')).majorproject
+    app.users = UserBase(app)
 
     em = Embed(color=Color.green)
     em.set_author('[INFO] Starting Worker', url=app.ngrok_url)
@@ -125,13 +126,19 @@ async def update_user(request):
     data = request.json
     token = request.token
 
-    userID = jwt.decode(token, app.secret)['sub']
-    query = {"user_id":userID}
-    user = await User.find_account(app, **query)
     password = data.get('password')
+
+    user_id = jwt.decode(token, app.secret)['sub']
+
+    query = {"user_id": user_id}
+
+    user = await app.users.find_account(user_id=user_id)
+
     salt = bcrypt.gensalt()
+
     user.credentials.password = bcrypt.hashpw(password, salt)
-    await user.update_user(app.db)
+ 
+    await user.update()
 
     return json({'success': True})
 
@@ -140,7 +147,7 @@ async def update_user(request):
 async def register(request):
     """Register a user into the database"""
 
-    user = await User.register(request)
+    user = await app.users.register(request)
 
     return json({'success': True})
 
@@ -154,12 +161,12 @@ async def login(request):
 
     query = {'credentials.email': email}
 
-    account = await User.find_account(app, **query)
+    account = await app.users.find_account(**query)
 
     if account is None or not account.check_password(password):
         abort(403, 'Credentials invalid.')
 
-    token = await account.issue_token()
+    token = await app.users.issue_token(account)
 
     response = {
         'success': True,
@@ -178,7 +185,7 @@ async def route(request):
 ##<<<<<<< HEAD
 ##
 ##    query = {'credentials.token':request.token}
-##    user = User.find_account(request.app, query)
+##    user = app.users.find_account(request.app, query)
 ##=======
 ##>>>>>>> f2543c22b70a9f7a3f26d8ab96424616d4aec01f
 
