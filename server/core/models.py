@@ -110,9 +110,16 @@ class User:
             {'$set': {'credentials.password': self.credentials.password}})
 
 class Overpass:
-    BASE = 'http://overpass-api.de/api/interpreter?data=[out:json];'
-    NODE = BASE + 'node({});out;'
-    WAY = BASE + 'way({});out;'
+    BASE = 'http://overpass-api.de/api/interpreter?data='
+    REQ = BASE + '''
+[out:json];
+(
+    way
+        ["highway"!~"."]
+        (poly:"{}");
+    >;
+);
+out;'''.replace("\n","").replace("\t","")
 
 class Color:
     green = 0x2ecc71
