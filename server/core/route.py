@@ -57,7 +57,7 @@ class Point:
 
         return EARTH_RADIUS * c
 
-    def heuristic_distance(self, other: Point, hor_unit, vert_unit):
+    def heuristic_distance(self, other: Point, hor_unit: float, vert_unit: float):
         delta_lat = abs(self.latitude - other.latitude)
         delta_lon = abs(self.longitude - other.longitude)
         x_dist = hor_unit * delta_lon
@@ -67,7 +67,7 @@ class Point:
     def __iter__(self):
         return iter((self.latitude, self.longitude))
 
-    def __sub__(self, other) -> int:
+    def __sub__(self, other: Point) -> int:
         """
         Another way to call the distance function
         >>> point1 - point2
@@ -86,7 +86,7 @@ class Node:
         return self.id == other.id
 
     @staticmethod
-    def json_to_nodes(json_nodes):
+    def json_to_nodes(json_nodes: dict):
         nodes = json_nodes['elements']
         formatted_nodes = {node['id']: Node.from_json(node) for node in nodes}
         return formatted_nodes
@@ -145,9 +145,8 @@ class Route:
         return vert_unit,hor_unit
 
     @classmethod
-    def square_bounding(cls,length,width,location):
+    def square_bounding(cls,length,width,location,vert_unit,hor_unit):
         latitude,longitude = location
-        vert_unit,hor_unit = cls.get_coordinate_units(location)
         lat_unit = (width/2) / hor_unit
         lon_unit = (length/2) / vert_unit
         la1 = latitude - lat_unit
@@ -169,8 +168,7 @@ class Route:
                 node_neighbours = set()
                 if (index - 1) > 0: node_neighbours.add(way_nodes[index - 1])
                 if (index + 1) < len(way_nodes): node_neighbours.add(way_nodes[index + 1])
-                if node not in neighbours:
-                    neighbours[node] = set()
+                if node not in neighbours: neighbours[node] = set()
                 neighbours[node] |= node_neighbours
         return neighbours
 
@@ -230,9 +228,14 @@ class Route:
                 else: current = next_node
 
         heuristic_cost, fastest_route = path_dict[end_id]
+        actual_distance = cls.get_route_distance(fastest_route,nodes)
+        return cls(fastest_route,actual_distance)
+
+    @staticmethod
+    def get_route_distance(fastest_route,nodes):
         route_points = [nodes[node_id].point for node_id in fastest_route]
         actual_distance = sum(route_points[index]-route_points[index+1] for index in range(len(route_points)-1))
-        return cls(fastest_route,actual_distance)
+        return actual_distance
 
     async def save_route(self, db, userid):
         #Adds to database of routes

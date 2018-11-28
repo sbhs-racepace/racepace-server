@@ -3,7 +3,8 @@ from mockdata.data_generation import data_generation
 import json
 
 location = Point(-33.8796735,151.2053924)
-bounding_box = Route.square_bounding(1000,1000,location)
+vert_unit,hor_unit = Route.get_coordinate_units(location)
+bounding_box = Route.square_bounding(1000,1000,location,vert_unit,hor_unit)
 # data_generation(bounding_box)
 
 with open('ways.json') as f:
@@ -17,9 +18,9 @@ nodes = Node.json_to_nodes(nodedata)
 
 #Need to add function that checks if you can actually get to this coordinate
 
-start = 8109379
-end   = 8109400
+start_id = 8109379
+end_id   = 8109400
 
-route = Route.generate_route(nodes, ways, start, end)
-print(nodes[start].point - nodes[end].point)
+route = Route.generate_route(nodes, ways, start_id, end_id)
+print(nodes[start_id].point - nodes[end_id].point)
 print(route.route, route.distance)
