@@ -124,7 +124,7 @@ async def update_user(request):
     """Change password"""
     data = request.json
     token = request.token
-    
+
     userID = jwt.decode(token, app.secret)['sub']
     query = {"user_id":userID}
     user = await User.find_account(app, **query)

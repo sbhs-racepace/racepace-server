@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import math
 import copy
 import json
@@ -57,6 +56,13 @@ class Point:
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
         return EARTH_RADIUS * c
+
+    def heuristic_distance(self, other: Point, hor_unit, vert_unit):
+        delta_lat = abs(self.latitude - other.latitude)
+        delta_lon = abs(self.longitude - other.longitude)
+        x_dist = hor_unit * delta_lon
+        y_dist = vert_unit * delta_lat
+        return x_dist**2 + y_dist**2
 
     def __iter__(self):
         return iter((self.latitude, self.longitude))
@@ -136,12 +142,12 @@ class Route:
         latitude,longitude = location
         vert_unit = location - Point(latitude,longitude + 1)
         hor_unit  = location - Point(latitude + 1,longitude)
-        return hor_unit,vert_unit
+        return vert_unit,hor_unit
 
     @classmethod
     def square_bounding(cls,length,width,location):
         latitude,longitude = location
-        hor_unit,vert_unit = cls.get_coordinate_units(location)
+        vert_unit,hor_unit = cls.get_coordinate_units(location)
         lat_unit = (width/2) / hor_unit
         lon_unit = (length/2) / vert_unit
         la1 = latitude - lat_unit
@@ -177,7 +183,7 @@ class Route:
         return cls(routeID, **route['route'])
 
     @classmethod
-    def generate_route(cls, nodes: dict, ways: dict, start: int, end: int, preferences: dict=None) -> Route:
+    def generate_route(cls, nodes: dict, ways: dict, start_id: int, end_id: int, preferences: dict=None) -> Route:
         """
         Generates the shortest route to a destination
         Uses A* with euclidean distance as heuristic
@@ -187,45 +193,46 @@ class Route:
         visited = set()
         path_dict = dict((node,(inf,[node])) for node in nodes)
         neighbours = cls.find_neighbours(ways)
-        path_dict[start] = (0,[start])
+        path_dict[start_id] = (0,[start_id])
+        vert_unit,hor_unit = cls.get_coordinate_units(nodes[start_id].point)
+        end_point = nodes[end_id].point
 
-        if end not in nodes: raise Exception('End node not in node space. Specify a valid node.')
-        elif start not in nodes: raise Exception('End node not in node space. Specify a valid node.')
-        elif end not in neighbours or start not in neighbours: raise Exception('No connecting neighbour')
-        else: current = start
+        if end_id not in nodes: raise Exception('End node not in node space. Specify a valid node.')
+        elif start_id not in nodes: raise Exception('End node not in node space. Specify a valid node.')
+        elif end_id not in neighbours or start_id not in neighbours: raise Exception('No connecting neighbour')
+        else: current = start_id
 
         while True:
+            current_point = nodes[current].point
             current_cost,current_path = path_dict[current]
             current_neighbours = neighbours[current]
             for neighbour in current_neighbours:
                 if neighbour in unvisited:
                     neighbour_cost,neighbour_path = path_dict[neighbour]
-                    relative_distance = nodes[current].point - nodes[neighbour].point
-                    # Added tag cost based on preferences of tags and distance as a scaling factor
-                    #neighbour_tags = nodes[neighbour].tags
-                    tag_cost = 0 #relative_distance * sum(preferences[tag] for tag in neighbour_tags)
-                    new_cost = relative_distance + current_cost + tag_cost
+                    neighbour_point = nodes[neighbour].point
+                    heuristic_distance = current_point.heuristic_distance(neighbour_point,vert_unit,hor_unit)
+                    tag_cost = 0 #heuristic_distance * sum(preferences[tag] for tag in neighbour_tags)
+                    new_cost = heuristic_distance + current_cost + tag_cost
                     if new_cost < neighbour_cost:
                         path_dict[neighbour] = (new_cost,current_path + [neighbour])
             unvisited.remove(current)
             visited.add(current)
-            if end in visited:
-                break
+            if end_id in visited: break
             else:
-                min_value,next_node = inf, None
+                min_cost,next_node = inf, None
                 for node_id in unvisited:
                     current_distance,path = path_dict[node_id]
-                    #Heuristic value uses distance to endpoint to judge closenss
-                    heuristic_value = nodes[node_id].point - nodes[end].point
-                    current_value = current_distance + heuristic_value
-                    if current_value < min_value: min_value,next_node = current_value,node_id
-                if min_value == inf:
-                    raise Exception("End node cannot be reached")
-                else:
-                    current = next_node
+                    current_point = nodes[node_id].point
+                    heuristic_distance = end_point.heuristic_distance(current_point,vert_unit,hor_unit)
+                    current_cost = current_distance + heuristic_distance
+                    if current_cost < min_cost: min_cost,next_node = current_cost,node_id
+                if min_cost == inf: raise Exception("End node cannot be reached")
+                else: current = next_node
 
-        route_distance, fastest_route = path_dict[end]
-        return cls(fastest_route,route_distance)
+        heuristic_cost, fastest_route = path_dict[end_id]
+        route_points = [nodes[node_id].point for node_id in fastest_route]
+        actual_distance = sum(route_points[index]-route_points[index+1] for index in range(len(route_points)-1))
+        return cls(fastest_route,actual_distance)
 
     async def save_route(self, db, userid):
         #Adds to database of routes

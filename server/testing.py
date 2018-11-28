@@ -21,4 +21,5 @@ start = 8109379
 end   = 8109400
 
 route = Route.generate_route(nodes, ways, start, end)
+print(nodes[start].point - nodes[end].point)
 print(route.route, route.distance)
