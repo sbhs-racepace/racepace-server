@@ -14,6 +14,7 @@ from sanic import Sanic
 from sanic.exceptions import SanicException, ServerError, abort
 from sanic.response import json
 from sanic.log import logger
+from dhooks import Webhook, Embed
 
 from motor.motor_asyncio import AsyncIOMotorClient
 
@@ -21,7 +22,6 @@ from core.route import Route
 from core.models import Overpass, Color, User
 from core.decorators import jsonrequired, memoized, authrequired
 from core.utils import run_with_ngrok, snowflake
-from core.discord import Embed, Webhook
 
 dev_mode = bool(int(os.getenv('development'))) # decides wether to deploy on server or run locally
 

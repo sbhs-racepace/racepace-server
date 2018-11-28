@@ -10,6 +10,7 @@ aiohttp = "*"
 py-bcrypt = "*"
 motor = "*"
 pyjwt = "*"
+dhooks = "*"
 
 [dev-packages]
 requests = "*"
