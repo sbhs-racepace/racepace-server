@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import math
 import copy
 import json
@@ -58,10 +57,17 @@ class Point:
 
         return EARTH_RADIUS * c
 
+    def heuristic_distance(self, other: Point, hor_unit: float, vert_unit: float):
+        delta_lat = abs(self.latitude - other.latitude)
+        delta_lon = abs(self.longitude - other.longitude)
+        x_dist = hor_unit * delta_lon
+        y_dist = vert_unit * delta_lat
+        return x_dist**2 + y_dist**2
+
     def __iter__(self):
         return iter((self.latitude, self.longitude))
 
-    def __sub__(self, other) -> int:
+    def __sub__(self, other: Point) -> int:
         """
         Another way to call the distance function
         >>> point1 - point2
@@ -73,20 +79,26 @@ class Point:
 class Node:
     def __init__(self, point: Point, id: str):
         self.id = id
-        self.pos = point
+        self.point = point
         self.ways = set()
 
     def __eq__(self, other: Point):
         return self.id == other.id
 
+    @staticmethod
+    def json_to_nodes(json_nodes: dict):
+        nodes = json_nodes['elements']
+        formatted_nodes = {node['id']: Node.from_json(node) for node in nodes}
+        return formatted_nodes
+
     @classmethod
     def from_json(cls, nodedata: dict) -> Node:
         position = Point(nodedata['lat'], nodedata['lon'])
-        return cls(nodedata['id'], position)
+        return cls(position, nodedata['id'])
 
     def closest_node(self, nodes: dict) -> Node:
         """Returns the closest node from a list of nodes"""
-        nodes = sorted(nodes.values(), key=lambda n: n.pos - self.pos)
+        nodes = sorted(nodes.values(), key=lambda n: n.point - self.point)
         closest_node = nodes[0]
         return closest_node
 
@@ -98,7 +110,14 @@ class Way:
 
     @classmethod
     def from_json(cls, way: dict):
-        return cls(way['nodes'], way['id'], way['tags'])
+        tags = way['tags'] if 'tags' in way else {}
+        return cls(way['nodes'], way['id'], tags)
+
+    @staticmethod
+    def json_to_ways(json_ways):
+        ways = json_ways['elements']
+        formatted_ways = {way['id']:Way.from_json(way) for way in ways}
+        return formatted_ways
 
 class Route:
     def __init__(self, route: list, distance: int, routeID=None):
@@ -116,6 +135,28 @@ class Route:
         }
 
     @staticmethod
+    def get_coordinate_units(location):
+        '''
+        Coordinate unit in terms of metres for localized area
+        '''
+        latitude,longitude = location
+        vert_unit = location - Point(latitude,longitude + 1)
+        hor_unit  = location - Point(latitude + 1,longitude)
+        return vert_unit,hor_unit
+
+    @classmethod
+    def square_bounding(cls,length,width,location,vert_unit,hor_unit):
+        latitude,longitude = location
+        lat_unit = (width/2) / hor_unit
+        lon_unit = (length/2) / vert_unit
+        la1 = latitude - lat_unit
+        lo1 = longitude - lon_unit
+        la2 = latitude + lat_unit
+        lo2 = longitude + lon_unit
+        bounding_coords = ','.join(list(map(str,[la1,lo1,la2,lo2])))
+        return bounding_coords
+
+    @staticmethod
     def find_neighbours(ways: dict) -> dict:
         """
         Generates neighbours for every node in provided ways
@@ -127,8 +168,7 @@ class Route:
                 node_neighbours = set()
                 if (index - 1) > 0: node_neighbours.add(way_nodes[index - 1])
                 if (index + 1) < len(way_nodes): node_neighbours.add(way_nodes[index + 1])
-                if node not in neighbours:
-                    neighbours[node] = set()
+                if node not in neighbours: neighbours[node] = set()
                 neighbours[node] |= node_neighbours
         return neighbours
 
@@ -141,7 +181,7 @@ class Route:
         return cls(routeID, **route['route'])
 
     @classmethod
-    def generate_route(cls, nodes: dict, ways: dict, start: int, end: int, preferences: dict=None) -> Route:
+    def generate_route(cls, nodes: dict, ways: dict, start_id: int, end_id: int, preferences: dict=None) -> Route:
         """
         Generates the shortest route to a destination
         Uses A* with euclidean distance as heuristic
@@ -151,46 +191,51 @@ class Route:
         visited = set()
         path_dict = dict((node,(inf,[node])) for node in nodes)
         neighbours = cls.find_neighbours(ways)
-        path_dict[start] = (0,[start])
+        path_dict[start_id] = (0,[start_id])
+        vert_unit,hor_unit = cls.get_coordinate_units(nodes[start_id].point)
+        end_point = nodes[end_id].point
 
-        if end not in nodes: raise Exception('End node not in node space. Specify a valid node.')
-        elif start not in nodes: raise Exception('End node not in node space. Specify a valid node.')
-        else: current = start
+        if end_id not in nodes: raise Exception('End node not in node space. Specify a valid node.')
+        elif start_id not in nodes: raise Exception('End node not in node space. Specify a valid node.')
+        elif end_id not in neighbours or start_id not in neighbours: raise Exception('No connecting neighbour')
+        else: current = start_id
 
         while True:
+            current_point = nodes[current].point
             current_cost,current_path = path_dict[current]
             current_neighbours = neighbours[current]
             for neighbour in current_neighbours:
                 if neighbour in unvisited:
                     neighbour_cost,neighbour_path = path_dict[neighbour]
-                    relative_distance = nodes[current].pos - nodes[neighbour].pos
-                    # Added tag cost based on preferences of tags and distance as a scaling factor
-                    #neighbour_tags = nodes[neighbour].tags
-                    tag_cost = 0 #relative_distance * sum(preferences[tag] for tag in neighbour_tags)
-
-                    new_cost = relative_distance + current_cost + tag_cost
+                    neighbour_point = nodes[neighbour].point
+                    heuristic_distance = current_point.heuristic_distance(neighbour_point,vert_unit,hor_unit)
+                    tag_cost = 0 #heuristic_distance * sum(preferences[tag] for tag in neighbour_tags)
+                    new_cost = heuristic_distance + current_cost + tag_cost
                     if new_cost < neighbour_cost:
                         path_dict[neighbour] = (new_cost,current_path + [neighbour])
             unvisited.remove(current)
             visited.add(current)
-            if end in visited:
-                break
+            if end_id in visited: break
             else:
-                min_value,next_node = inf, None
+                min_cost,next_node = inf, None
                 for node_id in unvisited:
                     current_distance,path = path_dict[node_id]
-                    #Heuristic value uses distance to endpoint to judge closenss
-                    heuristic_value = nodes[node_id].pos - nodes[end].pos
+                    current_point = nodes[node_id].point
+                    heuristic_distance = end_point.heuristic_distance(current_point,vert_unit,hor_unit)
+                    current_cost = current_distance + heuristic_distance
+                    if current_cost < min_cost: min_cost,next_node = current_cost,node_id
+                if min_cost == inf: raise Exception("End node cannot be reached")
+                else: current = next_node
 
-                    current_value = current_distance + heuristic_value
-                    if current_value < min_value: min_value,next_node = current_value,node_id
-                if min_value == inf:
-                    raise Exception("End node cannot be reached")
-                else:
-                    current = next_node
+        heuristic_cost, fastest_route = path_dict[end_id]
+        actual_distance = cls.get_route_distance(fastest_route,nodes)
+        return cls(fastest_route,actual_distance)
 
-        route_distance, fastest_route = path_dict[end]
-        return cls(fastest_route,route_distance)
+    @staticmethod
+    def get_route_distance(fastest_route,nodes):
+        route_points = [nodes[node_id].point for node_id in fastest_route]
+        actual_distance = sum(route_points[index]-route_points[index+1] for index in range(len(route_points)-1))
+        return actual_distance
 
     async def save_route(self, db, userid):
         #Adds to database of routes
@@ -204,18 +249,4 @@ class Route:
         self.id = await db.routes.insert_one(document).inserted_id
 
 if __name__ == '__main__':
-    with open('ways.json') as f:
-        waydata = json.load(f).get('elements')
-
-    with open('nodes.json') as f:
-        nodedata = json.load(f).get('elements')
-
-    ways = {w['id']: Way.from_json(w) for w in waydata}
-    nodes = {n['id']: Node.from_json(n) for n in nodedata}
-
-    start = 1741123995
-    end   = 1741124011
-
-    route = Route.generate_route(nodes, ways, start, end)
-
-    print(route.route, route.distance)
+    pass

@@ -1,4 +1,3 @@
-
 from functools import wraps
 from sanic.exceptions import abort
 import time
@@ -16,7 +15,7 @@ async def validate_token(request):
             'credentials.token': request.token
             })
     return exists is not None
-    
+
 def authrequired(func):
     @wraps(func)
     @jsonrequired
@@ -38,7 +37,7 @@ def memoized(func):
 
 def timed(f):
     """Decorator that prints out the time taken for a function to execute."""
-    
+
     coro = inspect.iscoroutinefunction(f)
 
     @wraps(f)
@@ -58,5 +57,5 @@ def timed(f):
         time_taken = (time2-time1)*1000.0
         print(f'{f.__name__:s} function took {time_taken:.3f} ms')
         return ret
-    
+
     return async_wrapper if coro else wrapper

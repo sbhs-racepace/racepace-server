@@ -79,7 +79,7 @@ async def sanic_exception(request, exception):
 
 @app.exception(Exception)
 async def on_error(request, exception):
-    
+
     response = {
         'success': False,
         'error': str(exception)
@@ -91,16 +91,16 @@ async def on_error(request, exception):
         except:
             excstr = traceback.format_exc()
             print(excstr)
-            
+
         if len(excstr) > 1000:
-            excstr = excstr[:1000] 
+            excstr = excstr[:1000]
 
         em = Embed(color=Color.red)
         em.set_author('[ERROR] Exception occured on server')
         em.description = f'```py\n{excstr}```'
         em.set_footer(f'Host: {socket.gethostname()}')
         app.add_task(app.webhook.send(embeds=em))
-        
+
     return json(response, status=500)
 
 @app.get('/')
@@ -111,19 +111,29 @@ async def index(request):
         'success': True,
         'endpoints' : [
             '/api/route',
-            '/api/register']
+            '/api/users/update',
+            '/api/register',
+            '/api/login']
         }
 
     return json(data)
 
-async def find_account(email):
-    data = await app.db.users.find_one({'email': email})
-    return data
-
-@app.patch('/api/users/<user_id>/update')
+@app.post('/api/users/update')
 @authrequired
-async def update_user(request, user_id):
-    return NotImplemented
+async def update_user(request):
+    """Change password"""
+    data = request.json
+    token = request.token
+
+    userID = jwt.decode(token, app.secret)['sub']
+    query = {"user_id":userID}
+    user = await User.find_account(app, **query)
+    password = data.get('password')
+    salt = bcrypt.gensalt()
+    user.credentials.password = bcrypt.hashpw(password, salt)
+    await user.update_user(app.db)
+
+    return json({'success': True})
 
 @app.post('/api/register')
 @jsonrequired
@@ -145,7 +155,7 @@ async def login(request):
     query = {'credentials.email': email}
 
     account = await User.find_account(app, **query)
-    
+
     if account is None or not account.check_password(password):
         abort(403, 'Credentials invalid.')
 
@@ -153,7 +163,7 @@ async def login(request):
 
     response = {
         'success': True,
-        'token': token
+        'token': token.decode("utf-8")
     }
 
     return json(response)
@@ -165,25 +175,28 @@ async def route(request):
     '''Api endpoint to generate the route'''
 
     data = request.json
+##<<<<<<< HEAD
+##
+##    query = {'credentials.token':request.token}
+##    user = User.find_account(request.app, query)
+##=======
+##>>>>>>> f2543c22b70a9f7a3f26d8ab96424616d4aec01f
 
     preferences = data.get('preferences')
-    bounding_box = data.get('bounding_box')
+    bounding_box = data.get('bounding_box') #Coords seperated by spaces
     start = data.get('start') #Lat + Lon seperated by comma
     end = data.get('end')
 
-    response = {
-        'success': True,
-        'data': None
-        }
-        
-    node_endpoint = Overpass.NODE.format(bounding_box)
-    way_endpoint = Overpass.WAY.format(bounding_box)
+    url = Overpass.REQ.format(bounding_box) #Generate url to query api
+    map_data = await fetch(url)
 
-    tasks = [fetch(node_endpoint), fetch(way_endpoint)]
-    nodedata, waydata = await asyncio.gather(*tasks) # concurrently make the two api calls
+    #Find where the node data ends and way data starts
+    for i,element in enumerate(resp['elements']):
+        if element['type']=="way":
+            break
 
-    nodes = {n['id']: Node.from_json(n) for n in nodedata['elements']}
-    ways = {w['id']: Way.from_json(w) for w in waydata['elements']}
+    nodes = {n['id']: Node.from_json(n) for n in resp['elements'][:i]}
+    ways = {w['id']: Way.from_json(w) for w in resp['elements'][i:]}
 
     route = Route.generate_route(nodes, ways, start, end)
     return json(route.json)
