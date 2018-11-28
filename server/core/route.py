@@ -4,7 +4,7 @@ import copy
 import json
 from math import inf
 
-EARTH_RADIUS = 6371000 #In metres
+EARTH_RADIUS = 6371000
 
 class Point:
     """
@@ -22,7 +22,7 @@ class Point:
         self.latitude = float(latitude)
         self.longitude = float(longitude)
 
-    def distance(self, other: Point) -> int:
+    def distance(self, other: Point) -> float:
         """
         Uses spherical geometry to calculate the surface distance between two points.
 
@@ -36,13 +36,10 @@ class Point:
         int
             The calculated distance in kilometers
         """
-
         lat1, lon1 = self
         lat2, lon2 = other
-
         dlat = math.radians(lat2 - lat1)
         dlon = math.radians(lon2 - lon1)
-
         a = (
             math.sin(dlat / 2)
             * math.sin(dlat / 2)
@@ -51,12 +48,13 @@ class Point:
             * math.sin(dlon / 2)
             * math.sin(dlon / 2)
             )
-
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-
         return EARTH_RADIUS * c
 
-    def heuristic_distance(self, other: Point, hor_unit: float, vert_unit: float):
+    def heuristic_distance(self, other: Point, hor_unit: float, vert_unit: float) -> float:
+        """
+        Heuristic value based on euclidean distance on geo units
+        """
         delta_lat = abs(self.latitude - other.latitude)
         delta_lon = abs(self.longitude - other.longitude)
         x_dist = hor_unit * delta_lon
@@ -85,7 +83,8 @@ class Node(Point): #TODO add inheritance from point class to make simpler
         return self.id == other.id
 
     @staticmethod
-    def json_to_nodes(json_nodes: dict):
+    def json_to_nodes(json_nodes: dict) -> dict:
+        """Returns node of json format to dict format"""
         nodes = json_nodes['elements']
         formatted_nodes = {node['id']: Node.from_json(node) for node in nodes}
         return formatted_nodes
@@ -95,8 +94,8 @@ class Node(Point): #TODO add inheritance from point class to make simpler
         return cls(nodedata['lat'], nodedata['lon'], nodedata['id'])
 
     def closest_node(self, nodes: dict) -> Node:
-        """Returns the closest node from a list of nodes"""
-        nodes = sorted(nodes.values(), key=lambda n: n.point - self.point)
+        """Returns the closest node from a dict of nodes"""
+        nodes = sorted(nodes.values(), key=lambda other: other - self)
         closest_node = nodes[0]
         return closest_node
 
@@ -143,7 +142,7 @@ class Route:
         return vert_unit,hor_unit
 
     @classmethod
-    def square_bounding(cls,length,width,location,vert_unit,hor_unit):
+    def square_bounding(cls,length:float,width:float,location:Node,vert_unit:float,hor_unit:float)-> str:
         latitude,longitude = location
         lat_unit = (width/2) / hor_unit
         lon_unit = (length/2) / vert_unit
@@ -231,7 +230,7 @@ class Route:
         return cls(fastest_route,actual_distance)
 
     @staticmethod
-    def get_route_distance(fastest_route,nodes):
+    def get_route_distance(fastest_route:list,nodes:dict)-> float:
         route_points = [nodes[node_id] for node_id in fastest_route]
         actual_distance = sum(route_points[index]-route_points[index+1] for index in range(len(route_points)-1))
         return actual_distance
