@@ -73,7 +73,7 @@ class Point:
         return self.distance(other)
 
 
-class Node(Point): #TODO add inheritance from point class to make simpler
+class Node(Point):
     def __init__(self, latitude: float, longitude: float, id: str):
         Point.__init__(self,latitude,longitude)
         self.id = id
@@ -192,7 +192,7 @@ class Route:
         vert_unit,hor_unit = cls.get_coordinate_units(nodes[start_id])
         end_point = nodes[end_id]
 
-        if end_id not in nodes: raise Exception('End node not in node space. Specify a valid node.')
+        if end_id not in nodes:     raise Exception('End node not in node space. Specify a valid node.')
         elif start_id not in nodes: raise Exception('End node not in node space. Specify a valid node.')
         elif end_id not in neighbours or start_id not in neighbours: raise Exception('No connecting neighbour')
         else: current = start_id
@@ -226,7 +226,6 @@ class Route:
 
         heuristic_cost, fastest_route = path_dict[end_id]
         actual_distance = cls.get_route_distance(fastest_route,nodes)
-        print(len(path_dict))
         return cls(fastest_route,actual_distance)
 
     @staticmethod
