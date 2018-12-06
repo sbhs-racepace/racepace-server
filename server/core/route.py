@@ -73,7 +73,7 @@ class Point:
         return self.distance(other)
 
 
-class Node(Point): #TODO add inheritance from point class to make simpler
+class Node(Point):
     def __init__(self, latitude: float, longitude: float, id: str):
         Point.__init__(self,latitude,longitude)
         self.id = id
@@ -133,9 +133,7 @@ class Route:
 
     @staticmethod
     def get_coordinate_units(location):
-        '''
-        Coordinate unit in terms of metres for localized area
-        '''
+        """Coordinate unit in terms of metres for localized area"""
         latitude,longitude = location
         vert_unit = location - Point(latitude,longitude + 1)
         hor_unit  = location - Point(latitude + 1,longitude)

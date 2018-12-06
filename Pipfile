@@ -11,6 +11,7 @@ py-bcrypt = "*"
 motor = "*"
 pyjwt = "*"
 dhooks = "*"
+python-decouple = "*"
 
 [dev-packages]
 requests = "*"

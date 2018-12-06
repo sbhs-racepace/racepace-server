@@ -7,7 +7,6 @@ import requests
 import time
 import random
 
-
 EPOCH = 946702800
 
 TIMESTAMP_LENGTH = 41
@@ -58,7 +57,6 @@ def parse_snowflake(flake):
 def stop_ngrok(ngrok):
     logger.info('Ngrok tunnel closed.')
     ngrok.terminate()
-
 
 def start_ngrok():
     '''Starts ngrok and returns the tunnel url'''
