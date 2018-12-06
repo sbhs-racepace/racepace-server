@@ -9,6 +9,7 @@ import sys
 import aiohttp
 import bcrypt
 import jwt
+import xml.etree.ElementTree as ET
 
 from sanic import Sanic
 from sanic.exceptions import SanicException, ServerError, abort
@@ -17,7 +18,7 @@ from sanic.log import logger
 
 from motor.motor_asyncio import AsyncIOMotorClient
 
-from core.route import Route
+from core.route import Route, Point
 from core.models import Overpass, Color, User
 from core.decorators import jsonrequired, memoized, authrequired
 from core.utils import run_with_ngrok, snowflake
@@ -28,6 +29,7 @@ dev_mode = bool(int(os.getenv('development'))) # decides wether to deploy on ser
 status_icon = 'http://icons-for-free.com/free-icons/png/250/353838.png'
 
 app = Sanic('majorproject')
+import_codes = {}
 
 if len(sys.argv) > 1 and sys.argv[1] == '-ngrok':
     run_with_ngrok(app)
@@ -168,38 +170,62 @@ async def login(request):
 
     return json(response)
 
-@app.get('/api/route')
+@app.post('/api/route')
 @memoized
 @authrequired
 async def route(request):
     '''Api endpoint to generate the route'''
 
     data = request.json
-##<<<<<<< HEAD
-##
-##    query = {'credentials.token':request.token}
-##    user = User.find_account(request.app, query)
-##=======
-##>>>>>>> f2543c22b70a9f7a3f26d8ab96424616d4aec01f
 
     preferences = data.get('preferences')
     bounding_box = data.get('bounding_box') #Coords seperated by spaces
     start = data.get('start') #Lat + Lon seperated by comma
     end = data.get('end')
 
-    url = Overpass.REQ.format(bounding_box) #Generate url to query api
+    url = Overpass.ALL.format(bounding_box) #Generate url to query api
     map_data = await fetch(url)
 
     #Find where the node data ends and way data starts
-    for i,element in enumerate(resp['elements']):
+    for i,element in enumerate(map_data['elements']):
         if element['type']=="way":
             break
 
-    nodes = {n['id']: Node.from_json(n) for n in resp['elements'][:i]}
-    ways = {w['id']: Way.from_json(w) for w in resp['elements'][i:]}
+    nodes = {n['id']: Node.from_json(n) for n in map_data['elements'][:i]}
+    ways = {w['id']: Way.from_json(w) for w in map_data['elements'][i:]}
 
     route = Route.generate_route(nodes, ways, start, end)
     return json(route.json)
+
+@app.post('api/importGPX')
+async def importGPX(request):
+    data = request.json
+    if data.get('usercode') in import_codes:
+        userID = import_codes[data.get('usercode')]
+    elif request.token:
+        userID = jwt.decode(request.token, app.secret)['sub']
+    else:
+        abort(401, "No token or usercode supplied")
+    
+    #Read GPX file and convert coords to floats
+    file = request.files.get('gpx')
+    root = ET.fromstring(file.body)
+    trk = root.getchildren()[1].getchildren()[1]
+    trk = [(float(pt.get('lat')),float(pt.get('lon')))
+           for pt in trk]
+
+    #Work out the bounding box and download the node data for that area
+    bound1 = " ".join(max(trk, key=lambda pt: pt[0]))
+    bound2 = " ".join(min(trk, key=lambda pt: pt[0]))
+    bound3 = " ".join(max(trk, key=lambda pt: pt[1]))
+    bound4 = " ".join(min(trk, key=lambda pt: pt[1]))
+    bounding_box = " ".join((bound1,bound2,bound3,bound4))
+    url = Overpass.NODES.format(bounding_box)
+    nodes = await fetch(url)
+
+    #Create a route object
+    route = Route.from_GPX(nodes, trk)
+    route.save_route(app.db, userID)
 
 if __name__ == '__main__':
     app.run() if dev_mode else app.run(host=os.getenv('host'), port=80)

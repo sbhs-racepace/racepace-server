@@ -18,18 +18,19 @@ class Credentials:
     token: str = None
 
 class User:
-    def __init__(self, app, user_id, email, password, token=None):
+    def __init__(self, app, user_id, name, email, password, token=None):
         self.app = app
         self.id = user_id
-        self.name = None
+        self.name = name
         self.credentials = Credentials(email, password, token)
 
     @classmethod
     def from_data(cls, app, data):
         user_id = data['user_id']
+        name = data['name']
         credentials = data['credentials']
         email, password, token = credentials.values()
-        user = cls(app, user_id, email, password, token)
+        user = cls(app, user_id, name, email, password, token)
         return user
 
     @classmethod
@@ -40,6 +41,7 @@ class User:
 
         email = data.get('email')
         password = data.get('password')
+        name = data.get('name')
 
         query = {'credentials.email': email}
         exists = await cls.find_account(app, **query)
@@ -50,6 +52,7 @@ class User:
 
         document = {
             "user_id": snowflake(),
+            "name": name,
             "routes": {},
             "credentials": {
                 "email": email,
@@ -111,7 +114,7 @@ class User:
 
 class Overpass:
     BASE = 'http://overpass-api.de/api/interpreter?data='
-    REQ = BASE + '''
+    ALL = BASE + '''
 [out:json];
 (
     way
@@ -119,6 +122,11 @@ class Overpass:
         (poly:"{}");
     >;
 );
+out;'''.replace("\n","").replace("\t","")
+
+    NODES = BASE + '''
+[out:json];
+node(poly:"{}");
 out;'''.replace("\n","").replace("\t","")
 
 class Color:
