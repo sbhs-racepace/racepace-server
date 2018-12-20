@@ -4,7 +4,7 @@ import json
 
 location = Point(-33.8796735,151.2053924)
 vert_unit,hor_unit = Route.get_coordinate_units(location)
-bounding_box = Route.square_bounding(1000,1000,location,vert_unit,hor_unit)
+bounding_box = Route.square_bounding(location,1000,1000,vert_unit,hor_unit)
 # Creates test json files
 # data_generation(bounding_box)
 
@@ -25,5 +25,3 @@ with open('mock_data/nodes.json') as f:
 # route = Route.generate_route(nodes, ways, start_id, end_id)
 # print(nodes[start_id] - nodes[end_id])
 # print(route.route, route.distance)
-
-

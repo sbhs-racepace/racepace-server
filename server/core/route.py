@@ -155,7 +155,8 @@ class Route:
         return vert_unit, hor_unit
 
     @classmethod
-    def square_bounding(cls,length:float,width:float,location:Point,vert_unit:float,hor_unit:float)-> str:
+    def square_bounding(cls,location:Point,length:float,width:float)-> str:
+        vert_unit,hor_unit = cls.get_coordinate_units(location)
         latitude,longitude = location
         lat_unit = (width/2) / vert_unit
         lon_unit = (length/2) / hor_unit
