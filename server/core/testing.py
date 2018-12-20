@@ -1,16 +1,17 @@
-from core.route import *
-from mockdata.data_generation import data_generation
+from route import *
+from mock_data.data_generation import data_generation
 import json
 
 location = Point(-33.8796735,151.2053924)
 vert_unit,hor_unit = Route.get_coordinate_units(location)
 bounding_box = Route.square_bounding(1000,1000,location,vert_unit,hor_unit)
+# Creates test json files
 # data_generation(bounding_box)
 
-with open('ways.json') as f:
+with open('mock_data/ways.json') as f:
     waydata = json.load(f)
 
-with open('nodes.json') as f:
+with open('mock_data/nodes.json') as f:
     nodedata = json.load(f)
 
 ways = Way.json_to_ways(waydata)
