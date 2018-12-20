@@ -72,11 +72,19 @@ class Point:
         """
         return self.distance(other)
 
+    def __repr__(self):
+        return f'{self.latitude},{self.longitude}'
+
     def closest_node(self, nodes: dict) -> Node:
         """Returns the closest node from a dict of nodes"""
         nodes = sorted(nodes.values(), key=lambda other: other - self)
         closest_node = nodes[0]
         return closest_node
+
+    def get_midpoint(self, other) -> Point:
+        delta_lat = (other.latitude - self.latitude) / 2
+        delta_lon = (other.longitude - self.longitude) / 2
+        return Point(self.latitude + delta_lat,self.longitude + delta_lon)
 
 class Node(Point):
     def __init__(self, latitude: float, longitude: float, id: str):
@@ -132,17 +140,20 @@ class Route:
 
     @staticmethod
     def get_coordinate_units(location):
-        """Coordinate unit in terms of metres for localized area"""
+        """Coordinate unit in terms of metres for localized area
+        Horizontal Unit is distance for 1 unit of longitude
+        Vertical Unit is distance for 1 unit of latitude
+        """
         latitude,longitude = location
-        vert_unit = location - Point(latitude,longitude + 1)
-        hor_unit  = location - Point(latitude + 1,longitude)
+        hor_unit  = location - Point(latitude,longitude + 1)
+        ver_unit  = location - Point(latitude + 1,longitude)
         return vert_unit,hor_unit
 
     @classmethod
     def square_bounding(cls,length:float,width:float,location:Point,vert_unit:float,hor_unit:float)-> str:
         latitude,longitude = location
-        lat_unit = (width/2) / hor_unit
-        lon_unit = (length/2) / vert_unit
+        lat_unit = (width/2) / vert_unit
+        lon_unit = (length/2) / hor_unit
         la1 = latitude - lat_unit
         lo1 = longitude - lon_unit
         la2 = latitude + lat_unit
@@ -250,4 +261,8 @@ class Route:
         self.id = await db.routes.insert_one(document).inserted_id
 
 if __name__ == '__main__':
+    a = Point(-33.952657, 151.083532)
+    b = Point(-33.963656, 151.092778)
+    c = a.get_midpoint(b)
+    print(c)
     pass
