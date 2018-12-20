@@ -20,11 +20,9 @@ async def route(request):
     start = Point.from_string(data.get('start'))
     end = Point.from_string(data.get('end'))
 
-    length = width = int(data.get('size'))
-    location = Point(*data.get('location').split(','))
-
-    vert_unit, hor_unit = Route.get_coordinate_units(location)
-    bounding_box = Route.square_bounding(length, width, location, vert_unit, hor_unit)
+    midpoint = start.get_midpoint(end)
+    length = width = (start - end) * 2
+    bounding_box = Route.square_bounding(midpoint, length, width)
 
     nodes_enpoint = Overpass.NODE.format(bounding_box) #Generate url to query api
     ways_endpoint = Overpass.WAY.format(bounding_box)
@@ -42,7 +40,7 @@ async def route(request):
     start_node = start.closest_node(nodes)
     end_node = end.closest_node(nodes)
 
-    route = Route.generate_route(nodes, ways, start, end)
+    route = Route.generate_route(nodes, ways, start_node.id, end_node.id)
     return response.json(route.json)
 
 @api.post('/api/users/update')

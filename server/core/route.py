@@ -151,8 +151,8 @@ class Route:
         """
         latitude,longitude = location
         hor_unit  = location - Point(latitude,longitude + 1)
-        ver_unit  = location - Point(latitude + 1,longitude)
-        return vert_unit,hor_unit
+        vert_unit  = location - Point(latitude + 1,longitude)
+        return vert_unit, hor_unit
 
     @classmethod
     def square_bounding(cls,length:float,width:float,location:Point,vert_unit:float,hor_unit:float)-> str:
