@@ -10,7 +10,7 @@ from core.decorators import jsonrequired, memoized, authrequired
 api = Blueprint('api', url_prefix='/api')
 
 @api.get('/route')
-# @memoized
+@memoized
 # @authrequired
 async def route(request):
     '''Api endpoint to generate the route'''

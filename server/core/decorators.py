@@ -31,7 +31,7 @@ def memoized(func):
     @wraps(func)
     async def wrapper(request, *args, **kwargs):
         if str(request.json) not in func.cache:
-            func.cache[request.json] = route = await func(request, *args, **kwargs)
+            func.cache[request.body] = route = await func(request, *args, **kwargs)
         return route
     return wrapper
 
