@@ -120,7 +120,7 @@ class Route:
     def __init__(self, route: list, distance: int, routeID=None):
         self.route = route
         self.distance = distance
-        self.id = None #ID in database
+        self.id = routeID #ID in database
 
     @property
     def json(self):
@@ -176,6 +176,13 @@ class Route:
         return cls(routeID, **route['route'])
 
     @classmethod
+    async def from_GPX(cls, nodes: dict, track): #<--XML object
+        route = [Node(pt[0],pt.get[1],"").closest_distance(nodes)
+                 for pt in track]
+        dist = cls.get_route_distance(route,nodes)
+        return cls(route,dist)
+
+    @classmethod
     def generate_route(cls, nodes: dict, ways: dict, start_id: int, end_id: int, preferences: dict=None) -> Route:
         """
         Generates the shortest route to a destination
@@ -190,7 +197,7 @@ class Route:
         vert_unit,hor_unit = cls.get_coordinate_units(nodes[start_id])
         end_point = nodes[end_id]
 
-        if end_id not in nodes: raise Exception('End node not in node space. Specify a valid node.')
+        if end_id not in nodes:     raise Exception('End node not in node space. Specify a valid node.')
         elif start_id not in nodes: raise Exception('End node not in node space. Specify a valid node.')
         elif end_id not in neighbours or start_id not in neighbours: raise Exception('No connecting neighbour')
         else: current = start_id
@@ -224,7 +231,6 @@ class Route:
 
         heuristic_cost, fastest_route = path_dict[end_id]
         actual_distance = cls.get_route_distance(fastest_route,nodes)
-        print(len(path_dict))
         return cls(fastest_route,actual_distance)
 
     @staticmethod

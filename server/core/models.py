@@ -79,6 +79,7 @@ class UserBase:
 
         email = data.get('email')
         password = data.get('password')
+        name = data.get('name')
 
         query = {'credentials.email': email}
         exists = await self.find_account(**query)
@@ -89,6 +90,7 @@ class UserBase:
 
         document = {
             "user_id": snowflake(),
+            "name": name,
             "routes": {},
             "credentials": {
                 "email": email,
@@ -124,7 +126,7 @@ class UserBase:
 
 class Overpass:
     BASE = 'http://overpass-api.de/api/interpreter?data='
-    REQ = BASE + '''
+    ALL = BASE + '''
 [out:json];
 (
     way
@@ -132,6 +134,11 @@ class Overpass:
         (poly:"{}");
     >;
 );
+out;'''.replace("\n","").replace("\t","")
+
+    NODES = BASE + '''
+[out:json];
+node(poly:"{}");
 out;'''.replace("\n","").replace("\t","")
 
 class Color:

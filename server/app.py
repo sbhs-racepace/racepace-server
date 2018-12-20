@@ -9,6 +9,7 @@ import sys
 import aiohttp
 import bcrypt
 import jwt
+import xml.etree.ElementTree as ET
 
 from sanic import Sanic, response
 from sanic.exceptions import SanicException, ServerError, abort
@@ -116,6 +117,36 @@ async def index(request):
         }
 
     return response.json(data)
+
+@app.post('api/importGPX')
+async def importGPX(request):
+    data = request.json
+    if data.get('usercode') in import_codes:
+        userID = import_codes[data.get('usercode')]
+    elif request.token:
+        userID = jwt.decode(request.token, app.secret)['sub']
+    else:
+        abort(401, "No token or usercode supplied")
+    
+    #Read GPX file and convert coords to floats
+    file = request.files.get('gpx')
+    root = ET.fromstring(file.body)
+    trk = root.getchildren()[1].getchildren()[1]
+    trk = [(float(pt.get('lat')),float(pt.get('lon')))
+           for pt in trk]
+
+    #Work out the bounding box and download the node data for that area
+    bound1 = " ".join(max(trk, key=lambda pt: pt[0]))
+    bound2 = " ".join(min(trk, key=lambda pt: pt[0]))
+    bound3 = " ".join(max(trk, key=lambda pt: pt[1]))
+    bound4 = " ".join(min(trk, key=lambda pt: pt[1]))
+    bounding_box = " ".join((bound1,bound2,bound3,bound4))
+    url = Overpass.NODES.format(bounding_box)
+    nodes = await fetch(url)
+
+    #Create a route object
+    route = Route.from_GPX(nodes, trk)
+    route.save_route(app.db, userID)
 
 if __name__ == '__main__':
     app.run() if config.DEV_MODE else app.run(host=config.HOST, port=80)
