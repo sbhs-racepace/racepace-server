@@ -1,7 +1,9 @@
+import asyncio
+
 from sanic import Blueprint, response
 from sanic.log import logger
 
-from core.route import Route
+from core.route import Route, Point, Node, Way
 from core.models import Overpass, Color, User
 from core.decorators import jsonrequired, memoized, authrequired
 
@@ -9,34 +11,42 @@ api = Blueprint('api', url_prefix='/api')
 
 @api.get('/route')
 @memoized
-@authrequired
+# @authrequired
 async def route(request):
     '''Api endpoint to generate the route'''
 
     data = request.json
 
-    preferences = data.get('preferences')
-    bounding_box = data.get('bounding_box') #Coords seperated by spaces
-    start = data.get('start') #Lat + Lon seperated by comma
-    end = data.get('end')
+    start = Point.from_string(data.get('start'))
+    end = Point.from_string(data.get('end'))
 
-    url = Overpass.REQ.format(bounding_box) #Generate url to query api
-    map_data = await request.app.fetch(url)
+    length = width = int(data.get('size'))
+    location = Point(*data.get('location').split(','))
 
-    nodes, ways = {}, {}
+    vert_unit, hor_unit = Route.get_coordinate_units(location)
+    bounding_box = Route.square_bounding(length, width, location, vert_unit, hor_unit)
 
-    for element in map_data['elements']:
-        id = element['id']
-        if element['type'] == "node":
-            nodes[id] = Node.from_json(element)
-        else:
-            ways[id] = Way.from_json(element)
-            
+    nodes_enpoint = Overpass.NODE.format(bounding_box) #Generate url to query api
+    ways_endpoint = Overpass.WAY.format(bounding_box)
+
+    tasks = [
+        request.app.fetch(nodes_enpoint),
+        request.app.fetch(ways_endpoint)
+        ]
+
+    nodedata, waydata = await asyncio.gather(*tasks)
+
+    nodes = {n['id']: Node.from_json(n) for n in nodedata['elements']}
+    ways = {w['id']: Way.from_json(w) for w in waydata['elements']}
+
+    start_node = start.closest_node(nodes)
+    end_node = end.closest_node(nodes)
+
     route = Route.generate_route(nodes, ways, start, end)
     return response.json(route.json)
 
 @api.post('/api/users/update')
-@authrequired
+# @authrequired
 async def update_user(request):
     """Change password"""
     data = request.json

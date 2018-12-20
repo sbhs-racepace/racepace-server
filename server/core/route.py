@@ -21,6 +21,11 @@ class Point:
     def __init__(self, latitude, longitude):
         self.latitude = float(latitude)
         self.longitude = float(longitude)
+    
+    @classmethod
+    def from_string(cls, string):
+        lat, long = string.split(',')
+        return cls(lat, long)
 
     def distance(self, other: Point) -> float:
         """
