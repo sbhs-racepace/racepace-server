@@ -125,21 +125,9 @@ class UserBase:
         return token
 
 class Overpass:
-    BASE = 'http://overpass-api.de/api/interpreter?data='
-    ALL = BASE + '''
-[out:json];
-(
-    way
-        ["highway"!~"."]
-        (poly:"{}");
-    >;
-);
-out;'''.replace("\n","").replace("\t","")
-
-    NODES = BASE + '''
-[out:json];
-node(poly:"{}");
-out;'''.replace("\n","").replace("\t","")
+    BASE = 'http://overpass-api.de/api/interpreter?data=[out:json];'
+    NODE = BASE + 'node({});out;'
+    WAY = BASE + 'way({});out;'
 
 class Color:
     green = 0x2ecc71
