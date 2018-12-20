@@ -72,6 +72,11 @@ class Point:
         """
         return self.distance(other)
 
+    def closest_node(self, nodes: dict) -> Node:
+        """Returns the closest node from a dict of nodes"""
+        nodes = sorted(nodes.values(), key=lambda other: other - self)
+        closest_node = nodes[0]
+        return closest_node
 
 class Node(Point):
     def __init__(self, latitude: float, longitude: float, id: str):
@@ -92,12 +97,6 @@ class Node(Point):
     @classmethod
     def from_json(cls, nodedata: dict) -> Node:
         return cls(nodedata['lat'], nodedata['lon'], nodedata['id'])
-
-    def closest_node(self, nodes: dict) -> Node:
-        """Returns the closest node from a dict of nodes"""
-        nodes = sorted(nodes.values(), key=lambda other: other - self)
-        closest_node = nodes[0]
-        return closest_node
 
 class Way:
     def __init__(self, nodes: list, id: str, tags):
@@ -140,7 +139,7 @@ class Route:
         return vert_unit,hor_unit
 
     @classmethod
-    def square_bounding(cls,length:float,width:float,location:Node,vert_unit:float,hor_unit:float)-> str:
+    def square_bounding(cls,length:float,width:float,location:Point,vert_unit:float,hor_unit:float)-> str:
         latitude,longitude = location
         lat_unit = (width/2) / hor_unit
         lon_unit = (length/2) / vert_unit
