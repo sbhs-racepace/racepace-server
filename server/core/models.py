@@ -18,25 +18,63 @@ class Credentials:
     token: str = None
 
 class User:
-    def __init__(self, app, user_id, name, email, password, token=None):
+
+    fields = ('id', 'credentials', 'routes')
+
+    def __init__(self, app, user_id, credentials):
         self.app = app
         self.id = user_id
-        self.name = name
-        self.credentials = Credentials(email, password, token)
+        self.credentials = credentials
+        self.routes = []
+        self.name = None
+        
+    def __hash__(self):
+        return self.id
 
     @classmethod
     def from_data(cls, app, data):
         user_id = data['user_id']
-        name = data['name']
-        credentials = data['credentials']
-        email, password, token = credentials.values()
-        user = cls(app, user_id, name, email, password, token)
+        credentials = Credentials(*data['credentials'].values())
+        user = cls(app, user_id, credentials)
+        user.routes = data['routes']
         return user
 
-    @classmethod
-    async def register(cls, request):
+    def check_password(self, password):
+        return bcrypt.checkpw(password, self.credentials.password)
 
-        app = request.app
+    async def update(self):
+        document = self.to_dict()
+        await self.app.db.users.update_one({'user_id': self.id}, document)
+    
+    def to_dict(self):
+        return {
+            "user_id": self.id,
+            "routes": self.routes,
+            "credentials": {
+                "email": self.credentials.email,
+                "password": self.credentials.password,
+                "token": self.credentials.token
+            }
+        }
+
+
+
+class UserBase:
+    def __init__(self, app):
+        self.app = app
+    
+    async def find_account(self, **query):
+        '''Returns a user object based on the query'''
+        data = await self.app.db.users.find_one(query)
+
+        if not data:
+            return None
+        
+        user = User.from_data(app, data)
+
+        return user
+
+    async def register(self, request):
         data = request.json
 
         email = data.get('email')
@@ -44,7 +82,7 @@ class User:
         name = data.get('name')
 
         query = {'credentials.email': email}
-        exists = await cls.find_account(app, **query)
+        exists = await self.find_account(**query)
         if exists: abort(403, 'Email already in use.') 
 
         salt = bcrypt.gensalt()
@@ -61,56 +99,30 @@ class User:
             }
         }
 
-        user = cls.from_data(app, document)
+        user = User.from_data(app, document)
 
-        await app.db.users.insert_one(document)
-
-        return user
-
-    @classmethod
-    async def find_account(cls, app, **query):
-        '''Returns a user object based on the query'''
-        data = await app.db.users.find_one(query)
-
-        if not data:
-            return None
-        
-        user = cls.from_data(app, data)
+        await self.app.db.users.insert_one(document)
 
         return user
 
-    async def issue_token(self):
+    async def issue_token(self, user):
         '''Creates and returns a token if not already existing'''
-        if self.credentials.token:
-            return self.credentials.token
+        if user.credentials.token:
+            return user.credentials.token
 
         payload = {
-            'sub': self.id,
+            'sub': user.id,
             'iat': datetime.datetime.utcnow()
         }
 
-        self.credentials.token = token = jwt.encode(payload, self.app.secret)
+        user.credentials.token = token = jwt.encode(payload, self.app.secret)
 
         await self.app.db.users.update_one(
-            {'user_id': self.id}, 
+            {'user_id': user.id}, 
             {'$set': {'credentials.token': token}}
         )
         
         return token
-
-    def check_password(self, password):
-        return bcrypt.checkpw(password, self.credentials.password)
-
-    async def share_route(self, db, routeID):
-        #db = request.app.db
-        await db.users.update_one(
-            {'user_id':self.id},
-            {'$addToSet': {'routes': routeID}})
-
-    async def update_user(self,db):
-        await db.users.update_one(
-            {'user_id':self.id},
-            {'$set': {'credentials.password': self.credentials.password}})
 
 class Overpass:
     BASE = 'http://overpass-api.de/api/interpreter?data='

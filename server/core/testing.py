@@ -14,14 +14,16 @@ with open('mock_data/ways.json') as f:
 with open('mock_data/nodes.json') as f:
     nodedata = json.load(f)
 
-ways = Way.json_to_ways(waydata)
-nodes = Node.json_to_nodes(nodedata)
+# ways = Way.json_to_ways(waydata)
+# nodes = Node.json_to_nodes(nodedata)
 
-#Need to add function that checks if you can actually get to this coordinate
+# #Need to add function that checks if you can actually get to this coordinate
 
-start_id = 8109379
-end_id   = 8109400
+# start_id = 8109379
+# end_id   = 8109400
 
-route = Route.generate_route(nodes, ways, start_id, end_id)
-print(nodes[start_id] - nodes[end_id])
-print(route.route, route.distance)
+# route = Route.generate_route(nodes, ways, start_id, end_id)
+# print(nodes[start_id] - nodes[end_id])
+# print(route.route, route.distance)
+
+
