@@ -10,7 +10,7 @@ from core.decorators import jsonrequired, memoized, authrequired
 api = Blueprint('api', url_prefix='/api')
 
 @api.get('/route')
-@memoized
+# @memoized
 # @authrequired
 async def route(request):
     '''Api endpoint to generate the route'''
@@ -39,8 +39,11 @@ async def route(request):
 
     start_node = start.closest_node(nodes)
     end_node = end.closest_node(nodes)
-
+    import time
+    start = time.monotonic()
     route = Route.generate_route(nodes, ways, start_node.id, end_node.id)
+    end = time.monotonic()
+    print((end-start) * 1000) 
     return response.json(route.json)
 
 @api.post('/api/users/update')
