@@ -184,12 +184,12 @@ class Route:
         return neighbours
 
     @classmethod
-    async def from_database(cls,db,routeID):
+    async def from_database(cls,db,route_id):
         """
         Creates a route object from a route stored in the database
         """
-        route = await db.find_one({'id_':routeID})
-        return cls(routeID, **route['route'])
+        route = await db.find_one({'id_':route_id})
+        return cls(route_id, **route['route'])
 
     @classmethod
     async def from_GPX(cls, nodes: dict, track): #<--XML object
