@@ -1,4 +1,5 @@
 import asyncio
+import functools
 
 from sanic import Blueprint, response
 from sanic.log import logger
@@ -9,9 +10,10 @@ from core.decorators import jsonrequired, memoized, authrequired
 
 api = Blueprint('api', url_prefix='/api')
 
+cache = {}
+
 @api.get('/route')
 @memoized
-# @authrequired
 async def route(request):
     '''Api endpoint to generate the route'''
 
@@ -21,7 +23,7 @@ async def route(request):
     end = Point.from_string(data.get('end'))
 
     midpoint = start.get_midpoint(end)
-    length = width = (start - end) * 2
+    length = width = (start - end) * 1.5
     bounding_box = Route.square_bounding(midpoint, length, width)
 
     nodes_enpoint = Overpass.NODE.format(bounding_box) #Generate url to query api
@@ -39,11 +41,11 @@ async def route(request):
 
     start_node = start.closest_node(nodes)
     end_node = end.closest_node(nodes)
-    import time
-    start = time.monotonic()
-    route = Route.generate_route(nodes, ways, start_node.id, end_node.id)
-    end = time.monotonic()
-    print((end-start) * 1000) 
+
+    partial = functools.partial(Route.generate_route, nodes, ways, start_node.id, end_node.id)
+
+    route = await request.app.loop.run_in_executor(None, partial)
+    
     return response.json(route.json)
 
 @api.post('/api/users/update')

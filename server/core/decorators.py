@@ -1,3 +1,5 @@
+import asyncio
+import functools
 from functools import wraps
 from sanic.exceptions import abort
 import time
@@ -28,12 +30,30 @@ def authrequired(func):
 
 def memoized(func):
     func.cache = {}
+
     @wraps(func)
     async def wrapper(request, *args, **kwargs):
-        if str(request.json) not in func.cache:
-            func.cache[request.body] = route = await func(request, *args, **kwargs)
-        return route
+        key = str(request.json)
+        if key not in func.cache:
+            func.cache[key] = await func(request, *args, **kwargs)
+        return func.cache[key]
+
     return wrapper
+
+def asyncexecutor(_func=None, *, loop=None, executor=None):
+    _loop = loop or asyncio.get_event_loop()
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            partial = functools.partial(func, *args, **kwargs)
+            return _loop.run_in_executor(executor, partial)
+        return wrapper
+    
+    if _func is None: # @asyncexecutor()
+        return decorator
+    else: # @asyncexecutor
+        return decorator(_func)
 
 def timed(f):
     """Decorator that prints out the time taken for a function to execute."""
