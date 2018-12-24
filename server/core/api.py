@@ -22,12 +22,13 @@ async def route(request):
     start = Point.from_string(data.get('start'))
     end = Point.from_string(data.get('end'))
 
-    midpoint = start.get_midpoint(end)
-    length = width = (start - end) * 2
-    bounding_box = Route.rectangle_bounding_box(midpoint, length, width)
+    bounding_box = Route.two_point_bounding_box(start, end)
 
     nodes_enpoint = Overpass.NODE.format(bounding_box) #Generate url to query api
     ways_endpoint = Overpass.WAY.format(bounding_box)
+
+    print(nodes_enpoint)
+    print(ways_endpoint)
 
     tasks = [
         request.app.fetch(nodes_enpoint),

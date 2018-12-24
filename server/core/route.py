@@ -192,8 +192,8 @@ class Route:
         # distance = math.sqrt((lat2 - lat1)**2 + (long2 - long1)**2)
 
         distance = location - other_location
-        vert_scale = distance / vert_unit
-        hor_scale = distance / hor_unit
+        vert_scale = 1 * distance / vert_unit
+        hor_scale = 1 * distance / hor_unit
 
         theta = math.atan2((lat2 - lat1),(long2 - long1))
         mlat1,mlong1 = lat1 + math.sin(theta - pi) * vert_scale, long1 + math.cos(theta - pi) * hor_scale
@@ -204,7 +204,9 @@ class Route:
         c = Point(mlat2 + math.sin(theta2)      * vert_scale, mlong2 + math.cos(theta2)      * hor_scale)
         d = Point(mlat2 + math.sin(theta2 - pi) * vert_scale, mlong2 + math.cos(theta2 - pi) * hor_scale)
 
-        print(a,b,c,d)
+        points = [a,b,d,c]
+        
+        return ' '.join(f'{p.latitude} {p.longitude}' for p in points)
 
     @staticmethod
     def find_neighbours(ways: dict) -> dict:
@@ -306,6 +308,7 @@ class Route:
         self.id = await db.routes.insert_one(document).inserted_id
 
 if __name__ == '__main__':
-    a = Point(0, 0)
-    b = Point(10, 10)
-    Route.two_point_bounding_box(b,a)
+    a = Point(-33.963502, 151.088414)
+    b = Point(-33.965629, 151.090184)
+    box = Route.two_point_bounding_box(b,a)
+    print(box)
