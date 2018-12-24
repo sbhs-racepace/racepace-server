@@ -12,7 +12,7 @@ api = Blueprint('api', url_prefix='/api')
 
 cache = {}
 
-@api.get('/route')
+@api.post('/route')
 @memoized
 async def route(request):
     '''Api endpoint to generate the route'''

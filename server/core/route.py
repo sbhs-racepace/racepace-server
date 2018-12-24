@@ -137,16 +137,24 @@ class Way:
         return formatted_ways
 
 class Route:
-    def __init__(self, route: list, distance: int, routeID=None):
+    def __init__(self, route: list, distance: int, nodes, ways, routeID=None):
         self.route = route
         self.distance = distance
+        self.nodes = nodes
+        self.ways = ways
         self.id = routeID #ID in database
 
     @property
     def json(self):
+        route = []
+
+        for node_id in self.route:
+            node = self.nodes[node_id]
+            route.append({'latitude': node.latitude, 'longitude': node.longitude})
+
         return {
             "success": True,
-            "route": self.route,
+            "route": route,
             "dist": self.distance,
             "id": self.id
         }
@@ -205,7 +213,7 @@ class Route:
         d = Point(mlat2 + math.sin(theta2 - pi) * vert_scale, mlong2 + math.cos(theta2 - pi) * hor_scale)
 
         points = [a,b,d,c]
-        
+
         return ' '.join(f'{p.latitude} {p.longitude}' for p in points)
 
     @staticmethod
@@ -288,7 +296,8 @@ class Route:
 
         heuristic_cost, fastest_route = path_dict[end_id]
         actual_distance = cls.get_route_distance(fastest_route,nodes)
-        return cls(fastest_route,actual_distance)
+
+        return cls(fastest_route, actual_distance, nodes, ways)
 
     @staticmethod
     def get_route_distance(fastest_route:list,nodes:dict)-> float:
