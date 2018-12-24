@@ -18,10 +18,10 @@ class Point:
         A floating point value in degrees representing longitude
     """
 
-    def __init__(self, latitude, longitude):
-        self.latitude = float(latitude)
-        self.longitude = float(longitude)
-    
+    def __init__(self, latitude: float, longitude: float):
+        self.latitude = round(float(latitude),9)
+        self.longitude = round(float(longitude),9)
+
     @classmethod
     def from_string(cls, string):
         lat, long = string.split(',')
@@ -55,6 +55,14 @@ class Point:
             )
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
         return EARTH_RADIUS * c
+
+    def euclidean_distance(self,other:Point):
+        '''
+        Euclidean distance between two points (NON SPHERICAL)
+        '''
+        lat1,long1 = self
+        lat2,long2 = other
+        return math.sqrt((long1-long2)**2 + (lat1-lat2)**2)
 
     def heuristic_distance(self, other: Point, hor_unit: float, vert_unit: float) -> float:
         """
@@ -155,7 +163,11 @@ class Route:
         return vert_unit, hor_unit
 
     @classmethod
-    def square_bounding(cls,location:Point,length:float,width:float)-> str:
+    def rectangle_bounding_box(cls,location:Point,length:float,width:float)-> str:
+        """
+        Takes point and generates rectangular bounding box
+        around point with width and length
+        """
         vert_unit,hor_unit = cls.get_coordinate_units(location)
         latitude,longitude = location
         lat_unit = (width/2) / vert_unit
@@ -166,6 +178,33 @@ class Route:
         lo2 = longitude + lon_unit
         bounding_coords = ','.join(list(map(str,[la1,lo1,la2,lo2])))
         return bounding_coords
+
+    @classmethod
+    def two_point_bounding_box(cls,location:Point,other_location:Point)-> str:
+        """
+        Takes two points and generates rectangular bounding box
+        that is uniquely oritentated about points
+        """
+        vert_unit,hor_unit = cls.get_coordinate_units(location)
+        pi = math.pi
+        lat1,long1 = location
+        lat2,long2 = other_location
+        # distance = math.sqrt((lat2 - lat1)**2 + (long2 - long1)**2)
+
+        distance = location - other_location
+        vert_scale = distance / vert_unit
+        hor_scale = distance / hor_unit
+
+        theta = math.atan2((lat2 - lat1),(long2 - long1))
+        mlat1,mlong1 = lat1 + math.sin(theta - pi) * vert_scale, long1 + math.cos(theta - pi) * hor_scale
+        mlat2,mlong2 = lat2 + math.sin(theta)      * vert_scale, long2 + math.cos(theta)      * hor_scale
+        theta2 = (2*pi - (pi/2 - theta))
+        a = Point(mlat1 + math.sin(theta2)      * vert_scale, mlong1 + math.cos(theta2)      * hor_scale)
+        b = Point(mlat1 + math.sin(theta2 - pi) * vert_scale, mlong1 + math.cos(theta2 - pi) * hor_scale)
+        c = Point(mlat2 + math.sin(theta2)      * vert_scale, mlong2 + math.cos(theta2)      * hor_scale)
+        d = Point(mlat2 + math.sin(theta2 - pi) * vert_scale, mlong2 + math.cos(theta2 - pi) * hor_scale)
+
+        print(a,b,c,d)
 
     @staticmethod
     def find_neighbours(ways: dict) -> dict:
@@ -267,8 +306,6 @@ class Route:
         self.id = await db.routes.insert_one(document).inserted_id
 
 if __name__ == '__main__':
-    a = Point(-33.952657, 151.083532)
-    b = Point(-33.963656, 151.092778)
-    c = a.get_midpoint(b)
-    print(c)
-    pass
+    a = Point(0, 0)
+    b = Point(10, 10)
+    Route.two_point_bounding_box(b,a)

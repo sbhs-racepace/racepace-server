@@ -22,7 +22,7 @@ async def route(request):
 
     midpoint = start.get_midpoint(end)
     length = width = (start - end) * 2
-    bounding_box = Route.square_bounding(midpoint, length, width)
+    bounding_box = Route.rectangle_bounding_box(midpoint, length, width)
 
     nodes_enpoint = Overpass.NODE.format(bounding_box) #Generate url to query api
     ways_endpoint = Overpass.WAY.format(bounding_box)
@@ -43,7 +43,7 @@ async def route(request):
     start = time.monotonic()
     route = Route.generate_route(nodes, ways, start_node.id, end_node.id)
     end = time.monotonic()
-    print((end-start) * 1000) 
+    print((end-start) * 1000)
     return response.json(route.json)
 
 @api.post('/api/users/update')
@@ -62,7 +62,7 @@ async def update_user(request):
     salt = bcrypt.gensalt()
 
     user.credentials.password = bcrypt.hashpw(password, salt)
- 
+
     await user.update()
 
     return response.json({'success': True})

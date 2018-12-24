@@ -127,7 +127,7 @@ async def importGPX(request):
         userID = jwt.decode(request.token, app.secret)['sub']
     else:
         abort(401, "No token or usercode supplied")
-    
+
     #Read GPX file and convert coords to floats
     file = request.files.get('gpx')
     root = ET.fromstring(file.body)
