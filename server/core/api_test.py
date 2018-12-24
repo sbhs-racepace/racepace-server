@@ -1,5 +1,5 @@
 import requests
-import json 
+import json
 
 data = {
     'size': 1000, # meters
@@ -9,7 +9,7 @@ data = {
 
 data = json.dumps(data)
 
-resp = requests.get('http://127.0.0.1:8000/api/route', data=data)
+resp = requests.post('http://127.0.0.1:8000/api/route', data=data)
 
 print(resp)
 print(resp.text)

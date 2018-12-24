@@ -20,10 +20,18 @@ export default class HomeScreen extends React.Component {
   }
 
   componentDidMount() {
-    fetch('http://127.0.0.1:8000/')
+    data = {
+        'size': 1000,
+        'start': '-33.965832, 151.089029',
+        'end': '-33.964693, 151.090788'
+    }
+    fetch('http://127.0.0.1:8000/api/route',{
+      method: "POST",
+      body: JSON.stringify(data)
+    })
     .then(res => res.json())
     .then(result => {
-      console.log(result.message)
+      console.log(result.route)
     })
   }
 

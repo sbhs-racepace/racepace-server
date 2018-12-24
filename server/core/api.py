@@ -12,7 +12,7 @@ api = Blueprint('api', url_prefix='/api')
 
 cache = {}
 
-@api.get('/route')
+@api.post('/route')
 @memoized
 async def route(request):
     '''Api endpoint to generate the route'''
@@ -46,7 +46,7 @@ async def route(request):
     partial = functools.partial(Route.generate_route, nodes, ways, start_node.id, end_node.id)
 
     route = await request.app.loop.run_in_executor(None, partial)
-    
+
     return response.json(route.json)
 
 @api.post('/api/users/update')
