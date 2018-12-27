@@ -14,16 +14,14 @@ def jsonrequired(func):
 
 async def validate_token(request):
     exists = await request.app.db.users.find_one({
-            'credentials.token': request.token
+            'credentials.token': request.token.encode('ascii')
             })
-    return exists is not None
+    return bool(exists)
 
 def authrequired(func):
     @wraps(func)
-    @jsonrequired
     async def wrapper(request, *args, **kwargs):
-        valid_token = await validate_token(request)
-        if not valid_token:
+        if not request.token or not await validate_token(request):
             abort(401, "Invalid token")
         return await func(request, *args, **kwargs)
     return wrapper

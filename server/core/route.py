@@ -158,8 +158,7 @@ class Route:
         return {
             "success": True,
             "route": route,
-            "dist": self.distance,
-            "id": self.id
+            "dist": self.distance
         }
 
     @staticmethod
