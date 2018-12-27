@@ -104,6 +104,7 @@ class Node(Point):
         Point.__init__(self,latitude,longitude)
         self.id = id
         self.ways = set()
+        self.tags = dict()
 
     def __eq__(self, other: Point):
         return self.id == other.id
@@ -137,12 +138,10 @@ class Way:
         return formatted_ways
 
 class Route:
-    def __init__(self, route: list, distance: int, nodes, ways, routeID=None):
+    def __init__(self, route: list, distance: int, nodes, ways):
         self.route = route
         self.distance = distance
         self.nodes = nodes
-        self.ways = ways
-        self.id = routeID #ID in database
 
     @property
     def json(self):
@@ -298,6 +297,21 @@ class Route:
         actual_distance = cls.get_route_distance(fastest_route,nodes)
 
         return cls(fastest_route, actual_distance, nodes, ways)
+
+    @classmethod
+    def multiple_route(cls, nodes: dict, ways: dict, node_waypoints: list, preferences: dict=None) -> Route:
+        start = node_waypoints[0]
+        final_distance = 0
+        final_route_nodes = [start]
+        final_route_nodes = dict()
+        for current_index in range(len(node_waypoints)-1):
+            current_node = node_waypoints[current_index]
+            next_node = node_waypoints[current_index+1]
+            route = (cls.generate_route(nodes,ways,current_node, next_node,preferences))
+            final_route_nodes.update(route.nodes)
+            final_distance += route.distance
+            final_route_nodes += route.nodes[1:]
+        return cls(final_route_nodes,final_distance,final_route_nodes)
 
     @staticmethod
     def get_route_distance(fastest_route:list,nodes:dict)-> float:

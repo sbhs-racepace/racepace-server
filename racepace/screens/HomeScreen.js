@@ -1,5 +1,4 @@
 import React from "react";
-import Axios from "axios";
 import { Platform, View, Text, Button } from "react-native";
 
 const instructions = Platform.select({

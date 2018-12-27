@@ -85,11 +85,6 @@ export default class MapScreen extends React.Component {
           initialRegion={this.state.region}
           onRegionChange={this.onRegionChange}>
 
-          {this.state.markers.map(marker => (
-            <Marker coordinate={marker.coordinate}>
-            </Marker>
-          ))}
-
           <Polyline
             coordinates={this.state.markers.map(marker => {return marker.coordinate})}
             strokeColor="#000" // fallback for when `strokeColors` is not supported by the map-provider
