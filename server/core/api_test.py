@@ -2,7 +2,6 @@ import requests
 import json
 
 data = {
-    'size': 1000, # meters
     'start': '-33.965832, 151.089029',
     'end': '-33.964693, 151.090788'
 }
