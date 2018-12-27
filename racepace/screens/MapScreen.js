@@ -1,7 +1,7 @@
 import React from "react";
 import MapView from 'react-native-maps';
 import { Marker, Polyline } from 'react-native-maps';
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Button } from "react-native";
 
 export default class MapScreen extends React.Component {
   constructor(props) {
@@ -19,7 +19,7 @@ export default class MapScreen extends React.Component {
     };
   }
 
-  componentDidMount() {
+  api_route() {
     data = {
         'start': '-33.965832, 151.089029',
         'end': '-33.964693, 151.090788'
@@ -39,18 +39,6 @@ export default class MapScreen extends React.Component {
     })
   }
 
-  // componentDidMount() {
-  //   this.watchID = navigator.geolocation.watchPosition((position) => {
-  //     let region = {
-  //       latitude:       position.coords.latitude,
-  //       longitude:      position.coords.longitude,
-  //       latitudeDelta:  0.00922*1.5,
-  //       longitudeDelta: 0.00421*1.5
-  //     }
-  //     this.onRegionChange(region, region.latitude, region.longitude);
-  //   };
-  // }
-
   onRegionChange = (region) => {
     this.setState({
       mapRegion: region,
@@ -59,49 +47,57 @@ export default class MapScreen extends React.Component {
     });
   }
 
-  render() {
-    const styles = StyleSheet.create({
-      container: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        justifyContent: 'flex-end',
-        alignItems: 'center',
-      },
-      map: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-      },
+  componentDidMount() {
+    this.watchID = navigator.geolocation.watchPosition((position) => {
+      let region = {
+        latitude:       position.coords.latitude,
+        longitude:      position.coords.longitude,
+        latitudeDelta:  0.00922*1.5,
+        longitudeDelta: 0.00421*1.5
+      }
+      this.onRegionChange(region);
     });
+  }
 
-    return (
-      <View style={styles.container}>
-        <MapView style={styles.map}
-          initialRegion={this.state.region}
-          onRegionChange={this.onRegionChange}>
+  componentWillUnmount() {
+    navigator.geolocation.clearWatch(this.watchID);
+  }
 
-          <Polyline
-            coordinates={this.state.markers.map(marker => {return marker.coordinate})}
-            strokeColor="#000" // fallback for when `strokeColors` is not supported by the map-provider
-            strokeColors={[
-              '#7F0000',
-              '#00000000', // no color, creates a "long" gradient between the previous and next coordinate
-              '#B24112',
-              '#E5845C',
-              '#238C23',
-              '#7F0000'
-            ]}
-            strokeWidth={6}>
-          </Polyline>
+  render () {
+    return(
+      <MapView
+        style={{flex: 1}}
+        showsUserLocation={true}
+        followUserLocation={true}
+        initialRegion={this.state.region}
+        onRegionChange={this.onRegionChange}
+      >
+        <Marker
+          coordinate={{
+            latitude: (this.state.lastLat + 0.00050) || -36.82339,
+            longitude: (this.state.lastLong + 0.00050) || -73.03569,
+          }}>
+          <View>
+            <Text style={{color: '#000'}}>
+              { this.state.lastLong } / { this.state.lastLat }
+            </Text>
+          </View>
+        </Marker>
 
-
-        </MapView>
-      </View>
+        <Polyline
+          coordinates={this.state.markers.map(marker => {return marker.coordinate})}
+          strokeColor="#000" // fallback for when `strokeColors` is not supported by the map-provider
+          strokeColors={[
+            '#7F0000',
+            '#00000000', // no color, creates a "long" gradient between the previous and next coordinate
+            '#B24112',
+            '#E5845C',
+            '#238C23',
+            '#7F0000'
+          ]}
+          strokeWidth={6}>
+        </Polyline>
+      </MapView>
     );
   }
 }
