@@ -23,7 +23,12 @@ export default class HomeScreen extends React.Component {
           title="Go to Map Screen"
           onPress={() => this.props.navigation.navigate('Map')}
         />
+        <Button
+          title="Login"
+          onPress={() => this.props.navigation.navigate('Login')}
+        />
       </View>
+
     );
   }
 }
