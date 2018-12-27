@@ -10,31 +10,6 @@ const instructions = Platform.select({
 });
 
 export default class HomeScreen extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      error: null,
-      isLoaded: false,
-      items: []
-    };
-  }
-
-  componentDidMount() {
-    data = {
-        'size': 1000,
-        'start': '-33.965832, 151.089029',
-        'end': '-33.964693, 151.090788'
-    }
-    fetch('http://127.0.0.1:8000/api/route',{
-      method: "POST",
-      body: JSON.stringify(data)
-    })
-    .then(res => res.json())
-    .then(result => {
-      console.log(result.route)
-    })
-  }
-
   render() {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
