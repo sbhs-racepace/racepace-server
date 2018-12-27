@@ -1,5 +1,4 @@
 import React from "react";
-import Axios from "axios";
 import { Platform, View, Text, Button } from "react-native";
 
 const instructions = Platform.select({
@@ -24,7 +23,7 @@ export default class HomeScreen extends React.Component {
           onPress={() => this.props.navigation.navigate('Map')}
         />
         <Button
-          title="Login"
+          title="Go to Login Screen"
           onPress={() => this.props.navigation.navigate('Login')}
         />
       </View>

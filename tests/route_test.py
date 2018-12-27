@@ -25,11 +25,13 @@ nodes = Node.json_to_nodes(nodedata)
 
 tag_keys = set()
 nodes_with_tags = [n for n in nodes.values() if n.tags]
+
 for node in nodes_with_tags:
     for tag in node.tags:
         tag_keys.add(tag)
 
-print(tag_keys  )
+print(tag_keys)
+
 start_id = 8109379
 end_id   = 8109400
 
