@@ -20,6 +20,7 @@ def test_route():
 
 def login(**credentials):
     url = api/'login'
+    print(url)
     resp = requests.post(url, json=credentials)
     print(resp)
     print(resp.json())
