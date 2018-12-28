@@ -141,6 +141,15 @@ class Way:
         formatted_ways = {way['id']:Way.from_json(way) for way in ways}
         return formatted_ways
 
+class Route_Profile:
+    """
+    Provides route node tag details for usage in route generation
+    """
+    def __init__(self, preferences: dict):
+        self.preferences = preferences
+
+
+
 class Route:
     def __init__(self, route: list, distance: int, nodes, ways):
         self.route = route
@@ -334,7 +343,4 @@ class Route:
         self.id = await db.routes.insert_one(document).inserted_id
 
 if __name__ == '__main__':
-    a = Point(-33.963502, 151.088414)
-    b = Point(-33.965629, 151.090184)
-    box = Route.two_point_bounding_box(b,a)
-    print(box)
+    pass
