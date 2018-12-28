@@ -208,7 +208,6 @@ class Route:
         pi = math.pi
         lat1,long1 = location
         lat2,long2 = other_location
-        # distance = math.sqrt((lat2 - lat1)**2 + (long2 - long1)**2)
 
         distance = location - other_location
         vert_scale = 1 * distance / vert_unit
@@ -234,13 +233,10 @@ class Route:
         """
         neighbours = {}
         for way in ways.values():
-            way_nodes = way.nodes
-            for index, node in enumerate(way_nodes):
-                node_neighbours = set()
-                if (index - 1) > 0: node_neighbours.add(way_nodes[index - 1])
-                if (index + 1) < len(way_nodes): node_neighbours.add(way_nodes[index + 1])
+            for index, node in enumerate(way.nodes):
                 if node not in neighbours: neighbours[node] = set()
-                neighbours[node] |= node_neighbours
+                if (index - 1) != 0: neighbours[node].add(way.nodes[index - 1])
+                if (index + 1) != len(way_nodes): neighbours[node].add(way.nodes[index + 1])
         return neighbours
 
     @classmethod
@@ -295,14 +291,13 @@ class Route:
             visited.add(current)
             if end_id in visited: break
             else:
-                min_cost,next_node = inf, None
+                unvisited_node_costs = dict()
                 for node_id in unvisited:
                     current_distance,path = path_dict[node_id]
-                    current_point = nodes[node_id]
-                    heuristic_distance = end_point.heuristic_distance(current_point,vert_unit,hor_unit)
-                    current_cost = current_distance + heuristic_distance
-                    if current_cost < min_cost: min_cost,next_node = current_cost,node_id
-                if min_cost == inf: raise Exception("End node cannot be reached")
+                    current_cost = current_distance + end_point.heuristic_distance(nodes[node_id],vert_unit,hor_unit)
+                    unvisited_node_costs[node_id] = current_cost
+                next_node = min(unvisited_node_costs,key=lambda key:unvisited_node_costs[key])
+                if unvisited_node_costs[next_node] == inf: raise Exception("End node cannot be reached")
                 else: current = next_node
 
         heuristic_cost, fastest_route = path_dict[end_id]
