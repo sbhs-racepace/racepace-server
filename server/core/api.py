@@ -39,8 +39,7 @@ async def route(request):
 
     nodedata, waydata = await asyncio.gather(*tasks)
 
-    nodes = {n['id']: Node.from_json(n) for n in nodedata['elements']}
-    ways = {w['id']: Way.from_json(w) for w in waydata['elements']}
+    nodes, ways = Route.transform_json_nodes_and_ways(node_data,way_data)
 
     start_node = start.closest_node(nodes)
     end_node = end.closest_node(nodes)

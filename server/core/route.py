@@ -9,15 +9,7 @@ EARTH_RADIUS = 6371000
 class Point:
     """
     Represents a geodetic point with latitude and longitude
-
-    Attributes
-    ----------
-    latitude : float
-        A floating point value in degrees representing latitude
-    longitude : float
-        A floating point value in degrees representing longitude
     """
-
     def __init__(self, latitude: float, longitude: float):
         self.latitude = round(float(latitude),9)
         self.longitude = round(float(longitude),9)
@@ -99,20 +91,21 @@ class Node(Point):
         self.id = id
         self.tags = tags
         self.ways = set()
+        self.tag_multiplier = 1
 
     def __eq__(self, other: Point):
         return self.id == other.id
 
+    def get_tag_multiplier(self, profile):
+        return 1
+
     @staticmethod
     def json_to_nodes(json_nodes: dict) -> dict:
-        """Returns node of json format to dict format"""
-        nodes = json_nodes['elements']
-        formatted_nodes = {node['id']: Node.from_json(node) for node in nodes}
-        return formatted_nodes
+        return {node['id']: Node.from_json(node) for node in json_nodes['elements']}
 
     @classmethod
     def from_json(cls, json_nodes: dict) -> Node:
-        return cls(json_nodes['lat'], json_nodes['lon'], json_nodes['id'],json_nodes.get('tags'))
+        return cls(json_nodes['lat'], json_nodes['lon'], json_nodes['id'],json_nodes.get('tags',{}))
 
 class Way:
     def __init__(self, nodes: list, id: str, tags):
@@ -122,33 +115,16 @@ class Way:
 
     @classmethod
     def from_json(cls, json_way: dict):
-        return cls(json_way['nodes'], json_way['id'], json_way.get('tags'))
+        return cls(json_way['nodes'], json_way['id'], json_way.get('tags',{}))
 
     @staticmethod
     def json_to_ways(json_ways):
-        ways = json_ways['elements']
-        formatted_ways = {way['id']:Way.from_json(way) for way in ways}
-        return formatted_ways
+        return {way['id']:Way.from_json(way) for way in json_ways['elements']}
 
-    def update_node_way_data(self,nodes):
+    def update_node_tags(self, nodes):
         for node_id in self.node_ids:
             if node_id in nodes:
-                nodes[node_id].ways.add(self)
-
-
-class Route_Profile:
-    """
-    Provides route node tag details for usage in route generation
-    """
-    def __init__(self, preferences: dict, boolean_tages: dict):
-        self.preferences = preferences
-
-    def get_tag_cost(self, node):
-        for tag,multiplier in node.tags.items():
-            pass
-
-
-
+                nodes[node_id].tags.update(self.tags)
 
 class Route:
     def __init__(self, route: list, distance: int, nodes: dict):
@@ -158,28 +134,13 @@ class Route:
 
     @property
     def json(self):
-        route = []
-
-        for node_id in self.route:
-            node = self.nodes[node_id]
-            route.append({'latitude': node.latitude, 'longitude': node.longitude})
-
+        route_nodes = [self.nodes[node_id] for node_id in self.route]
+        route = [{'latitude': node.latitude, 'longitude': node.longitude} for node in route_nodes]
         return {
             "success": True,
             "route": route,
             "dist": self.distance
         }
-
-    @staticmethod
-    def get_coordinate_units(location):
-        """Coordinate unit in terms of metres for localized area
-        Horizontal Unit is distance for 1 unit of longitude
-        Vertical Unit is distance for 1 unit of latitude
-        """
-        latitude,longitude = location
-        hor_unit  = location - Point(latitude,longitude + 1)
-        vert_unit  = location - Point(latitude + 1,longitude)
-        return vert_unit, hor_unit
 
     @classmethod
     def rectangle_bounding_box(cls,location:Point,length:float,width:float)-> str:
@@ -227,19 +188,6 @@ class Route:
         points = [a,b,d,c]
         return ' '.join(f'{p.latitude} {p.longitude}' for p in points)
 
-    @staticmethod
-    def find_neighbours(ways: dict) -> dict:
-        """
-        Generates neighbours for every node in provided ways
-        """
-        neighbours = {}
-        for way in ways.values():
-            for index, node in enumerate(way.node_ids):
-                if node not in neighbours: neighbours[node] = set()
-                if (index - 1) != 0: neighbours[node].add(way.node_ids[index - 1])
-                if (index + 1) != len(way.node_ids): neighbours[node].add(way.node_ids[index + 1])
-        return neighbours
-
     @classmethod
     async def from_database(cls,db,route_id):
         """
@@ -256,7 +204,7 @@ class Route:
         return cls(route,dist)
 
     @classmethod
-    def generate_route(cls, nodes: dict, ways: dict, start_id: int, end_id: int, preferences: dict=None) -> Route:
+    def generate_route(cls, nodes: dict, ways: dict, start_id: int, end_id: int) -> Route:
         """
         Generates the shortest route to a destination
         Uses A* with euclidean distance as heuristic
@@ -282,10 +230,10 @@ class Route:
             for neighbour in current_neighbours:
                 if neighbour in unvisited:
                     neighbour_cost,neighbour_path = path_dict[neighbour]
-                    neighbour_point = nodes[neighbour]
-                    heuristic_distance = current_point.heuristic_distance(neighbour_point,vert_unit,hor_unit)
-                    tag_cost = 0 #heuristic_distance * sum(preferences[tag] for tag in neighbour_tags)
-                    new_cost = heuristic_distance + current_cost + tag_cost
+                    neighbour_node = nodes[neighbour]
+                    heuristic_distance = current_point.heuristic_distance(neighbour_node,vert_unit,hor_unit)
+                    heuristic_cost = neighbour_node.tag_multiplier * heuristic_distance
+                    new_cost = heuristic_cost + current_cost
                     if new_cost < neighbour_cost:
                         path_dict[neighbour] = (new_cost,current_path + [neighbour])
             unvisited.remove(current)
@@ -307,7 +255,7 @@ class Route:
         return cls(fastest_route, actual_distance, nodes)
 
     @classmethod
-    def generate_multi_route(cls, nodes: dict, ways: dict, node_waypoints: list, preferences: dict=None) -> Route:
+    def generate_multi_route(cls, nodes: dict, ways: dict, node_waypoints: list) -> Route:
         start = node_waypoints[0]
         multi_distance = 0
         multi_route = [start]
@@ -327,6 +275,41 @@ class Route:
         actual_distance = sum(route_points[index]-route_points[index+1] for index in range(len(route_points)-1))
         return actual_distance
 
+    @staticmethod
+    def find_neighbours(ways: dict) -> dict:
+        """
+        Generates neighbours for every node in provided ways
+        """
+        neighbours = {}
+        for way in ways.values():
+            for index, node in enumerate(way.node_ids):
+                if node not in neighbours: neighbours[node] = set()
+                if (index - 1) != 0: neighbours[node].add(way.node_ids[index - 1])
+                if (index + 1) != len(way.node_ids): neighbours[node].add(way.node_ids[index + 1])
+        return neighbours
+
+    @staticmethod
+    def get_coordinate_units(location):
+        """
+        Coordinate unit in terms of metres for localized area
+        Horizontal Unit is distance for 1 unit of longitude
+        Vertical Unit is distance for 1 unit of latitude
+        """
+        latitude,longitude = location
+        hor_unit  = location - Point(latitude,longitude + 1)
+        vert_unit  = location - Point(latitude + 1,longitude)
+        return vert_unit, hor_unit
+
+    @staticmethod
+    def transform_json_nodes_and_ways(nodes_json:dict,ways_json:dict,profile:dict={}):
+        nodes = Node.json_to_nodes(nodes_json)
+        ways = Way.json_to_ways(ways_json)
+        for way in ways.values():
+            way.update_node_tags(nodes)
+        for node in nodes.values():
+            node.get_tag_multiplier(profile)
+        return nodes,ways
+
     async def save_route(self, db, user_id):
         """
         Adds to database of routes
@@ -339,6 +322,7 @@ class Route:
                 }
             }
         self.id = await db.routes.insert_one(document).inserted_id
+
 
 if __name__ == '__main__':
     pass

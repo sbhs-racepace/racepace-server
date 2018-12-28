@@ -14,13 +14,12 @@ bounding_box = Route.rectangle_bounding_box(location,1000,1000)
 # data_generation(bounding_box)
 
 with open('mock_data/ways.json') as f:
-    waydata = json.load(f)
+    way_data = json.load(f)
 
 with open('mock_data/nodes.json') as f:
-    nodedata = json.load(f)
+    node_data = json.load(f)
 
-ways = Way.json_to_ways(waydata)
-nodes = Node.json_to_nodes(nodedata)
+nodes, ways = Route.transform_json_nodes_and_ways(node_data,way_data)
 
 start_id = 8109379
 end_id   = 8109400
