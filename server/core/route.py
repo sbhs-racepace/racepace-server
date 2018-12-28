@@ -204,26 +204,27 @@ class Route:
         Takes two points and generates rectangular bounding box
         that is uniquely oritentated about points
         """
+        #Constants and distance units
         vert_unit,hor_unit = cls.get_coordinate_units(location)
         pi = math.pi
         lat1,long1 = location
         lat2,long2 = other_location
-
+        #Scaling factors
         distance = location - other_location
         vert_scale = 1 * distance / vert_unit
         hor_scale = 1 * distance / hor_unit
-
-        theta = math.atan2((lat2 - lat1),(long2 - long1))
+        #Two Point Extensions for intial in either direction
+        theta = math.atan2((lat2 - lat1),(long2 - long1)) #Intial theta based on intial points
         mlat1,mlong1 = lat1 + math.sin(theta - pi) * vert_scale, long1 + math.cos(theta - pi) * hor_scale
         mlat2,mlong2 = lat2 + math.sin(theta)      * vert_scale, long2 + math.cos(theta)      * hor_scale
-        theta2 = (2*pi - (pi/2 - theta))
+        #Four perpendicular vertices extended from extensions in either direction
+        theta2 = (2*pi - (pi/2 - theta)) #Perpendicular to initial theta
         a = Point(mlat1 + math.sin(theta2)      * vert_scale, mlong1 + math.cos(theta2)      * hor_scale)
         b = Point(mlat1 + math.sin(theta2 - pi) * vert_scale, mlong1 + math.cos(theta2 - pi) * hor_scale)
         c = Point(mlat2 + math.sin(theta2)      * vert_scale, mlong2 + math.cos(theta2)      * hor_scale)
         d = Point(mlat2 + math.sin(theta2 - pi) * vert_scale, mlong2 + math.cos(theta2 - pi) * hor_scale)
-
+        #Point Order
         points = [a,b,d,c]
-
         return ' '.join(f'{p.latitude} {p.longitude}' for p in points)
 
     @staticmethod
