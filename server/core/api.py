@@ -2,6 +2,7 @@ import asyncio
 import functools
 
 from sanic import Blueprint, response
+from sanic.exceptions import abort
 from sanic.log import logger
 
 from core.route import Route, Point, Node, Way
@@ -14,6 +15,7 @@ cache = {}
 
 @api.post('/route')
 @memoized
+@authrequired
 async def route(request):
     '''Api endpoint to generate the route'''
 
@@ -49,16 +51,16 @@ async def route(request):
 
     return response.json(route.json)
 
-@api.post('/api/users/update')
-# @authrequired
-async def update_user(request):
-    """Change password"""
+@api.patch('/users/<user_id:int>')
+@authrequired
+async def update_user(request, user_id):
+    """Change user stuff"""
     data = request.json
     token = request.token
 
     password = data.get('password')
 
-    user_id = jwt.decode(token, app.secret)['sub']
+    user_id = jwt.decode(token, request.app.secret)['sub']
 
     user = await request.app.users.find_account(user_id=user_id)
 
@@ -70,16 +72,23 @@ async def update_user(request):
 
     return response.json({'success': True})
 
-@api.post('/api/register')
+@api.delete('/users/<user_id:int>')
+@authrequired
+async def delete_user(request, user_id):
+    user = await request.app.users.find_account(user_id=user_id)
+    await user.delete()
+    return response.json({'success': True})
+
+@api.post('/register')
 @jsonrequired
 async def register(request):
     """Register a user into the database"""
 
-    user = await app.users.register(request)
+    user = await request.app.users.register(request)
 
     return response.json({'success': True})
 
-@api.post('/api/login')
+@api.post('/login')
 @jsonrequired
 async def login(request):
     data = request.json
@@ -89,16 +98,17 @@ async def login(request):
 
     query = {'credentials.email': email}
 
-    account = await app.users.find_account(**query)
+    account = await request.app.users.find_account(**query)
 
     if account is None or not account.check_password(password):
         abort(403, 'Credentials invalid.')
 
-    token = await app.users.issue_token(account)
+    token = await request.app.users.issue_token(account)
 
-    response = {
+    resp = {
         'success': True,
-        'token': token.decode("utf-8")
+        'token': token.decode("utf-8"),
+        'user_id': account.id
     }
 
-    return response.json(response)
+    return response.json(resp)

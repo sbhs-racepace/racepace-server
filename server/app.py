@@ -72,10 +72,11 @@ async def sanic_exception(request, exception):
         'error': str(exception)
     }
 
-    try:
-        raise(exception)
-    except:
-        traceback.print_exc()
+    print(exception)
+    # try:
+    #     raise(exception)
+    # except:
+    #     print(exception)
 
     return response.json(resp, status=exception.status_code)
 
@@ -149,4 +150,4 @@ async def importGPX(request):
     route.save_route(app.db, userID)
 
 if __name__ == '__main__':
-    app.run() if config.DEV_MODE else app.run(host=config.HOST, port=80)
+    app.run(debug=True) if config.DEV_MODE else app.run(host=config.HOST, port=80)

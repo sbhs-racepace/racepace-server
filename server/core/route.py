@@ -101,10 +101,11 @@ class Point:
 
 class Node(Point):
     def __init__(self, latitude: float, longitude: float, id: str):
-        Point.__init__(self,latitude,longitude)
+        super().__init__(latitude, longitude)
         self.id = id
         self.ways = set()
-        self.tags = dict()
+        self.tags = None
+        self._raw_data = None
 
     def __eq__(self, other: Point):
         return self.id == other.id
@@ -118,7 +119,10 @@ class Node(Point):
 
     @classmethod
     def from_json(cls, nodedata: dict) -> Node:
-        return cls(nodedata['lat'], nodedata['lon'], nodedata['id'])
+        node = cls(nodedata['lat'], nodedata['lon'], nodedata['id'])
+        node.tags = nodedata.get('tags')
+        node._raw_data = nodedata
+        return node
 
 class Way:
     def __init__(self, nodes: list, id: str, tags):
@@ -154,8 +158,7 @@ class Route:
         return {
             "success": True,
             "route": route,
-            "dist": self.distance,
-            "id": self.id
+            "dist": self.distance
         }
 
     @staticmethod

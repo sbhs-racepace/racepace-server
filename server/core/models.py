@@ -9,8 +9,6 @@ from sanic.exceptions import abort
 
 from .utils import snowflake
 
-
-
 @dataclass
 class Credentials:
     email: str
@@ -46,6 +44,9 @@ class User:
         document = self.to_dict()
         await self.app.db.users.update_one({'user_id': self.id}, document)
     
+    async def delete(self):
+        await self.app.db.users.delete_one({'user_id': self.id})
+    
     def to_dict(self):
         return {
             "user_id": self.id,
@@ -70,7 +71,7 @@ class UserBase:
         if not data:
             return None
         
-        user = User.from_data(app, data)
+        user = User.from_data(self.app, data)
 
         return user
 
@@ -99,7 +100,7 @@ class UserBase:
             }
         }
 
-        user = User.from_data(app, document)
+        user = User.from_data(self.app, document)
 
         await self.app.db.users.insert_one(document)
 
