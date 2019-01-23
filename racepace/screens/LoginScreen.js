@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React from 'react';
 import { Component } from 'react';
 import { Button, View, Text, TextInput, StyleSheet, Image } from 'react-native';
@@ -21,10 +22,15 @@ export default class LoginScreen extends React.Component {
       body: JSON.stringify(data)
     })
     .then(res => res.json())
+=======
+
+>>>>>>> 547657107f5418957647375ab29a334004e50f9f
   }
   render() {
     return (
+
       <View>
+        <Text>{global.token}</Text>
         <Text>afsdafds</Text>
         <TextInput
           autoCorrect={false}
