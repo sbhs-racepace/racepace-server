@@ -1,11 +1,18 @@
 import React from "react";
 import {Component} from "react"
 import { View, Text, TextInput, StyleSheet, Image} from 'react-native';
+import '../global.js'
 
 export default class LoginScreen extends React.Component {
+  constructor(props) {
+    super(props)
+    global.token = "Not NULL";
+  }
   render() {
     return (
+
       <View>
+        <Text>{global.token}</Text>
         <Text>afsdafds</Text>
         <TextInput
                autoCorrect={false}

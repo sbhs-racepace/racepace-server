@@ -56,19 +56,12 @@ async def update_user(request, user_id):
     """Change user stuff"""
     data = request.json
     token = request.token
-
     password = data.get('password')
-
     user_id = jwt.decode(token, request.app.secret)['sub']
-
     user = await request.app.users.find_account(user_id=user_id)
-
     salt = bcrypt.gensalt()
-
     user.credentials.password = bcrypt.hashpw(password, salt)
-
     await user.update()
-
     return response.json({'success': True})
 
 @api.delete('/users/<user_id:int>')
@@ -82,32 +75,25 @@ async def delete_user(request, user_id):
 @jsonrequired
 async def register(request):
     """Register a user into the database"""
-
     user = await request.app.users.register(request)
-
     return response.json({'success': True})
 
 @api.post('/login')
 @jsonrequired
 async def login(request):
     data = request.json
-
     email = data.get('email')
     password = data.get('password')
-
     query = {'credentials.email': email}
-
     account = await request.app.users.find_account(**query)
-
-    if account is None or not account.check_password(password):
+    if account is None:
         abort(403, 'Credentials invalid.')
-
+    elif account.check_password(password) == False:
+        abort(403, 'Credentials invalid.')
     token = await request.app.users.issue_token(account)
-
     resp = {
         'success': True,
         'token': token.decode("utf-8"),
         'user_id': account.id
     }
-
     return response.json(resp)
