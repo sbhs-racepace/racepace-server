@@ -13,9 +13,9 @@ api = Blueprint('api', url_prefix='/api')
 
 cache = {}
 
+# @authrequired
 @api.post('/route')
 @memoized
-@authrequired
 async def route(request):
     '''Api endpoint to generate the route'''
 
@@ -37,7 +37,7 @@ async def route(request):
         request.app.fetch(ways_endpoint)
         ]
 
-    nodedata, waydata = await asyncio.gather(*tasks)
+    node_data, way_data = await asyncio.gather(*tasks)
 
     nodes, ways = Route.transform_json_nodes_and_ways(node_data,way_data)
 
@@ -50,8 +50,8 @@ async def route(request):
 
     return response.json(route.json)
 
-@api.patch('/users/<user_id:int>')
 @authrequired
+@api.patch('/users/<user_id:int>')
 async def update_user(request, user_id):
     """Change user stuff"""
     data = request.json
