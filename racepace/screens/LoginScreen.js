@@ -1,39 +1,50 @@
-<<<<<<< HEAD
 import React from 'react';
 import { Component } from 'react';
-import { Button, View, Text, TextInput, StyleSheet, Image } from 'react-native';
+import { Button, View, Text, TextInput, StyleSheet, Image, Alert } from 'react-native';
+import "../global.js"
 
 export default class LoginScreen extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      'email': "",
-      'pword': ""
+      'email': "aaa",
+      'pword': "bbb"
     };
   }
+
+  check_login(res) {
+    console.log(res)
+    if (res.success) {
+      global.login_status = res
+    }
+    else {
+      Alert.alert("Error",res.error)
+    }
+  }
+
   login() {
+    console.log("asd")
     let data = {
       'email':this.state.email,
       'password':this.state.pword
     }
-    console.log(data)
-    fetch('http://127.0.0.1:8000/api/login',{
+    fetch('http://192.168.0.5:8000/api/login',{
       method: "POST",
       body: JSON.stringify(data)
     })
+    .catch(res => Alert.alert("Error connecting to login server",res))
     .then(res => res.json())
-=======
-
->>>>>>> 547657107f5418957647375ab29a334004e50f9f
+    .then(res => this.check_login(res))
+    console.log(global.login_status)
   }
+  
   render() {
     return (
-
       <View>
-        <Text>{global.token}</Text>
-        <Text>afsdafds</Text>
+      <Text>Login</Text>
         <TextInput
           autoCorrect={false}
+          defaultValue="aaa"
           ref={el => {
             this.email = el;
           }}
@@ -47,6 +58,7 @@ export default class LoginScreen extends React.Component {
         />
         <TextInput
           autoCorrect={false}
+          defaultValue="bbb"
           ref={el => {
             this.pword = el;
           }}
@@ -58,7 +70,7 @@ export default class LoginScreen extends React.Component {
           placeholderTextColor="rgba(225,225,225,0.8)"
         />
         <Image source={require('../assets/cat.jpeg')} />
-        <Button onPress={this.login} title="Login" />
+        <Button onPress={this.login.bind(this)} title="Login" />
       </View>
     );
   }

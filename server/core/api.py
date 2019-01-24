@@ -87,9 +87,9 @@ async def login(request):
     query = {'credentials.email': email}
     account = await request.app.users.find_account(**query)
     if account is None:
-        abort(403, 'Credentials invalid.')
+        abort(403, 'Invalid username')
     elif account.check_password(password) == False:
-        abort(403, 'Credentials invalid.')
+        abort(403, 'Invalid credentials')
     token = await request.app.users.issue_token(account)
     resp = {
         'success': True,
