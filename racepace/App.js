@@ -5,8 +5,6 @@ import LoginScreen from "./screens/LoginScreen";
 import AppScreen from "./screens/AppScreen";
 import "./global.js"
 
-const invisible = () => {return {visible: false}}
-
 const LoginNavigator = createStackNavigator({
   Login: {screen: LoginScreen},
   App: {screen: AppScreen,

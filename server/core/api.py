@@ -76,7 +76,9 @@ async def delete_user(request, user_id):
 async def register(request):
     """Register a user into the database"""
     user = await request.app.users.register(request)
-    return response.json({'success': True})
+    return response.json({'success': True,
+                          'token': user.credentials.token.decode("utf-8"),
+                          'user_id': user.id})
 
 @api.post('/login')
 @jsonrequired

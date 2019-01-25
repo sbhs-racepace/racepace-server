@@ -101,6 +101,7 @@ class UserBase:
         }
 
         user = User.from_data(self.app, document)
+        user.credentials.token = self.issue_token(user)
 
         await self.app.db.users.insert_one(document)
 

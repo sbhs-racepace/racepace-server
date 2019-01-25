@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, Button } from "react-native";
-import "../global.js"
+import "../global"
 
 export default class ProfileScreen extends React.Component {
   constructor(props) {
