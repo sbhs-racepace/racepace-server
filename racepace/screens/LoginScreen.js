@@ -7,52 +7,40 @@ export default class LoginScreen extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      email: 'aaa',
-      pword: 'bbb',
+      email: "",
+      pword: ""
     };
-  }
-
-  check_login(res) {
-    if (res === null) {
-      Alert.alert('Error connecting to login server');
-      return 0; //exit
-    }
-    if (res.success) {
-      global.login_status = res;
-    } else {
-      Alert.alert('Error', res.error);
-    }
   }
 
   login() {
     let data = {
-      email: this.state.email,
-      password: this.state.pword,
-    };
-    fetch('http://192.168.0.5:8000/api/login', {
-      method: 'POST',
-      body: JSON.stringify(data),
+      email:this.state.email,
+      password:this.state.pword
+    }
+    console.log(data)
+    fetch('http://127.0.0.1:8000/api/login',{
+      method: "POST",
+      body: JSON.stringify(data)
     })
-      .catch(res => {Alert.alert('Error connecting to login server', res);})
-      .then(res => res.json())
-      .then(res => this.check_login(res));
-    //console.log(global.login_status)
-    this.props.navigation.navigate('App');
+    .then(res => res.json())
+    .then(result => {
+      global.token = result; // Stores the user token which proves they've logged in
+    })
   }
 
   render() {
     return (
+
       <View>
-        <Text>Login</Text>
-        <Image source={require('../assets/cat.jpeg')} />
+        <Text>{global.token}</Text>
+        <Text>afsdafds</Text>
         <TextInput
           autoCorrect={false}
-          defaultValue="aaa"
           ref={el => {
             this.email = el;
           }}
-          onChangeText={email => {
-            this.setState({ email: email });
+          onChangeText={(email) => {
+            this.setState({'email': email});
           }}
           keyboardType="email-address"
           returnKeyType="go"
@@ -61,27 +49,18 @@ export default class LoginScreen extends React.Component {
         />
         <TextInput
           autoCorrect={false}
-          defaultValue="bbb"
           ref={el => {
             this.pword = el;
           }}
-          onChangeText={pword => {
+          onChangeText={(pword) => {
             this.setState({ pword });
           }}
           returnKeyType="go"
-          secureTextEntry={true}
           placeholder="Password"
           placeholderTextColor="rgba(225,225,225,0.8)"
         />
+        <Image source={require('../assets/cat.jpeg')} />
         <Button onPress={this.login.bind(this)} title="Login" />
-        <Text></Text>
-        <Button
-          onPress={() => {
-            global.login_status = { success: true };
-            this.props.navigation.navigate('App');
-          }}
-          title="Login as guest"
-        />
       </View>
     );
   }

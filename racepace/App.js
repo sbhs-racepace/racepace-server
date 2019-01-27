@@ -1,6 +1,8 @@
 import React from "react";
-import {Button} from "react-native";
-import { createStackNavigator, createAppContainer, createBottomTabNavigator } from "react-navigation";
+import { createStackNavigator, createAppContainer } from "react-navigation";
+import HomeScreen from "./screens/HomeScreen";
+import DetailScreen from "./screens/DetailScreen";
+import MapScreen from "./screens/MapScreen";
 import LoginScreen from "./screens/LoginScreen";
 import ProfileScreen from "./screens/ProfileScreen";
 import RouteScreen from "./screens/RouteScreen";
@@ -20,10 +22,10 @@ const AppNavigator = createStackNavigator(
   }
 );
 
-const AppContainer = createAppContainer(LoginNavigator);
+const AppContainer = createAppContainer(AppNavigator);
 
 export default class App extends React.Component {
   render() {
     return <AppContainer />;
-  } 
+  }
 }

@@ -76,9 +76,7 @@ async def delete_user(request, user_id):
 async def register(request):
     """Register a user into the database"""
     user = await request.app.users.register(request)
-    return response.json({'success': True,
-                          'token': user.credentials.token.decode("utf-8"),
-                          'user_id': user.id})
+    return response.json({'success': True})
 
 @api.post('/data')
 @authrequired
@@ -98,9 +96,9 @@ async def login(request):
     query = {'credentials.email': email}
     account = await request.app.users.find_account(**query)
     if account is None:
-        abort(403, 'Invalid username')
+        abort(403, 'Credentials invalid.')
     elif account.check_password(password) == False:
-        abort(403, 'Invalid credentials')
+        abort(403, 'Credentials invalid.')
     token = await request.app.users.issue_token(account)
     resp = {
         'success': True,

@@ -1,6 +1,5 @@
 import React from "react";
-import { View, Text, Button } from "react-native";
-import "../global"
+import { View, Text } from "react-native";
 
 export default class ProfileScreen extends React.Component {
   constructor(props) {
@@ -22,10 +21,7 @@ export default class ProfileScreen extends React.Component {
         <Text>Age: {this.state.age}</Text>
         <Text>Email: {this.state.email}</Text>
         <Text>Distance Run: {this.state.distance_run}</Text>
-        <Button title="Logout" onclick={()=> {
-          global.login_status = {success:false};
-          this.props.navigation.goBack();
-        }}/>
+
       </View>
     );
   }
