@@ -1,30 +1,3 @@
-<<<<<<< HEAD
-import React from 'react';
-import { Component } from 'react';
-import { Button, View, Text, TextInput, StyleSheet, Image } from 'react-native';
-
-export default class LoginScreen extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      'email': "",
-      'pword': ""
-    };
-  }
-  login() {
-    let data = {
-      'email':this.state.email,
-      'password':this.state.pword
-    }
-    console.log(data)
-    fetch('http://127.0.0.1:8000/api/login',{
-      method: "POST",
-      body: JSON.stringify(data)
-    })
-    .then(res => res.json())
-=======
-
->>>>>>> 547657107f5418957647375ab29a334004e50f9f
   }
   render() {
     return (
