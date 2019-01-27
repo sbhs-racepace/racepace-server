@@ -78,15 +78,6 @@ async def register(request):
     user = await request.app.users.register(request)
     return response.json({'success': True})
 
-@api.post('/data')
-@authrequired
-async def getdata(request):
-    """Register a user into the database"""
-    user_id = jwt.decode(request.token, request.app.secret)['sub']
-    user = await request.app.users.find_account(user_id=user_id)
-    return response.json(user.to_dict())
-
-
 @api.post('/login')
 @jsonrequired
 async def login(request):

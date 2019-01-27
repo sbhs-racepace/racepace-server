@@ -23,14 +23,6 @@ export default class HomeScreen extends React.Component {
           title="Go to Profile Screen"
           onPress={() => this.props.navigation.navigate('Profile')}
         />
-        <Button
-          title="Go to Route Screen"
-          onPress={() => this.props.navigation.navigate('Route')}
-        />
-        <Button
-          title="Go to Add Route Screen"
-          onPress={() => this.props.navigation.navigate('AddRoute')}
-        />
       </View>
     );
   }

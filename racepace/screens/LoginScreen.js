@@ -1,21 +1,20 @@
+<<<<<<< HEAD
 import React from 'react';
 import { Component } from 'react';
 import { Button, View, Text, TextInput, StyleSheet, Image } from 'react-native';
-import '../global.js'
 
 export default class LoginScreen extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      email: "",
-      pword: ""
+      'email': "",
+      'pword': ""
     };
   }
-
   login() {
     let data = {
-      email:this.state.email,
-      password:this.state.pword
+      'email':this.state.email,
+      'password':this.state.pword
     }
     console.log(data)
     fetch('http://127.0.0.1:8000/api/login',{
@@ -23,11 +22,10 @@ export default class LoginScreen extends React.Component {
       body: JSON.stringify(data)
     })
     .then(res => res.json())
-    .then(result => {
-      global.token = result; // Stores the user token which proves they've logged in
-    })
-  }
+=======
 
+>>>>>>> 547657107f5418957647375ab29a334004e50f9f
+  }
   render() {
     return (
 
@@ -60,7 +58,7 @@ export default class LoginScreen extends React.Component {
           placeholderTextColor="rgba(225,225,225,0.8)"
         />
         <Image source={require('../assets/cat.jpeg')} />
-        <Button onPress={this.login.bind(this)} title="Login" />
+        <Button onPress={this.login} title="Login" />
       </View>
     );
   }
