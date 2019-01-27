@@ -32,7 +32,6 @@ export default class HomeScreen extends React.Component {
           onPress={() => this.props.navigation.navigate('AddRoute')}
         />
       </View>
-
     );
   }
 }
