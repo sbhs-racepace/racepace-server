@@ -5,6 +5,7 @@ import DetailScreen from "./screens/DetailScreen";
 import MapScreen from "./screens/MapScreen";
 import LoginScreen from "./screens/LoginScreen";
 import ProfileScreen from "./screens/ProfileScreen";
+import RouteScreen from "./screens/RouteScreen";
 
 const AppNavigator = createStackNavigator(
   {
@@ -13,6 +14,8 @@ const AppNavigator = createStackNavigator(
     Map: MapScreen,
     Login:LoginScreen,
     Profile:ProfileScreen,
+    Route: RouteScreen,
+    AddRoute: AddRouteScreen
   },
   {
     initialRouteName: "Home"
