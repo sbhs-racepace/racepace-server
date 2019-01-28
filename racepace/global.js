@@ -1,1 +1,1 @@
-global.token = null;
+global.login_status = {success: false};
