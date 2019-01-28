@@ -6,6 +6,14 @@ from math import inf
 
 EARTH_RADIUS = 6371000
 
+class Heuristic:
+    def __init__(self, file_name):
+        
+    def open_file(self, file_name):
+        json_file = open(file_name)
+        json_data = json.loads(json_file)
+
+
 class Point:
     """
     Represents a geodetic point with latitude and longitude
