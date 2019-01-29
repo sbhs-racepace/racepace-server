@@ -1,7 +1,6 @@
 import React from 'react';
 import { Component } from 'react';
 import {
-  Button,
   View,
   Text,
   TextInput,
@@ -9,16 +8,49 @@ import {
   Image,
   Alert,
 } from 'react-native';
+//import { GoogleSignin, GoogleSigninButton, statusCodes } from 'react-native-google-signin';
+import Button from '../components/Button.js'
 import '../global';
 
+const CLIENT_ID = "AIzaSyD7hc2PUQS1fm0W1vXDeKIlaCgRJ6SAhYs";
+const STYLES = StyleSheet.create({
+  input: {
+    borderLeftWidth: 2,
+    borderBottomWidth: 2,
+    marginTop: 5,
+    paddingLeft: 3,
+    width:"80%",
+    left: "10%",
+    right: "10%",
+  },
+  general: {
+    top: 5,
+    width:"80%",
+    left: "10%",
+    right: "10%",
+  },
+})
+
 export default class LoginScreen extends React.Component {
+  static navigationOptions = {
+    title: 'Login',
+  };
+
   constructor(props) {
     super(props);
     this.state = {
       email: 'aaa',
       pword: 'bbb',
+      isSigninInProgress: false,
     };
   }
+
+ /*  async componentDidMount() {
+    GoogleSignin.configure({
+      webClientId: CLIENT_ID,
+      offlineAccess: false,
+    });
+  } */
 
   check_login(res) {
     if (res === null) {
@@ -48,14 +80,47 @@ export default class LoginScreen extends React.Component {
     this.props.navigation.navigate('App');
   }
 
+  /* async googleLogin() {
+    let userInfo;
+    try {
+      await GoogleSignin.hasPlayServices();
+      userInfo = await GoogleSignin.signIn();
+    } catch (error) {
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        // sign in was cancelled
+        Alert.alert('cancelled');
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        // operation in progress already
+        Alert.alert('in progress');
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        Alert.alert('play services not available or outdated');
+      } else {
+        Alert.alert('Something went wrong', error.toString());
+        this.setState({
+          error,
+        });
+      }
+    }
+    console.log(userInfo);
+  }
+  ===
+  
+  <GoogleSigninButton
+    style={{ width: 48, height: 48 }}
+    size={GoogleSigninButton.Size.Icon}
+    color={GoogleSigninButton.Color.Dark}
+    onPress={this._signIn}
+    disabled={this.state.isSigninInProgress} />
+  */
+
   render() {
     return (
       <View>
-        <Text>Login</Text>
-        <Image source={require('../assets/cat.jpeg')} />
+        <Image style={STYLES.general} source={require('../assets/cat.jpeg')} />
         <TextInput
           autoCorrect={false}
           defaultValue="aaa"
+          style = {STYLES.input}
           ref={el => {
             this.email = el;
           }}
@@ -70,6 +135,7 @@ export default class LoginScreen extends React.Component {
         <TextInput
           autoCorrect={false}
           defaultValue="bbb"
+          style = {STYLES.input}
           ref={el => {
             this.pword = el;
           }}
@@ -81,15 +147,15 @@ export default class LoginScreen extends React.Component {
           placeholder="Password"
           placeholderTextColor="rgba(225,225,225,0.8)"
         />
-        <Button onPress={this.login.bind(this)} title="Login" />
-        <Text></Text>
+        <Button onPress={this.login.bind(this)} text={"Login"} />
         <Button
           onPress={() => {
             global.login_status = { success: true };
             this.props.navigation.navigate('App');
           }}
-          title="Login as guest"
+          text={"Login as guest"}
         />
+        <Button onPress = {() => this.props.navigation.navigate('Register')} text={"Register"}/>
       </View>
     );
   }

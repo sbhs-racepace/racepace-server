@@ -1,7 +1,6 @@
-import React from 'react';
+﻿import React from 'react';
 import { Component } from 'react';
 import {
-  Button,
   View,
   Text,
   TextInput,
@@ -9,9 +8,31 @@ import {
   Image,
   Alert,
 } from 'react-native';
+import Button from '../components/Button.js'
 import '../global';
 
+const STYLES = StyleSheet.create({
+  input: {
+    borderLeftWidth: 2,
+    borderBottomWidth: 2,
+    marginTop: 5,
+    paddingLeft: 3,
+    width:"80%",
+    left: "10%",
+    right: "10%",
+  },
+  general: {
+    top: 5,
+    width:"80%",
+    left: "10%",
+    right: "10%",
+  },
+})
+
 export default class RegisterScreen extends React.Component {
+  static navigationOptions = {
+    title: 'Register',
+  };
   constructor(props) {
     super(props);
     this.state = {
@@ -61,8 +82,7 @@ export default class RegisterScreen extends React.Component {
   render() {
     return (
       <View>
-        <Text>{"\n"}Register</Text>
-        <Image source={require('../assets/cat.jpeg')} />
+        <Image style={STYLES.general} source={require('../assets/cat.jpeg')} />
         <TextInput
           autoCorrect={false}
           defaultValue="ccc"
@@ -72,6 +92,7 @@ export default class RegisterScreen extends React.Component {
           onChangeText={name_ => {
             this.setState({ name: name_ });
           }}
+          style={STYLES.input}
           returnKeyType="go"
           placeholder="Name"
           placeholderTextColor="rgba(225,225,225,0.8)"
@@ -85,6 +106,7 @@ export default class RegisterScreen extends React.Component {
           onChangeText={email => {
             this.setState({ email: email });
           }}
+          style={STYLES.input}
           keyboardType="email-address"
           returnKeyType="go"
           placeholder="Email or Mobile Num"
@@ -99,21 +121,21 @@ export default class RegisterScreen extends React.Component {
           onChangeText={pword => {
             this.setState({ pword });
           }}
+          style={STYLES.input}
           returnKeyType="go"
           placeholder="Password"
           secureTextEntry={true}
           placeholderTextColor="rgba(225,225,225,0.8)"
         />
         <View style={{flexDirection: 'row'}}>
-          <Button title={this.state.std_txt} onclick= {() => {
+          <Button text={this.state.std_txt} onclick= {() => {
             this.setState({
               std_txt: "✓ Standard",
               coach_txt: "Coach",
               type: "s"
             });
           }}>{this.state.std_txt}</Button>
-          <Text>{"   "}</Text>
-          <Button title={this.state.coach_txt} onclick= {() => {
+          <Button text={this.state.coach_txt} onclick= {() => {
             this.setState({
               std_txt: "Standard",
               coach_txt: "Coach ✓",
@@ -121,7 +143,7 @@ export default class RegisterScreen extends React.Component {
             });
           }}>{this.state.coach_txt}</Button>
         </View>
-        <Button title="Register" />
+        <Button text="Register" />
       </View>
     );
   }
