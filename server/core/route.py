@@ -8,6 +8,7 @@ EARTH_RADIUS = 6371000
 
 class Heuristic:
     def __init__(self, file_name):
+        pass
         
     def open_file(self, file_name):
         json_file = open(file_name)
