@@ -53,7 +53,7 @@ async def init(app, loop):
     em.set_footer(f'Host: {socket.gethostname()}')
     em.add_field('Public URL', app.ngrok_url) if app.ngrok_url else ...
 
-    await app.webhook.send(embed=em)
+    # await app.webhook.send(embed=em)
 
 @app.listener('after_server_stop')
 async def aexit(app, loop):
@@ -61,7 +61,7 @@ async def aexit(app, loop):
     em.set_footer(f'Host: {socket.gethostname()}')
     em.set_author('[INFO] Server Stopped')
 
-    await app.webhook.send(embed=em)
+    # await app.webhook.send(embed=em)
     await app.session.close()
 
 @app.exception(SanicException)
@@ -101,7 +101,7 @@ async def on_error(request, exception):
     em.set_author('[ERROR] Exception occured on server')
     em.description = f'```py\n{excstr}```'
     em.set_footer(f'Host: {socket.gethostname()}')
-    app.add_task(app.webhook.send(embed=em))
+    # app.add_task(app.webhook.send(embed=em))
 
     return response.json(resp, status=500)
 

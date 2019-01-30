@@ -2,7 +2,6 @@ import sys
 import os
 
 sys.path.append("../server")
-
 from core.route import *
 
 from mock_data.data_generation import data_generation

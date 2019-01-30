@@ -19,8 +19,7 @@ cache = {}
 async def route(request):
     '''Api endpoint to generate the route'''
 
-    data = request.json
-
+    data = request.raw_args
     start = Point.from_string(data.get('start'))
     end = Point.from_string(data.get('end'))
 
