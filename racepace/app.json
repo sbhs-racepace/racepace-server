@@ -1,5 +1,4 @@
 {
-<<<<<<< HEAD
   "expo": {
     "name": "racepacemobile",
     "description": "racepacemobile",
@@ -26,8 +25,4 @@
       "supportsTablet": true
     }
   }
-=======
-  "name": "racepace",
-  "displayName": "racepace"
->>>>>>> parent of 444dab6... Revert code to latest on Snack
 }
