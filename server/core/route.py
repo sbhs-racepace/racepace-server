@@ -277,7 +277,7 @@ class Route:
         for current_index in range(len(node_waypoints)-1):
             current_node = node_waypoints[current_index]
             next_node = node_waypoints[current_index+1]
-            route = cls.generate_route(nodes,ways,current_node,next_node,preferences)
+            route = cls.generate_route(nodes,ways,current_node,next_node)
             multi_route_nodes.update(route.nodes)
             multi_distance += route.distance
             multi_route += route.route[1:]

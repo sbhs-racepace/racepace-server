@@ -57,18 +57,9 @@ class TestApiClient:
             print(resp['error'])
         return resp
 
-client = TestApiClient()
+    def fetch_route_data(self, start, end):
+        response = requests.get(self.BASE+'/route', params={'start':start,'end':end})
+        return response.json()
 
-client.register_user(email='gahugga@gmail.com', password='bobby')
 
-user = client.login(email='gahugga@gmail.com', password='bobby')
-
-# route = client.get_route()
-
-# if route.get('route'):
-#     print(json.dumps(route['route'], indent=4))
-# else:
-#     print(route['error'])
-
-client.delete_account()
 
