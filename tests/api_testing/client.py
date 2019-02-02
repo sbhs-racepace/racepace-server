@@ -36,17 +36,6 @@ class TestApiClient:
             print(data['error'])
         return data
     
-    def get_route(self, data=None):
-        url = self.BASE + '/route'
-
-        data = data or {
-        'size': 1000, # meters
-        'start': '-33.965832, 151.089029',
-        'end': '-33.964693, 151.090788'
-        }
-        resp = self.session.post(url, json=data)
-        return resp.json()
-
     def delete_account(self, user_id=None):
         user_id = user_id or self.user_id
         url = self.BASE + f'/users/{user_id}'
@@ -57,9 +46,10 @@ class TestApiClient:
             print(resp['error'])
         return resp
 
-    def fetch_route_data(self, start, end):
+    def get_route(self, start, end):
         response = requests.get(self.BASE+'/route', params={'start':start,'end':end})
         return response.json()
+
 
 
 

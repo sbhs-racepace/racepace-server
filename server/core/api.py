@@ -13,13 +13,48 @@ api = Blueprint('api', url_prefix='/api')
 
 cache = {}
 
+@api.get('/route/multiple')
+@memoized
+async def multiple_route(request):
+    data = request.args
+
+    for waypoint in data['waypoints']
+
+    bounding_box = Route.two_point_bounding_box(start, end)
+
+    nodes_enpoint = Overpass.NODE.format(bounding_box) #Generate url to query api
+    ways_endpoint = Overpass.WAY.format(bounding_box)
+
+    print(nodes_enpoint)
+    print(ways_endpoint)
+
+    tasks = [
+        request.app.fetch(nodes_enpoint),
+        request.app.fetch(ways_endpoint)
+        ]
+
+    node_data, way_data = await asyncio.gather(*tasks)
+
+    nodes, ways = Route.transform_json_nodes_and_ways(node_data,way_data)
+
+    start_node = start.closest_node(nodes)
+    end_node = end.closest_node(nodes)
+
+    partial = functools.partial(Route.generate_route, nodes, ways, start_node.id, end_node.id)
+
+    route = await request.app.loop.run_in_executor(None, partial)
+
+    return response.json(route.json)
+
+
+
 # @authrequired
-@api.post('/route')
+@api.get('/route')
 @memoized
 async def route(request):
     '''Api endpoint to generate the route'''
-
-    data = request.raw_args
+    data = request.args
+    
     start = Point.from_string(data.get('start'))
     end = Point.from_string(data.get('end'))
 

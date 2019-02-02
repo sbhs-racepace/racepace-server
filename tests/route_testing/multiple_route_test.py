@@ -1,10 +1,6 @@
 from server import Route,Point
 import json
 
-location = Point(-33.8796735,151.2053924)
-vert_unit,hor_unit = Route.get_coordinate_units(location)
-bounding_box = Route.rectangle_bounding_box(location,1000,1000)
-
 with open('../mockdata/ways.json') as f: waydata = json.load(f)
 with open('../mockdata/nodes.json') as f: nodedata = json.load(f)
 
