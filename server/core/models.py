@@ -11,12 +11,19 @@ from .utils import snowflake
 
 @dataclass
 class Credentials:
+    """
+    Class to hold important user information
+    Abdur Raqueeb
+    """
     email: str
     password: str
     token: str = None
 
 class User:
-
+    """
+    User class for database that holds all information
+    Abdur Raqueeb
+    """
     fields = ('id', 'credentials', 'routes')
 
     def __init__(self, app, user_id, credentials):
@@ -31,6 +38,10 @@ class User:
 
     @classmethod
     def from_data(cls, app, data):
+        """
+        Generates User class from python data
+        Abdur Raqueeb
+        """
         user_id = data['user_id']
         credentials = Credentials(*data['credentials'].values())
         user = cls(app, user_id, credentials)
@@ -38,16 +49,32 @@ class User:
         return user
 
     def check_password(self, password):
+        """
+        Checks encrypted password
+        Abdur Raqueeb
+        """
         return bcrypt.checkpw(password, self.credentials.password)
 
     async def update(self):
+        """
+        Updates user with current data
+        Abdur Raqueeb
+        """
         document = self.to_dict()
         await self.app.db.users.update_one({'user_id': self.id}, document)
     
     async def delete(self):
+        """
+        Deletes user from database
+        Abdur Raqueeb
+        """
         await self.app.db.users.delete_one({'user_id': self.id})
     
     def to_dict(self):
+        """
+        Returns user data as a dict
+        Abdur Raqueeb
+        """
         return {
             "user_id": self.id,
             "routes": self.routes,
@@ -76,6 +103,10 @@ class UserBase:
         return user
 
     async def register(self, request):
+        """
+        Registers user to database
+        Abdur Raqueeb
+        """
         data = request.json
 
         email = data.get('email')
@@ -107,7 +138,10 @@ class UserBase:
         return user
 
     async def issue_token(self, user):
-        '''Creates and returns a token if not already existing'''
+        '''
+        Creates and returns a token if not already existing
+        Abdur Raqueeb
+        '''
         if user.credentials.token:
             return user.credentials.token
 

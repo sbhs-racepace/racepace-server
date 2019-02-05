@@ -16,6 +16,10 @@ cache = {}
 @api.get('/route/multiple')
 @memoized
 async def multiple_route(request):
+    """
+    Api Endpoint that returns a multiple waypoint route
+    Jason Yu/Abdur Raqueeb
+    """
     data = request.args
 
     for waypoint in data['waypoints']
@@ -52,7 +56,10 @@ async def multiple_route(request):
 @api.get('/route')
 @memoized
 async def route(request):
-    '''Api endpoint to generate the route'''
+    """
+    Api Endpoint that returns a route
+    Jason Yu/Abdur Raqueeb
+    """
     data = request.args
     
     start = Point.from_string(data.get('start'))
@@ -87,7 +94,10 @@ async def route(request):
 @authrequired
 @api.patch('/users/<user_id:int>')
 async def update_user(request, user_id):
-    """Change user stuff"""
+    """
+    Change user information
+    Abdur Raqueeb
+    """
     data = request.json
     token = request.token
     password = data.get('password')
@@ -101,6 +111,10 @@ async def update_user(request, user_id):
 @api.delete('/users/<user_id:int>')
 @authrequired
 async def delete_user(request, user_id):
+    """
+    Deletes user from database
+    Abdur Raqueeb
+    """
     user = await request.app.users.find_account(user_id=user_id)
     await user.delete()
     return response.json({'success': True})
@@ -108,13 +122,20 @@ async def delete_user(request, user_id):
 @api.post('/register')
 @jsonrequired
 async def register(request):
-    """Register a user into the database"""
+    """
+    Register a user into the database
+    Abdur Raqueeb
+    """
     user = await request.app.users.register(request)
     return response.json({'success': True})
 
 @api.post('/login')
 @jsonrequired
 async def login(request):
+    """
+    Logs in user into the database
+    Abdur Raqueeb
+    """
     data = request.json
     email = data.get('email')
     password = data.get('password')
