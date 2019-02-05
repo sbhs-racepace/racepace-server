@@ -92,7 +92,10 @@ class UserBase:
         self.app = app
     
     async def find_account(self, **query):
-        '''Returns a user object based on the query'''
+        """
+        Returns a user object based on the query
+        Abdur Raqueeb
+        """
         data = await self.app.db.users.find_one(query)
 
         if not data:

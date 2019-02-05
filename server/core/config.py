@@ -1,3 +1,6 @@
+"""
+Add .env file for discord important
+"""
 from decouple import config
 
 DEV_MODE = config('development', cast=bool)

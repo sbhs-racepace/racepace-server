@@ -5,6 +5,9 @@ from sanic.exceptions import abort
 import time
 
 def jsonrequired(func):
+    """
+    Abdur Raqueeb
+    """
     @wraps(func)
     async def wrapper(request, *args, **kwargs):
         if request.json is None:
@@ -13,6 +16,9 @@ def jsonrequired(func):
     return wrapper
 
 async def validate_token(request):
+    """
+    Abdur Raqeeb
+    """    
     if request.token == 'ADMIN_TOKEN':
         return True
     exists = await request.app.db.users.find_one({
@@ -21,6 +27,9 @@ async def validate_token(request):
     return bool(exists)
 
 def authrequired(func):
+    """
+    Abdur Raqeeb
+    """    
     @wraps(func)
     async def wrapper(request, *args, **kwargs):
         if not request.token or not await validate_token(request):
@@ -29,6 +38,9 @@ def authrequired(func):
     return wrapper
 
 def memoized(func):
+    """
+    Abdur Raqeeb
+    """
     func.cache = {}
 
     @wraps(func)
@@ -41,6 +53,9 @@ def memoized(func):
     return wrapper
 
 def asyncexecutor(_func=None, *, loop=None, executor=None):
+    """
+    Abdur Raqeeb
+    """
     _loop = loop or asyncio.get_event_loop()
 
     def decorator(func):
@@ -56,7 +71,10 @@ def asyncexecutor(_func=None, *, loop=None, executor=None):
         return decorator(_func)
 
 def timed(f):
-    """Decorator that prints out the time taken for a function to execute."""
+    """
+    Decorator that prints out the time taken for a function to execute.
+    Abdur Raqeeb
+    """
 
     coro = inspect.iscoroutinefunction(f)
 
