@@ -7,6 +7,10 @@ from math import inf
 EARTH_RADIUS = 6371000
 
 class Heuristic:
+    """
+    Heuristic used to generate routes to the users preference's
+    Jason Yu
+    """
     def __init__(self, file_name):
         pass
         
@@ -18,6 +22,7 @@ class Heuristic:
 class Point:
     """
     Represents a geodetic point with latitude and longitude
+    Jason Yu/Abdur Raqueeb/Sunny Yan
     """
     def __init__(self, latitude: float, longitude: float):
         self.latitude = round(float(latitude),9)
@@ -25,12 +30,17 @@ class Point:
 
     @classmethod
     def from_string(cls, string):
+        """
+        Generates Point class from string data
+        Abdur Raqueeb
+        """
         lat, long = string.split(',')
         return cls(lat, long)
 
     def distance(self, other: Point) -> float:
         """
         Uses spherical geometry to calculate the surface distance between two points.
+        Sunny Yan
         """
         lat1, lon1 = self
         lat2, lon2 = other
@@ -50,6 +60,7 @@ class Point:
     def euclidean_distance(self,other:Point):
         '''
         Euclidean distance between two points (NON SPHERICAL)
+        Jason Yu
         '''
         lat1,long1 = self
         lat2,long2 = other
@@ -58,6 +69,7 @@ class Point:
     def heuristic_distance(self, other: Point, hor_unit: float, vert_unit: float) -> float:
         """
         Heuristic value based on euclidean distance on geo units
+        Jason YU
         """
         delta_lat = abs(self.latitude - other.latitude)
         delta_lon = abs(self.longitude - other.longitude)
@@ -66,10 +78,15 @@ class Point:
         return x_dist**2 + y_dist**2
 
     def __iter__(self):
+        """
+        Allows for easy splitting of location data
+        Abdur Raqueeb
+        """
         return iter((self.latitude, self.longitude))
 
     def __sub__(self, other: Point) -> int:
         """
+        Abdur Raqueeb
         Another way to call the distance function
         >>> point1 - point2
         69
@@ -80,7 +97,10 @@ class Point:
         return f'{self.latitude},{self.longitude}'
 
     def closest_node(self, nodes: dict) -> Node:
-        """Returns the closest node from a dict of nodes"""
+        """
+        Returns the closest node from a dict of nodes
+        Abdur Raqueeb
+        """
         nodes = sorted(nodes.values(), key=lambda other: other - self)
         closest_node = nodes[0]
         return closest_node
@@ -89,12 +109,17 @@ class Point:
         """
         Midpoint of two points that is calculated via euclidean multi_distance
         Not Accurate over large distances for coordinates
+        Jason Yu
         """
         delta_lat = (other.latitude - self.latitude) / 2
         delta_lon = (other.longitude - self.longitude) / 2
         return Point(self.latitude + delta_lat,self.longitude + delta_lon)
 
 class Node(Point):
+    """
+    Node class holds tags and is parent to Point
+    Jason Yu
+    """
     def __init__(self, latitude: float, longitude: float, id: str, tags:dict):
         super().__init__(latitude, longitude)
         self.id = id
@@ -103,20 +128,38 @@ class Node(Point):
         self.tag_multiplier = 1
 
     def __eq__(self, other: Point):
+        """
+        Abdur Raqueeb
+        """
         return self.id == other.id
 
     def get_tag_multiplier(self, profile):
+        """
+        Jason Yu
+        """
         return 1
 
     @staticmethod
     def json_to_nodes(json_nodes: dict) -> dict:
+        """
+        Generates a dictionary of nodes from json
+        Jason Yu/Abdur Raqueeb
+        """
         return {node['id']: Node.from_json(node) for node in json_nodes['elements']}
 
     @classmethod
     def from_json(cls, json_nodes: dict) -> Node:
+        """
+        Generates a Node class from a json
+        Jason Yu/Abdur Raqueeb
+        """
         return cls(json_nodes['lat'], json_nodes['lon'], json_nodes['id'],json_nodes.get('tags',{}))
 
 class Way:
+    """
+    Way class is a class that holds nodes
+    Jason Yu/Abdur Raqueeb
+    """
     def __init__(self, nodes: list, id: str, tags):
         self.node_ids = nodes
         self.id = id
@@ -124,10 +167,18 @@ class Way:
 
     @classmethod
     def from_json(cls, json_way: dict):
+        """
+        Generates a Way class from a json
+        Jason Yu/Abdur Raqueeb
+        """
         return cls(json_way['nodes'], json_way['id'], json_way.get('tags',{}))
 
     @staticmethod
     def json_to_ways(json_ways):
+        """
+        Generates a dictionary of ways from json
+        Jason Yu/Abdur Raqueeb
+        """
         return {way['id']:Way.from_json(way) for way in json_ways['elements']}
 
     def update_node_tags(self, nodes):
@@ -136,6 +187,10 @@ class Way:
                 nodes[node_id].tags.update(self.tags)
 
 class Route:
+    """
+    Class that describes a running route
+    Jason Yu/Abdur Raqueeb
+    """
     def __init__(self, route: list, distance: int, nodes: dict):
         self.route = route
         self.distance = distance
@@ -143,6 +198,9 @@ class Route:
 
     @property
     def json(self):
+        """
+        Jason Yu/Abdur Raqueeb
+        """
         route_nodes = [self.nodes[node_id] for node_id in self.route]
         route = [{'latitude': node.latitude, 'longitude': node.longitude} for node in route_nodes]
         return {
@@ -156,6 +214,7 @@ class Route:
         """
         Takes point and generates rectangular bounding box
         around point with width and length
+        Jason Yu
         """
         vert_unit,hor_unit = cls.get_coordinate_units(location)
         latitude,longitude = location
@@ -173,6 +232,7 @@ class Route:
         """
         Takes two points and generates rectangular bounding box
         that is uniquely oritentated about points
+        Jason Yu
         """
         #Constants and distance units
         vert_unit,hor_unit = cls.get_coordinate_units(location)
@@ -201,12 +261,16 @@ class Route:
     async def from_database(cls,db,route_id):
         """
         Creates a route object from a route stored in the database
+        Abdur
         """
         route = await db.find_one({'id_':route_id})
         return cls(route_id, **route['route'])
 
     @classmethod
     async def from_GPX(cls, nodes: dict, track): #<--XML object
+        """
+        Sunny Yan
+        """
         route = [Node(pt[0],pt.get[1],"").closest_distance(nodes)
                  for pt in track]
         dist = cls.get_route_distance(route,nodes)
@@ -218,6 +282,7 @@ class Route:
         Generates the shortest route to a destination
         Uses A* with euclidean distance as heuristic
         Uses tags to change cost of moving to nodes
+        Jason Yu
         """
         #Set up constants, sets and distance units
         unvisited = set(node_id for node_id in nodes)
@@ -268,7 +333,8 @@ class Route:
     @classmethod
     def generate_multi_route(cls, nodes: dict, ways: dict, node_waypoints: list) -> Route:
         """
-        Generate route that passes through all way points
+        Generate route that passes through all way points in order
+        Jason Yu
         """
         start = node_waypoints[0]
         multi_distance = 0
@@ -287,6 +353,7 @@ class Route:
     def get_route_distance(fastest_route:list,nodes:dict)-> float:
         """
         Find route distance from route nodes
+        Jason Yu
         """
         route_points = [nodes[node_id] for node_id in fastest_route]
         actual_distance = sum(route_points[index]-route_points[index+1] for index in range(len(route_points)-1))
@@ -296,6 +363,7 @@ class Route:
     def find_neighbours(ways: dict) -> dict:
         """
         Generates neighbours for every node in provided ways
+        Jason Yu
         """
         neighbours = {}
         for way in ways.values():
@@ -311,6 +379,7 @@ class Route:
         Coordinate unit in terms of metres for localized area
         Horizontal Unit is distance for 1 unit of longitude
         Vertical Unit is distance for 1 unit of latitude
+        Jason Yu
         """
         latitude,longitude = location
         hor_unit  = location - Point(latitude,longitude + 1)
@@ -322,6 +391,7 @@ class Route:
         """
         Convert node and way data to objects
         Update node tags and multipliers
+        Jason Yu
         """
         nodes = Node.json_to_nodes(nodes_json)
         ways = Way.json_to_ways(ways_json)
