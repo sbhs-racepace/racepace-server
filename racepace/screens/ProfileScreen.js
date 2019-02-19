@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import React from "react";
 import { View, Text, Button, Image, StyleSheet, ScrollView } from "react-native";
 import "../global"
@@ -62,44 +61,13 @@ export default class ProfileScreen extends React.Component {
             <Text>ij {this.state.statistics.total_fastest_800}</Text>
             <Text>ij {this.state.statistics.total_v02_max}</Text>
             <Text>ni{this.state.statistics.total_average_pace}</Text>
+            <Text>User ID{global.login_status.success}</Text>
           </View>
         </View>
          
           <Button title="Logout" onclick={()=> {
-            global.login_status = {success:false};
-            this.props.navigation.goBack();
           }}/>
       </ScrollView>
     );
   }
 }
-=======
-import React from "react";
-import { View, Text } from "react-native";
-
-export default class ProfileScreen extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      name: 'Jason Yu',
-      username: 'jyuuuk',
-      age:16,
-      email:'jasonyu0100@gmail.com',
-      distance_run:10,
-    }
-  }
-
-  render() {
-    return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <Text>Name: {this.state.name}</Text>
-        <Text>Username: {this.state.username}</Text>
-        <Text>Age: {this.state.age}</Text>
-        <Text>Email: {this.state.email}</Text>
-        <Text>Distance Run: {this.state.distance_run}</Text>
-
-      </View>
-    );
-  }
-}
->>>>>>> parent of 444dab6... Revert code to latest on Snack
