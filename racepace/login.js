@@ -49,7 +49,7 @@ export function login(register) {
 export async function googleLogin() {
   try {
     const result = await Expo.Google.logInAsync({
-      androidClientId: "957766852948-ej4l571ctj5gdo8es6mqa1invmcsq4fp.apps.googleusercontent.com",
+      androidClientId: global.googleLoginID.android,
       scopes: ["email"]
     })
     if (result.type == "success"){
