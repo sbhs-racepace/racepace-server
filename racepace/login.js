@@ -61,11 +61,3 @@ export async function googleLogin() {
     Alert.alert("Google Login Error",err)
   }
 }
-
-export function logout() {
-  console.log(global.login_status);
-  Alert.alert("Logout", "Are you sure you wish to logout?", [
-    { text: "Yes", onPress: () => { global.login_status = {} } },
-    { text: "No", onPress: () => this.props.navigation.navigate('App') }
-  ])
-}
