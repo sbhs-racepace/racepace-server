@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import Button from '../components/Button.js'
 import PickTwo from '../components/PickTwo'
-import login from "../login"
+import {login} from "../login"
 import '../global';
 
 const STYLES = StyleSheet.create({
