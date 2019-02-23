@@ -8,7 +8,7 @@ import {
   Image,
   Alert,
 } from 'react-native';
-import {login,logout} from "../login"
+import {login} from "../login"
 import Button from '../components/Button.js'
 import '../global';
 
