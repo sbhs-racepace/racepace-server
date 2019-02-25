@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Component } from 'react';
 import {
   View,
@@ -9,6 +9,8 @@ import {
   Alert,
 } from 'react-native';
 import Button from '../components/Button.js'
+import PickTwo from '../components/PickTwo'
+import {login} from "../login"
 import '../global';
 
 const STYLES = StyleSheet.create({
@@ -22,11 +24,13 @@ const STYLES = StyleSheet.create({
     right: "10%",
   },
   general: {
-    top: 5,
+    marginTop: 5,
     width:"80%",
     left: "10%",
-    right: "10%",
   },
+  pickTwo: {
+    width:"50%"
+  }
 })
 
 export default class RegisterScreen extends React.Component {
@@ -43,40 +47,6 @@ export default class RegisterScreen extends React.Component {
       std_txt: "✓ Standard",
       coach_txt: "Coach",
     };
-    
-    this.setState({
-      std_txt: "Standard",
-      coach_txt: "Coach ✓",
-      type: "c"
-    })
-  }
-  
-  check_login(res) {
-    if (res === null) {
-      Alert.alert('Error connecting to login server');
-      return 0; //exit
-    }
-    if (res.success) {
-      global.login_status = res;
-    } else {
-      Alert.alert('Error', res.error);
-    }
-  }
-
-  login() {
-    let data = {
-      email: this.state.email,
-      password: this.state.pword,
-      name: this.state.name
-    };
-    fetch('http://192.168.0.5:8000/api/register', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
-      .catch(res => {Alert.alert('Error connecting to login server', res);})
-      .then(res => res.json())
-      .then(res => this.check_login(res));
-    this.props.navigation.navigate('App');
   }
 
   render() {
@@ -127,23 +97,8 @@ export default class RegisterScreen extends React.Component {
           secureTextEntry={true}
           placeholderTextColor="rgba(225,225,225,0.8)"
         />
-        <View style={{flexDirection: 'row'}}>
-          <Button text={this.state.std_txt} onclick= {() => {
-            this.setState({
-              std_txt: "✓ Standard",
-              coach_txt: "Coach",
-              type: "s"
-            });
-          }}>{this.state.std_txt}</Button>
-          <Button text={this.state.coach_txt} onclick= {() => {
-            this.setState({
-              std_txt: "Standard",
-              coach_txt: "Coach ✓",
-              type: "c"
-            });
-          }}>{this.state.coach_txt}</Button>
-        </View>
-        <Button text="Register" />
+        <PickTwo view_style={STYLES.general} btn_style={STYLES.pickTwo} options={["Standard","Coach"]} abbrev={["s","c"]} _this={this} />
+        <Button style={STYLES.general} text="Register" onPress={login.bind(this)} />
       </View>
     );
   }

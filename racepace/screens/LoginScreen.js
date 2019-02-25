@@ -8,11 +8,10 @@ import {
   Image,
   Alert,
 } from 'react-native';
-//import { GoogleSignin, GoogleSigninButton, statusCodes } from 'react-native-google-signin';
+import {login} from "../login"
 import Button from '../components/Button.js'
 import '../global';
 
-const CLIENT_ID = "AIzaSyD7hc2PUQS1fm0W1vXDeKIlaCgRJ6SAhYs";
 const STYLES = StyleSheet.create({
   input: {
     borderLeftWidth: 2,
@@ -24,7 +23,7 @@ const STYLES = StyleSheet.create({
     right: "10%",
   },
   general: {
-    top: 5,
+    marginTop: 5,
     width:"80%",
     left: "10%",
     right: "10%",
@@ -32,9 +31,6 @@ const STYLES = StyleSheet.create({
 })
 
 export default class LoginScreen extends React.Component {
-  static navigationOptions = {
-    title: 'Login',
-  };
 
   constructor(props) {
     super(props);
@@ -45,40 +41,15 @@ export default class LoginScreen extends React.Component {
     };
   }
 
+  componentDidUpdate() {
+    console.log("update")
+  }
  /*  async componentDidMount() {
     GoogleSignin.configure({
       webClientId: CLIENT_ID,
       offlineAccess: false,
     });
   } */
-
-  check_login(res) {
-    if (res === null) {
-      Alert.alert('Error connecting to login server');
-      return 0; //exit
-    }
-    if (res.success) {
-      global.login_status = res;
-    } else {
-      Alert.alert('Error', res.error);
-    }
-  }
-
-  login() {
-    let data = {
-      email: this.state.email,
-      password: this.state.pword,
-    };
-    fetch('http://192.168.0.5:8000/api/login', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
-      .catch(res => {Alert.alert('Error connecting to login server', res);})
-      .then(res => res.json())
-      .then(res => this.check_login(res));
-    //console.log(global.login_status)
-    this.props.navigation.navigate('App');
-  }
 
   /* async googleLogin() {
     let userInfo;
@@ -114,6 +85,11 @@ export default class LoginScreen extends React.Component {
   */
 
   render() {
+    /* console.log("run")
+    console.log(global.login_status) */
+    /* if (global.login_status.success) {
+      logout().bind(this)
+    } */
     return (
       <View>
         <Image style={STYLES.general} source={require('../assets/cat.jpeg')} />
@@ -147,15 +123,16 @@ export default class LoginScreen extends React.Component {
           placeholder="Password"
           placeholderTextColor="rgba(225,225,225,0.8)"
         />
-        <Button onPress={this.login.bind(this)} text={"Login"} />
+        <Button style={STYLES.general} onPress={login.bind(this)} text={"Login"} />
         <Button
+          style={STYLES.general}
           onPress={() => {
             global.login_status = { success: true };
-            this.props.navigation.navigate('App');
+            this.props.navigation.navigate('Main');
           }}
           text={"Login as guest"}
         />
-        <Button onPress = {() => this.props.navigation.navigate('Register')} text={"Register"}/>
+        <Button style={STYLES.general} onPress = {() => this.props.navigation.navigate('Register')} text="Register" />
       </View>
     );
   }

@@ -33,7 +33,7 @@ export default class MapScreen extends React.Component {
   }
 
   api_route(start, end) {
-    data = {
+    let data = {
       'start': start,
       'end': end,
     }
