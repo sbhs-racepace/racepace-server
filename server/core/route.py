@@ -88,8 +88,6 @@ class Point:
         """
         Abdur Raqueeb
         Another way to call the distance function
-        >>> point1 - point2
-        69
         """
         return self.distance(other)
 
@@ -114,6 +112,28 @@ class Point:
         delta_lat = (other.latitude - self.latitude) / 2
         delta_lon = (other.longitude - self.longitude) / 2
         return Point(self.latitude + delta_lat,self.longitude + delta_lon)
+
+    @staticmethod
+    def radians_to_degrees(radians):
+        return radians / math.pi * 180
+
+    def check_below_line(self,left_point,right_point):
+      gradient = left_point.gradient(right_point)
+      if gradient == 0: return self.latitude < left_point.latitude # If point y is less, it is below
+      elif gradient == math.inf: return self.latitude < max([left_point.latitude,right_point.latitude]) # point y is less than max, it is below
+      else:
+        line_equation = lambda x: gradient * (x - left_point.longitude) + left_point.latitude
+        return self.latitude <= line_equation(left_point.longitude) #Below line
+    
+    def gradient(self,other):
+        """
+        Returns gradient from point 1 to point 2
+        """
+        delta_y = (other.latitude - self.latitude)
+        delta_x = (other.longitude - self.longitude)
+        if delta_y == 0: return 0
+        elif delta_x == 0: return math.inf
+        else: return delta_y / delta_x
 
 class Node(Point):
     """
@@ -256,6 +276,47 @@ class Route:
         #Point Order
         points = [a,b,d,c]
         return ' '.join(f'{p.latitude} {p.longitude}' for p in points)
+
+    @classmethod 
+    def get_convex_hull_points(cls, waypoints):
+        points = []
+        for index in range(len(waypoints) - 2):
+            start = waypoints[index]
+            end = waypoints[index + 1]
+            lat_lon_list = cls.two_point_bounding_box(start,end).split()
+            bounding_box_points = []
+            while len(lat_lon_list) != 0:
+                lat = lat_lon_list.pop(0)
+                lon = lat_lon_list.pop(0)
+                bounding_box_points.append(Point(lat,lon))
+            points += bounding_box_points
+        return points
+
+    @classmethod
+    def convex_hull(cls, waypoints)-> str:
+        if len(waypoints) == 2: return cls.two_point_bounding_box(waypoints[0],waypoints[1])
+        points = cls.get_convex_hull_points(waypoints)
+        starting_point = min(points, key=lambda point: point.latitude)
+        theta_dict = {}
+        for point in points:
+            if point is starting_point: continue
+            delta_x = point.longitude - starting_point.longitude
+            delta_y = point.latitude - starting_point.latitude
+            theta = Point.radians_to_degrees(math.atan2(delta_y,delta_x))
+            theta_dict[point] = theta
+        sorted_points = sorted(theta_dict, key=lambda k:theta_dict[k])
+        left, right = [], []
+        while True:
+            if len(sorted_points) < 2:
+                if len(sorted_points) == 1: left.append(sorted_points.pop())
+                break
+            left_point = sorted_points.pop()
+            right_point = sorted_points.pop(0)
+            left.append(left_point)
+            right.append(right_point)
+            sorted_points = [point for point in sorted_points if not point.check_below_line(left_point,right_point)]
+        convex_hull = [starting_point] + right + list(reversed(left))
+        return ' '.join(f'{p.latitude} {p.longitude}' for p in convex_hull)
 
     @classmethod
     async def from_database(cls,db,route_id):

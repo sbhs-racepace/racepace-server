@@ -10,4 +10,9 @@ node_waypoints = [8109379, 2347313263, 2347313310, 1833169111, 8109372, 23473133
 
 
 route = Route.generate_multi_route(nodes, ways, node_waypoints)
-print(route.route, route.distance)
+waypoints = [nodes[point] for point in route.route]
+# print(waypoints)
+# print(Route)
+print(Route.convex_hull(waypoints))
+# for point in Route.get_convex_hull_points(waypoints):
+#   print(point)

@@ -22,7 +22,8 @@ async def multiple_route(request):
     """
     data = request.args
 
-    for waypoint in data['waypoints']
+    for waypoint in data['waypoints']:
+        pass
 
     bounding_box = Route.two_point_bounding_box(start, end)
 
