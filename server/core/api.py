@@ -20,32 +20,35 @@ async def multiple_route(request):
     Api Endpoint that returns a multiple waypoint route
     Jason Yu/Abdur Raqueeb
     """
+
     data = request.args
 
-    for waypoint in data['waypoints']:
-        pass
+    location_points = [Point.from_string(waypoint) for waypoint in data['waypoints']]
+    print(location_points)
 
-    bounding_box = Route.two_point_bounding_box(start, end)
+    bounding_box = Route.convex_hull(location_points)
 
-    nodes_enpoint = Overpass.NODE.format(bounding_box) #Generate url to query api
+
+    nodes_endpoint = Overpass.NODE.format(bounding_box) #Generate url to query api
     ways_endpoint = Overpass.WAY.format(bounding_box)
 
-    print(nodes_enpoint)
-    print(ways_endpoint)
+
+    print(nodes_endpoint)
 
     tasks = [
-        request.app.fetch(nodes_enpoint),
+        request.app.fetch(nodes_endpoint),
         request.app.fetch(ways_endpoint)
         ]
 
+    print('getting data')
     node_data, way_data = await asyncio.gather(*tasks)
+    print('got data')
 
     nodes, ways = Route.transform_json_nodes_and_ways(node_data,way_data)
 
-    start_node = start.closest_node(nodes)
-    end_node = end.closest_node(nodes)
+    waypoints = [point.closest_node(nodes) for point in location_points]
 
-    partial = functools.partial(Route.generate_route, nodes, ways, start_node.id, end_node.id)
+    partial = functools.partial(Route.generate_multi_route, nodes, ways, waypoints)
 
     route = await request.app.loop.run_in_executor(None, partial)
 
@@ -71,22 +74,21 @@ async def route(request):
     nodes_enpoint = Overpass.NODE.format(bounding_box) #Generate url to query api
     ways_endpoint = Overpass.WAY.format(bounding_box)
 
-    print(nodes_enpoint)
-    print(ways_endpoint)
-
     tasks = [
         request.app.fetch(nodes_enpoint),
         request.app.fetch(ways_endpoint)
         ]
 
+    print('getting data')
     node_data, way_data = await asyncio.gather(*tasks)
+    print('successfuly got data')
 
     nodes, ways = Route.transform_json_nodes_and_ways(node_data,way_data)
 
     start_node = start.closest_node(nodes)
     end_node = end.closest_node(nodes)
 
-    partial = functools.partial(Route.generate_route, nodes, ways, start_node.id, end_node.id)
+    partial = functools.partial(Route.generate_route, nodes, ways, start_node, end_node)
 
     route = await request.app.loop.run_in_executor(None, partial)
 
