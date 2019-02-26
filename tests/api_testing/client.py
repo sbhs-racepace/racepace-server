@@ -50,6 +50,10 @@ class TestApiClient:
         response = requests.get(self.BASE+'/route', params={'start':start,'end':end})
         return response.json()
 
+    def get_multiple_route(self, waypoints):
+        response = requests.get(self.BASE + '/route/multiple', params={'waypoints': waypoints})
+        return response.json()
+
 
 
 
