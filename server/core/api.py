@@ -24,14 +24,11 @@ async def multiple_route(request):
     data = request.args
 
     location_points = [Point.from_string(waypoint) for waypoint in data['waypoints']]
-    print(location_points)
 
     bounding_box = Route.convex_hull(location_points)
 
-
     nodes_endpoint = Overpass.NODE.format(bounding_box) #Generate url to query api
     ways_endpoint = Overpass.WAY.format(bounding_box)
-
 
     print(nodes_endpoint)
 
@@ -47,8 +44,9 @@ async def multiple_route(request):
     nodes, ways = Route.transform_json_nodes_and_ways(node_data,way_data)
 
     waypoints = [point.closest_node(nodes) for point in location_points]
+    waypoint_ids = [node.id for node in waypoints]
 
-    partial = functools.partial(Route.generate_multi_route, nodes, ways, waypoints)
+    partial = functools.partial(Route.generate_multi_route, nodes, ways, waypoint_ids)
 
     route = await request.app.loop.run_in_executor(None, partial)
 
@@ -85,8 +83,8 @@ async def route(request):
 
     nodes, ways = Route.transform_json_nodes_and_ways(node_data,way_data)
 
-    start_node = start.closest_node(nodes)
-    end_node = end.closest_node(nodes)
+    start_id = start.closest_node(nodes).id
+    end_id = end.closest_node(nodes).id
 
     partial = functools.partial(Route.generate_route, nodes, ways, start_node, end_node)
 
