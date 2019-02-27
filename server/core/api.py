@@ -86,7 +86,7 @@ async def route(request):
     start_id = start.closest_node(nodes).id
     end_id = end.closest_node(nodes).id
 
-    partial = functools.partial(Route.generate_route, nodes, ways, start_node, end_node)
+    partial = functools.partial(Route.generate_route, nodes, ways, start_id, end_id)
 
     route = await request.app.loop.run_in_executor(None, partial)
 
