@@ -338,7 +338,7 @@ class Route:
         return cls(route,dist)
 
     @classmethod
-    def generate_route(cls, nodes: dict, ways: dict, start: int, end: int) -> Route:
+    def generate_route(cls, nodes: dict, ways: dict, start_id: int, end_id: int) -> Route:
         """
         Generates the shortest route to a destination
         Uses A* with euclidean distance as heuristic
@@ -346,8 +346,6 @@ class Route:
         Jason Yu
         """
         #Set up constants, sets and distance units
-        start_id = start.id 
-        end_id = end.id
         unvisited = set(node_id for node_id in nodes)
         visited = set()
         path_dict = dict((node,(inf,[node])) for node in nodes)
