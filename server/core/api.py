@@ -25,21 +25,17 @@ async def multiple_route(request):
 
     location_points = [Point.from_string(waypoint) for waypoint in data['waypoints']]
 
-    bounding_box = Route.convex_hull(location_points)
+    bounding_box = Route.bounding_points_to_string(Route.convex_hull(location_points))
 
     nodes_endpoint = Overpass.NODE.format(bounding_box) #Generate url to query api
     ways_endpoint = Overpass.WAY.format(bounding_box)
-
-    print(nodes_endpoint)
 
     tasks = [
         request.app.fetch(nodes_endpoint),
         request.app.fetch(ways_endpoint)
         ]
 
-    print('getting data')
     node_data, way_data = await asyncio.gather(*tasks)
-    print('got data')
 
     nodes, ways = Route.transform_json_nodes_and_ways(node_data,way_data)
 
@@ -67,7 +63,7 @@ async def route(request):
     start = Point.from_string(data.get('start'))
     end = Point.from_string(data.get('end'))
 
-    bounding_box = Route.two_point_bounding_box(start, end)
+    bounding_box = Route.bounding_points_to_string(Route.two_point_bounding_box(start, end))
 
     nodes_enpoint = Overpass.NODE.format(bounding_box) #Generate url to query api
     ways_endpoint = Overpass.WAY.format(bounding_box)
@@ -77,9 +73,7 @@ async def route(request):
         request.app.fetch(ways_endpoint)
         ]
 
-    print('getting data')
     node_data, way_data = await asyncio.gather(*tasks)
-    print('successfuly got data')
 
     nodes, ways = Route.transform_json_nodes_and_ways(node_data,way_data)
 
