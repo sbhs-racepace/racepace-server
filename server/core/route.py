@@ -343,16 +343,6 @@ class Route:
         return cls(route_id, **route['route'])
 
     @classmethod
-    async def from_GPX(cls, nodes: dict, track): #<--XML object
-        """
-        Sunny Yan
-        """
-        route = [Node(pt[0],pt.get[1],"").closest_distance(nodes)
-                 for pt in track]
-        dist = cls.get_route_distance(route,nodes)
-        return cls(route,dist)
-
-    @classmethod
     def generate_route(cls, nodes: dict, ways: dict, start_id: int, end_id: int) -> Route:
         """
         Generates the shortest route to a destination
