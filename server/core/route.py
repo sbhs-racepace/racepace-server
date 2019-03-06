@@ -253,12 +253,9 @@ class Route:
         latitude,longitude = location
         lat_unit = (width/2) / vert_unit
         lon_unit = (length/2) / hor_unit
-        la1 = latitude - lat_unit
-        lo1 = longitude - lon_unit
-        la2 = latitude + lat_unit
-        lo2 = longitude + lon_unit
-        bounding_coords = ','.join(list(map(str,[la1,lo1,la2,lo2])))
-        return bounding_coords
+        point1 = Point(latitude - lat_unit, longitude - lon_unit)
+        point2 = Point(latitude + lat_unit, longitude + lon_unit)
+        return [point1, point2]
 
     @classmethod
     def two_point_bounding_box(cls,location:Point,other:Point)-> str:
