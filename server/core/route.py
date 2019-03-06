@@ -1,8 +1,7 @@
 from __future__ import annotations
-import math
 import copy
 import json
-from math import inf
+from math import *
 
 EARTH_RADIUS = 6371000
 
@@ -17,7 +16,6 @@ class Heuristic:
     def open_file(self, file_name):
         json_file = open(file_name)
         json_data = json.loads(json_file)
-
 
 class Point:
     """
@@ -44,17 +42,17 @@ class Point:
         """
         lat1, lon1 = self
         lat2, lon2 = other
-        dlat = math.radians(lat2 - lat1)
-        dlon = math.radians(lon2 - lon1)
+        dlat = radians(lat2 - lat1)
+        dlon = radians(lon2 - lon1)
         a = (
-            math.sin(dlat / 2)
-            * math.sin(dlat / 2)
-            + math.cos(math.radians(lat1))
-            * math.cos(math.radians(lat2))
-            * math.sin(dlon / 2)
-            * math.sin(dlon / 2)
+            sin(dlat / 2)
+            * sin(dlat / 2)
+            + cos(radians(lat1))
+            * cos(radians(lat2))
+            * sin(dlon / 2)
+            * sin(dlon / 2)
             )
-        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        c = 2 * atan2(sqrt(a), sqrt(1 - a))
         return EARTH_RADIUS * c
 
     def euclidean_distance(self,other:Point):
@@ -64,7 +62,7 @@ class Point:
         '''
         lat1,long1 = self
         lat2,long2 = other
-        return math.sqrt((long1-long2)**2 + (lat1-lat2)**2)
+        return sqrt((long1-long2)**2 + (lat1-lat2)**2)
 
     def heuristic_distance(self, other: Point, hor_unit: float, vert_unit: float) -> float:
         """
@@ -99,16 +97,15 @@ class Point:
         Returns the closest node from a dict of nodes
         Abdur Raqueeb
         """
-        sorted_nodes = sorted(nodes.values(), key=lambda other: other - self)
-        closest_node = sorted_nodes[0]
-        return closest_node
+        sorted_nodes = sorted(nodes.values(), key=lambda other: self - other) 
+        return sorted_nodes[0]
     
     def closest_way_node(self, nodes: dict, way_node_ids: set) -> Node:
         """
         Returns closest node which is in a way from a dict of nodes and a dict of ways
         Jason Yu
         """
-        sorted_nodes = sorted(nodes.values(), key=lambda other: other - self)
+        sorted_nodes = sorted(nodes.values(), key=lambda other: self - other)
         for node in sorted_nodes:
             if node.id in way_node_ids:
                 return node
@@ -127,12 +124,12 @@ class Point:
 
     @staticmethod
     def radians_to_degrees(radians):
-        return radians / math.pi * 180
+        return radians / pi * 180
 
     def check_below_line(self,left_point,right_point):
       gradient = left_point.gradient(right_point)
       if gradient == 0: return self.latitude < left_point.latitude # If point y is less, it is below
-      elif gradient == math.inf: return self.latitude < max([left_point.latitude,right_point.latitude]) # point y is less than max, it is below
+      elif gradient == inf: return self.latitude < max([left_point.latitude,right_point.latitude]) # point y is less than max, it is below
       else:
         line_equation = lambda x: gradient * (x - left_point.longitude) + left_point.latitude
         return self.latitude <= line_equation(left_point.longitude) #Below line
@@ -144,7 +141,7 @@ class Point:
         delta_y = (other.latitude - self.latitude)
         delta_x = (other.longitude - self.longitude)
         if delta_y == 0: return 0
-        elif delta_x == 0: return math.inf
+        elif delta_x == 0: return inf
         else: return delta_y / delta_x
 
 class Node(Point):
@@ -264,7 +261,7 @@ class Route:
         return bounding_coords
 
     @classmethod
-    def two_point_bounding_box(cls,location:Point,other_location:Point)-> str:
+    def two_point_bounding_box(cls,location:Point,other:Point)-> str:
         """
         Takes two points and generates rectangular bounding box
         that is uniquely oritentated about points
@@ -272,26 +269,26 @@ class Route:
         """
         #Constants and distance units
         vert_unit,hor_unit = cls.get_coordinate_units(location)
-        pi = math.pi
         lat1,long1 = location
-        lat2,long2 = other_location
+        lat2,long2 = other
         #Scaling factors
-        distance = location - other_location
-        vert_scale = 1 * (distance) / vert_unit
-        hor_scale = 1 * (distance) / hor_unit
+        distance = location - other
+        vert_scale = distance / vert_unit
+        hor_scale = distance / hor_unit
+        delta_lat = other.latitude - location.latitude
+        delta_lon = other.longitude - location.longitude
         #Two Point Extensions for intial in either direction
-        theta = math.atan2((lat2 - lat1),(long2 - long1)) #Intial theta based on intial points
-        mlat1,mlong1 = lat1 + math.sin(theta - pi) * vert_scale, long1 + math.cos(theta - pi) * hor_scale
-        mlat2,mlong2 = lat2 + math.sin(theta)      * vert_scale, long2 + math.cos(theta)      * hor_scale
+        theta = atan2(delta_lat, delta_lon) #Intial theta based on intial points
+        point1 = Point(location.latitude + sin(theta - pi) * vert_scale,location.longitude + cos(theta - pi) * hor_scale)
+        point2 = Point(other.latitude + sin(theta - pi) * vert_scale,other.longitude + cos(theta - pi) * hor_scale)
         #Four perpendicular vertices extended from extensions in either direction
-        theta2 = (2*pi - (pi/2 - theta)) #Perpendicular to initial theta
-        a = Point(mlat1 + math.sin(theta2)      * vert_scale, mlong1 + math.cos(theta2)      * hor_scale)
-        b = Point(mlat1 + math.sin(theta2 - pi) * vert_scale, mlong1 + math.cos(theta2 - pi) * hor_scale)
-        c = Point(mlat2 + math.sin(theta2)      * vert_scale, mlong2 + math.cos(theta2)      * hor_scale)
-        d = Point(mlat2 + math.sin(theta2 - pi) * vert_scale, mlong2 + math.cos(theta2 - pi) * hor_scale)
+        theta2 = (theta - pi/2) #Perpendicular to initial theta
+        a = Point(point1.latitude + sin(theta2)      * vert_scale, point1.longitude + cos(theta2)      * hor_scale)
+        b = Point(point1.latitude + sin(theta2 - pi) * vert_scale, point1.longitude + cos(theta2 - pi) * hor_scale)
+        c = Point(point2.latitude + sin(theta2)      * vert_scale, point2.longitude + cos(theta2)      * hor_scale)
+        d = Point(point2.latitude + sin(theta2 - pi) * vert_scale, point2.longitude + cos(theta2 - pi) * hor_scale)
         #Point Order
-        points = [a,b,d,c]
-        return points
+        return [a,b,d,c]
 
     @classmethod 
     def get_convex_hull_points(cls, waypoints: list):
@@ -320,7 +317,7 @@ class Route:
             if point is starting_point: continue
             delta_x = point.longitude - starting_point.longitude
             delta_y = point.latitude - starting_point.latitude
-            theta = Point.radians_to_degrees(math.atan2(delta_y,delta_x))
+            theta = Point.radians_to_degrees(atan2(delta_y,delta_x))
             theta_dict[point] = theta
         sorted_points = sorted(theta_dict, key=lambda k:theta_dict[k])
         left, right = [], []
@@ -402,13 +399,7 @@ class Route:
                     current_cost = current_distance + end_point.heuristic_distance(nodes[node_id],vert_unit,hor_unit)
                     unvisited_node_costs[node_id] = current_cost
                 next_node,cost = min(unvisited_node_costs.items(),key=lambda item:item[1])
-                # print(cost)
                 if cost == inf:
-                    # for node in unvisited_node_costs:
-                    #     print(node, unvisited_node_costs[node])
-                    # print()
-
-                    # print(path_dict[current])
                     raise Exception("End node cannot be reached")
                 else: current = next_node
         #Retrieve route, calculate actual distance
@@ -450,13 +441,10 @@ class Route:
         """
         neighbours = {}
         for way in ways.values():
-            # if 287133604 in way.node_ids:
-            #     print(way.node_ids)
             for index, node in enumerate(way.node_ids):
                 if node not in neighbours: neighbours[node] = set()
                 if (index - 1) != -1: neighbours[node].add(way.node_ids[index - 1])
                 if (index + 1) != len(way.node_ids): neighbours[node].add(way.node_ids[index + 1])
-        # print(287133604,neighbours[287133604])
         return neighbours
 
     @staticmethod
