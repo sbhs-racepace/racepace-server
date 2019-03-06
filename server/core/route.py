@@ -99,9 +99,21 @@ class Point:
         Returns the closest node from a dict of nodes
         Abdur Raqueeb
         """
-        nodes = sorted(nodes.values(), key=lambda other: other - self)
-        closest_node = nodes[0]
+        sorted_nodes = sorted(nodes.values(), key=lambda other: other - self)
+        closest_node = sorted_nodes[0]
         return closest_node
+    
+    def closest_way_node(self, nodes: dict, way_node_ids: set) -> Node:
+        """
+        Returns closest node which is in a way from a dict of nodes and a dict of ways
+        Jason Yu
+        """
+        sorted_nodes = sorted(nodes.values(), key=lambda other: other - self)
+        for node in sorted_nodes:
+            if node.id in way_node_ids:
+                return node
+        else:
+            raise Exception('No way node could be found.')
 
     def get_midpoint(self, other) -> Point:
         """
@@ -201,6 +213,10 @@ class Way:
         """
         return {way['id']:Way.from_json(way) for way in json_ways['elements']}
 
+    @staticmethod
+    def get_way_node_ids(ways):
+        return set(node_id for way in ways.values() for node_id in way.node_ids) 
+
     def update_node_tags(self, nodes):
         for node_id in self.node_ids:
             if node_id in nodes:
@@ -261,8 +277,8 @@ class Route:
         lat2,long2 = other_location
         #Scaling factors
         distance = location - other_location
-        vert_scale = 0.5 * distance / vert_unit
-        hor_scale = 0.5 * distance / hor_unit
+        vert_scale = 1 * (distance) / vert_unit
+        hor_scale = 1 * (distance) / hor_unit
         #Two Point Extensions for intial in either direction
         theta = math.atan2((lat2 - lat1),(long2 - long1)) #Intial theta based on intial points
         mlat1,mlong1 = lat1 + math.sin(theta - pi) * vert_scale, long1 + math.cos(theta - pi) * hor_scale
@@ -386,7 +402,14 @@ class Route:
                     current_cost = current_distance + end_point.heuristic_distance(nodes[node_id],vert_unit,hor_unit)
                     unvisited_node_costs[node_id] = current_cost
                 next_node,cost = min(unvisited_node_costs.items(),key=lambda item:item[1])
-                if cost == inf: raise Exception("End node cannot be reached")
+                # print(cost)
+                if cost == inf:
+                    # for node in unvisited_node_costs:
+                    #     print(node, unvisited_node_costs[node])
+                    # print()
+
+                    # print(path_dict[current])
+                    raise Exception("End node cannot be reached")
                 else: current = next_node
         #Retrieve route, calculate actual distance
         heuristic_cost, fastest_route = path_dict[end_id]
@@ -399,8 +422,6 @@ class Route:
         Generate route that passes through all way points in order
         Jason Yu
         """
-
-        #Works
         start = node_waypoint_ids[0]
         multi_distance = 0
         multi_route = [start]
@@ -429,10 +450,13 @@ class Route:
         """
         neighbours = {}
         for way in ways.values():
+            # if 287133604 in way.node_ids:
+            #     print(way.node_ids)
             for index, node in enumerate(way.node_ids):
                 if node not in neighbours: neighbours[node] = set()
-                if (index - 1) != 0: neighbours[node].add(way.node_ids[index - 1])
+                if (index - 1) != -1: neighbours[node].add(way.node_ids[index - 1])
                 if (index + 1) != len(way.node_ids): neighbours[node].add(way.node_ids[index + 1])
+        # print(287133604,neighbours[287133604])
         return neighbours
 
     @staticmethod
