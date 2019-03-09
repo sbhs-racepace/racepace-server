@@ -25,31 +25,29 @@ async def multiple_route(request):
 
     location_points = [Point.from_string(waypoint) for waypoint in data['waypoints']]
 
-    bounding_box = Route.convex_hull(location_points)
+    bounding_box = Route.bounding_points_to_string(Route.convex_hull(location_points))
 
     nodes_endpoint = Overpass.NODE.format(bounding_box) #Generate url to query api
     ways_endpoint = Overpass.WAY.format(bounding_box)
 
-    print(nodes_endpoint)
+    print("Nodes Endpoint: " + nodes_endpoint)
+    print("Ways Endpoint: " + ways_endpoint)
 
     tasks = [
         request.app.fetch(nodes_endpoint),
         request.app.fetch(ways_endpoint)
         ]
 
-    print('getting data')
     node_data, way_data = await asyncio.gather(*tasks)
-    print('got data')
 
     nodes, ways = Route.transform_json_nodes_and_ways(node_data,way_data)
+    way_node_ids = Way.get_way_node_ids(ways)
 
-    waypoints = [point.closest_node(nodes) for point in location_points]
+    waypoints = [point.closest_way_node(nodes, way_node_ids) for point in location_points]
     waypoint_ids = [node.id for node in waypoints]
 
     partial = functools.partial(Route.generate_multi_route, nodes, ways, waypoint_ids)
-
     route = await request.app.loop.run_in_executor(None, partial)
-
     return response.json(route.json)
 
 
@@ -67,7 +65,7 @@ async def route(request):
     start = Point.from_string(data.get('start'))
     end = Point.from_string(data.get('end'))
 
-    bounding_box = Route.two_point_bounding_box(start, end)
+    bounding_box = Route.bounding_points_to_string(Route.two_point_bounding_box(start, end))
 
     endpoint = Overpass.REQ.format(bounding_box) #Generate url to query api
     task = request.app.fetch(endpoint)
@@ -83,11 +81,15 @@ async def route(request):
     way_data = data["elements"]
 
     nodes, ways = Route.transform_json_nodes_and_ways(node_data,way_data)
+    way_node_ids = Way.get_way_node_ids(ways)
 
-    start_id = start.closest_node(nodes).id
-    end_id = end.closest_node(nodes).id
+    start_node = start.closest_way_node(nodes, way_node_ids)
+    end_node = end.closest_way_node(nodes, way_node_ids)
 
-    partial = functools.partial(Route.generate_route, nodes, ways, start_id, end_id)
+    print("Start Node: " + str(start_node.id))
+    print("End Node: " + str(end_node.id))
+
+    partial = functools.partial(Route.generate_route, nodes, ways, start_node.id, end_node.id)
 
     route = await request.app.loop.run_in_executor(None, partial)
 

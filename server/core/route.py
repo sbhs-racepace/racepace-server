@@ -1,8 +1,7 @@
 from __future__ import annotations
-import math
 import copy
 import json
-from math import inf
+from math import *
 
 EARTH_RADIUS = 6371000
 
@@ -17,7 +16,6 @@ class Heuristic:
     def open_file(self, file_name):
         json_file = open(file_name)
         json_data = json.loads(json_file)
-
 
 class Point:
     """
@@ -44,17 +42,17 @@ class Point:
         """
         lat1, lon1 = self
         lat2, lon2 = other
-        dlat = math.radians(lat2 - lat1)
-        dlon = math.radians(lon2 - lon1)
+        dlat = radians(lat2 - lat1)
+        dlon = radians(lon2 - lon1)
         a = (
-            math.sin(dlat / 2)
-            * math.sin(dlat / 2)
-            + math.cos(math.radians(lat1))
-            * math.cos(math.radians(lat2))
-            * math.sin(dlon / 2)
-            * math.sin(dlon / 2)
+            sin(dlat / 2)
+            * sin(dlat / 2)
+            + cos(radians(lat1))
+            * cos(radians(lat2))
+            * sin(dlon / 2)
+            * sin(dlon / 2)
             )
-        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        c = 2 * atan2(sqrt(a), sqrt(1 - a))
         return EARTH_RADIUS * c
 
     def euclidean_distance(self,other:Point):
@@ -64,7 +62,7 @@ class Point:
         '''
         lat1,long1 = self
         lat2,long2 = other
-        return math.sqrt((long1-long2)**2 + (lat1-lat2)**2)
+        return sqrt((long1-long2)**2 + (lat1-lat2)**2)
 
     def heuristic_distance(self, other: Point, hor_unit: float, vert_unit: float) -> float:
         """
@@ -92,16 +90,27 @@ class Point:
         return self.distance(other)
 
     def __repr__(self):
-        return f'{self.latitude},{self.longitude}'
+        return f'({self.latitude},{self.longitude})'
 
     def closest_node(self, nodes: dict) -> Node:
         """
         Returns the closest node from a dict of nodes
         Abdur Raqueeb
         """
-        nodes = sorted(nodes.values(), key=lambda other: other - self)
-        closest_node = nodes[0]
-        return closest_node
+        sorted_nodes = sorted(nodes.values(), key=lambda other: self - other) 
+        return sorted_nodes[0]
+    
+    def closest_way_node(self, nodes: dict, way_node_ids: set) -> Node:
+        """
+        Returns closest node which is in a way from a dict of nodes and a dict of ways
+        Jason Yu
+        """
+        sorted_nodes = sorted(nodes.values(), key=lambda other: self - other)
+        for node in sorted_nodes:
+            if node.id in way_node_ids:
+                return node
+        else:
+            raise Exception('No way node could be found.')
 
     def get_midpoint(self, other) -> Point:
         """
@@ -115,12 +124,12 @@ class Point:
 
     @staticmethod
     def radians_to_degrees(radians):
-        return radians / math.pi * 180
+        return radians / pi * 180
 
     def check_below_line(self,left_point,right_point):
       gradient = left_point.gradient(right_point)
       if gradient == 0: return self.latitude < left_point.latitude # If point y is less, it is below
-      elif gradient == math.inf: return self.latitude < max([left_point.latitude,right_point.latitude]) # point y is less than max, it is below
+      elif gradient == inf: return self.latitude < max([left_point.latitude,right_point.latitude]) # point y is less than max, it is below
       else:
         line_equation = lambda x: gradient * (x - left_point.longitude) + left_point.latitude
         return self.latitude <= line_equation(left_point.longitude) #Below line
@@ -132,7 +141,7 @@ class Point:
         delta_y = (other.latitude - self.latitude)
         delta_x = (other.longitude - self.longitude)
         if delta_y == 0: return 0
-        elif delta_x == 0: return math.inf
+        elif delta_x == 0: return inf
         else: return delta_y / delta_x
 
 class Node(Point):
@@ -201,6 +210,10 @@ class Way:
         """
         return {way['id']:Way.from_json(way) for way in json_ways}
 
+    @staticmethod
+    def get_way_node_ids(ways):
+        return set(node_id for way in ways.values() for node_id in way.node_ids) 
+
     def update_node_tags(self, nodes):
         for node_id in self.node_ids:
             if node_id in nodes:
@@ -240,15 +253,12 @@ class Route:
         latitude,longitude = location
         lat_unit = (width/2) / vert_unit
         lon_unit = (length/2) / hor_unit
-        la1 = latitude - lat_unit
-        lo1 = longitude - lon_unit
-        la2 = latitude + lat_unit
-        lo2 = longitude + lon_unit
-        bounding_coords = ','.join(list(map(str,[la1,lo1,la2,lo2])))
-        return bounding_coords
+        point1 = Point(latitude - lat_unit, longitude - lon_unit)
+        point2 = Point(latitude + lat_unit, longitude + lon_unit)
+        return [point1, point2]
 
     @classmethod
-    def two_point_bounding_box(cls,location:Point,other_location:Point)-> str:
+    def two_point_bounding_box(cls,location:Point,other:Point)-> str:
         """
         Takes two points and generates rectangular bounding box
         that is uniquely oritentated about points
@@ -256,53 +266,55 @@ class Route:
         """
         #Constants and distance units
         vert_unit,hor_unit = cls.get_coordinate_units(location)
-        pi = math.pi
         lat1,long1 = location
-        lat2,long2 = other_location
+        lat2,long2 = other
         #Scaling factors
-        distance = location - other_location
-        vert_scale = 1 * distance / vert_unit
-        hor_scale = 1 * distance / hor_unit
+        distance = location - other
+        vert_scale = distance / vert_unit
+        hor_scale = distance / hor_unit
+        delta_lat = other.latitude - location.latitude
+        delta_lon = other.longitude - location.longitude
         #Two Point Extensions for intial in either direction
-        theta = math.atan2((lat2 - lat1),(long2 - long1)) #Intial theta based on intial points
-        mlat1,mlong1 = lat1 + math.sin(theta - pi) * vert_scale, long1 + math.cos(theta - pi) * hor_scale
-        mlat2,mlong2 = lat2 + math.sin(theta)      * vert_scale, long2 + math.cos(theta)      * hor_scale
+        theta = atan2(delta_lat, delta_lon) #Intial theta based on intial points
+        point1 = Point(location.latitude + sin(theta - pi) * vert_scale,location.longitude + cos(theta - pi) * hor_scale)
+        point2 = Point(other.latitude + sin(theta - pi) * vert_scale,other.longitude + cos(theta - pi) * hor_scale)
         #Four perpendicular vertices extended from extensions in either direction
-        theta2 = (2*pi - (pi/2 - theta)) #Perpendicular to initial theta
-        a = Point(mlat1 + math.sin(theta2)      * vert_scale, mlong1 + math.cos(theta2)      * hor_scale)
-        b = Point(mlat1 + math.sin(theta2 - pi) * vert_scale, mlong1 + math.cos(theta2 - pi) * hor_scale)
-        c = Point(mlat2 + math.sin(theta2)      * vert_scale, mlong2 + math.cos(theta2)      * hor_scale)
-        d = Point(mlat2 + math.sin(theta2 - pi) * vert_scale, mlong2 + math.cos(theta2 - pi) * hor_scale)
+        theta2 = (theta - pi/2) #Perpendicular to initial theta
+        a = Point(point1.latitude + sin(theta2)      * vert_scale, point1.longitude + cos(theta2)      * hor_scale)
+        b = Point(point1.latitude + sin(theta2 - pi) * vert_scale, point1.longitude + cos(theta2 - pi) * hor_scale)
+        c = Point(point2.latitude + sin(theta2)      * vert_scale, point2.longitude + cos(theta2)      * hor_scale)
+        d = Point(point2.latitude + sin(theta2 - pi) * vert_scale, point2.longitude + cos(theta2 - pi) * hor_scale)
         #Point Order
-        points = [a,b,d,c]
-        return ' '.join(f'{p.latitude} {p.longitude}' for p in points)
+        return [a,b,d,c]
 
     @classmethod 
-    def get_convex_hull_points(cls, waypoints):
+    def get_convex_hull_points(cls, waypoints: list):
+        """
+        Gets points for convex hull from a list of nodes
+        By Jason Yu
+        """
+        pairs = zip(waypoints[:-1], waypoints[1:])
         points = []
-        for index in range(len(waypoints) - 2):
-            start = waypoints[index]
-            end = waypoints[index + 1]
-            lat_lon_list = cls.two_point_bounding_box(start,end).split()
-            bounding_box_points = []
-            while len(lat_lon_list) != 0:
-                lat = lat_lon_list.pop(0)
-                lon = lat_lon_list.pop(0)
-                bounding_box_points.append(Point(lat,lon))
+        for start, end in pairs:
+            bounding_box_points = cls.two_point_bounding_box(start,end)
             points += bounding_box_points
         return points
 
     @classmethod
-    def convex_hull(cls, waypoints)-> str:
-        if len(waypoints) == 2: return cls.two_point_bounding_box(waypoints[0],waypoints[1])
-        points = cls.get_convex_hull_points(waypoints)
+    def convex_hull(cls, points: list)-> str:
+        """
+        Generates a convex hull from a list of waypoint nodes
+        By Jason Yu
+        """
+        if len(points) == 2: return cls.two_point_bounding_box(points[0],points[1])
+        points = cls.get_convex_hull_points(points)
         starting_point = min(points, key=lambda point: point.latitude)
         theta_dict = {}
         for point in points:
             if point is starting_point: continue
             delta_x = point.longitude - starting_point.longitude
             delta_y = point.latitude - starting_point.latitude
-            theta = Point.radians_to_degrees(math.atan2(delta_y,delta_x))
+            theta = Point.radians_to_degrees(atan2(delta_y,delta_x))
             theta_dict[point] = theta
         sorted_points = sorted(theta_dict, key=lambda k:theta_dict[k])
         left, right = [], []
@@ -316,7 +328,7 @@ class Route:
             right.append(right_point)
             sorted_points = [point for point in sorted_points if not point.check_below_line(left_point,right_point)]
         convex_hull = [starting_point] + right + list(reversed(left))
-        return ' '.join(f'{p.latitude} {p.longitude}' for p in convex_hull)
+        return convex_hull
 
     @classmethod
     async def from_database(cls,db,route_id):
@@ -326,16 +338,6 @@ class Route:
         """
         route = await db.find_one({'id_':route_id})
         return cls(route_id, **route['route'])
-
-    @classmethod
-    async def from_GPX(cls, nodes: dict, track): #<--XML object
-        """
-        Sunny Yan
-        """
-        route = [Node(pt[0],pt.get[1],"").closest_distance(nodes)
-                 for pt in track]
-        dist = cls.get_route_distance(route,nodes)
-        return cls(route,dist)
 
     @classmethod
     def generate_route(cls, nodes: dict, ways: dict, start_id: int, end_id: int) -> Route:
@@ -384,7 +386,8 @@ class Route:
                     current_cost = current_distance + end_point.heuristic_distance(nodes[node_id],vert_unit,hor_unit)
                     unvisited_node_costs[node_id] = current_cost
                 next_node,cost = min(unvisited_node_costs.items(),key=lambda item:item[1])
-                if cost == inf: raise Exception("End node cannot be reached")
+                if cost == inf:
+                    raise Exception("End node cannot be reached")
                 else: current = next_node
         #Retrieve route, calculate actual distance
         heuristic_cost, fastest_route = path_dict[end_id]
@@ -392,23 +395,20 @@ class Route:
         return cls(fastest_route, actual_distance, nodes)
 
     @classmethod
-    def generate_multi_route(cls, nodes: dict, ways: dict, node_waypoints: list) -> Route:
+    def generate_multi_route(cls, nodes: dict, ways: dict, node_waypoint_ids: list) -> Route:
         """
         Generate route that passes through all way points in order
         Jason Yu
         """
-        start = node_waypoints[0]
+        start = node_waypoint_ids[0]
         multi_distance = 0
         multi_route = [start]
-        multi_route_nodes = dict()
-        for current_index in range(len(node_waypoints)-1):
-            current_node = node_waypoints[current_index]
-            next_node = node_waypoints[current_index+1]
+        pairs = zip(node_waypoint_ids[:-1], node_waypoint_ids[1:])
+        for current_node, next_node in pairs:
             route = cls.generate_route(nodes,ways,current_node,next_node)
-            multi_route_nodes.update(route.nodes)
             multi_distance += route.distance
             multi_route += route.route[1:]
-        return cls(multi_route,multi_distance,multi_route_nodes)
+        return cls(multi_route,multi_distance,nodes)
 
     @staticmethod
     def get_route_distance(fastest_route:list,nodes:dict)-> float:
@@ -430,7 +430,7 @@ class Route:
         for way in ways.values():
             for index, node in enumerate(way.node_ids):
                 if node not in neighbours: neighbours[node] = set()
-                if (index - 1) != 0: neighbours[node].add(way.node_ids[index - 1])
+                if (index - 1) != -1: neighbours[node].add(way.node_ids[index - 1])
                 if (index + 1) != len(way.node_ids): neighbours[node].add(way.node_ids[index + 1])
         return neighbours
 
@@ -461,6 +461,10 @@ class Route:
         for node in nodes.values():
             node.get_tag_multiplier(profile)
         return nodes,ways
+
+    @staticmethod
+    def bounding_points_to_string(points):
+        return ' '.join(f'{p.latitude} {p.longitude}' for p in points)
 
     async def save_route(self, db, user_id):
         """
