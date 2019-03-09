@@ -160,20 +160,20 @@ class Node(Point):
         return 1
 
     @staticmethod
-    def json_to_nodes(json_nodes: dict) -> dict:
+    def json_to_nodes(json_nodes: list) -> dict:
         """
         Generates a dictionary of nodes from json
         Jason Yu/Abdur Raqueeb
         """
-        return {node['id']: Node.from_json(node) for node in json_nodes['elements']}
+        return {node['id']: Node.from_json(node) for node in json_nodes}
 
     @classmethod
-    def from_json(cls, json_nodes: dict) -> Node:
+    def from_json(cls, json_node: dict) -> Node:
         """
         Generates a Node class from a json
         Jason Yu/Abdur Raqueeb
         """
-        return cls(json_nodes['lat'], json_nodes['lon'], json_nodes['id'],json_nodes.get('tags',{}))
+        return cls(json_node['lat'], json_node['lon'], json_node['id'],json_node.get('tags',{}))
 
 class Way:
     """
@@ -194,12 +194,12 @@ class Way:
         return cls(json_way['nodes'], json_way['id'], json_way.get('tags',{}))
 
     @staticmethod
-    def json_to_ways(json_ways):
+    def json_to_ways(json_ways: list):
         """
         Generates a dictionary of ways from json
         Jason Yu/Abdur Raqueeb
         """
-        return {way['id']:Way.from_json(way) for way in json_ways['elements']}
+        return {way['id']:Way.from_json(way) for way in json_ways}
 
     def update_node_tags(self, nodes):
         for node_id in self.node_ids:
