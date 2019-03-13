@@ -67,18 +67,18 @@ async def route(request):
 
     bounding_box = Route.bounding_points_to_string(Route.two_point_bounding_box(start, end))
 
-    nodes_endpoint = Overpass.NODE.format(bounding_box) #Generate url to query api
-    ways_endpoint = Overpass.WAY.format(bounding_box)
+    endpoint = Overpass.REQ.format(bounding_box) #Generate url to query api
+    task = request.app.fetch(endpoint)
 
-    print("Nodes Endpoint: " + nodes_endpoint)
-    print("Ways Endpoint: " + ways_endpoint)
+    print('getting data')
+    data = await asyncio.gather(task)
+    data = data[0]
+    print('successfuly got data')
 
-    tasks = [
-        request.app.fetch(nodes_endpoint),
-        request.app.fetch(ways_endpoint)
-        ]
-
-    node_data, way_data = await asyncio.gather(*tasks)
+    node_data = []
+    while data["elements"][0]["type"] == "node":
+        node_data.append(data["elements"].pop(0))
+    way_data = data["elements"]
 
     nodes, ways = Route.transform_json_nodes_and_ways(node_data,way_data)
     way_node_ids = Way.get_way_node_ids(ways)
