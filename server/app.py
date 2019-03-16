@@ -150,4 +150,4 @@ async def importGPX(request):
     route.save_route(app.db, userID)
 
 if __name__ == '__main__':
-    app.run(debug=True) if config.DEV_MODE else app.run(host=config.HOST, port=80)
+    app.run(host='0.0.0.0', port=os.getenv('PORT', 80))
