@@ -45,7 +45,7 @@ def memoized(func):
 
     @wraps(func)
     async def wrapper(request, *args, **kwargs):
-        key = str(request.json)
+        key = str(request.args)
         if key not in func.cache:
             func.cache[key] = await func(request, *args, **kwargs)
         return func.cache[key]
