@@ -25,6 +25,10 @@ async def multiple_route(request):
 
     location_points = [Point.from_string(waypoint) for waypoint in data['waypoints']]
 
+    path_euclidean_distance = Route.get_route_distance(location_points)
+    if path_euclidean_distance > 50000: #50km
+        return response.json({'success': False, 'message': "Route too long."})
+
     bounding_box = Route.bounding_points_to_string(Route.convex_hull(location_points))
 
     nodes_endpoint = Overpass.NODE.format(bounding_box) #Generate url to query api
@@ -64,6 +68,10 @@ async def route(request):
     
     start = Point.from_string(data.get('start'))
     end = Point.from_string(data.get('end'))
+
+    euclidean_distance = start - end
+    if euclidean_distance > 50000: #50km
+        return response.json({'success': False, 'message': "Route too long."})
 
     bounding_box = Route.bounding_points_to_string(Route.two_point_bounding_box(start, end))
 
