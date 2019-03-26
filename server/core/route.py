@@ -378,7 +378,7 @@ class Route:
             unvisited.remove(current)
             visited.add(current)
             #Find next node which is cheapest accounting for distance to end
-            if end_id in visited: break
+            if end_id == current: break
             else:
                 unvisited_node_costs = dict()
                 for node_id in unvisited:
