@@ -31,18 +31,20 @@ async def multiple_route(request):
 
     bounding_box = Route.bounding_points_to_string(Route.convex_hull(location_points))
 
-    nodes_endpoint = Overpass.NODE.format(bounding_box) #Generate url to query api
-    ways_endpoint = Overpass.WAY.format(bounding_box)
+    endpoint = Overpass.REQ.format(bounding_box) #Generate url to query api
+    task = request.app.fetch(endpoint)
 
-    print("Nodes Endpoint: " + nodes_endpoint)
-    print("Ways Endpoint: " + ways_endpoint)
+    print('getting map data')
+    data = await asyncio.gather(task)
+    data = data[0]
+    print('successfuly got map data')
 
-    tasks = [
-        request.app.fetch(nodes_endpoint),
-        request.app.fetch(ways_endpoint)
-        ]
-
-    node_data, way_data = await asyncio.gather(*tasks)
+    #Seperate response into nodes and ways
+    #Response always consists of all node first, then all the ways
+    node_data = []
+    while data["elements"][0]["type"] == "node":
+        node_data.append(data["elements"].pop(0))
+    way_data = data["elements"]
 
     nodes, ways = Route.transform_json_nodes_and_ways(node_data,way_data)
     way_node_ids = Way.get_way_node_ids(ways)
@@ -83,6 +85,8 @@ async def route(request):
     data = data[0]
     print('successfuly got data')
 
+    #Seperate response into nodes and ways
+    #Response always consists of all node first, then all the ways
     node_data = []
     while data["elements"][0]["type"] == "node":
         node_data.append(data["elements"].pop(0))
