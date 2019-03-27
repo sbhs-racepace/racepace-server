@@ -103,6 +103,7 @@ class Point:
     def closest_way_node(self, nodes: dict, way_node_ids: set) -> Node:
         """
         Returns closest node which is in a way from a dict of nodes and a dict of ways
+        Not in use
         Jason Yu
         """
         sorted_nodes = sorted(nodes.values(), key=lambda other: self - other)
@@ -212,9 +213,19 @@ class Way:
 
     @staticmethod
     def get_way_node_ids(ways):
+        """
+        Gets node ids that are in ways
+        Not in use
+        Jason Yu
+        """
         return set(node_id for way in ways.values() for node_id in way.node_ids) 
 
     def update_node_tags(self, nodes):
+        """
+        Updates node tags
+        Not in use yet.
+        Jason YU
+        """
         for node_id in self.node_ids:
             if node_id in nodes:
                 nodes[node_id].tags.update(self.tags)
@@ -391,7 +402,7 @@ class Route:
                 else: current = next_node
         #Retrieve route, calculate actual distance
         heuristic_cost, fastest_route = path_dict[end_id]
-        actual_distance = cls.get_route_distance(fastest_route,nodes)
+        actual_distance = cls.get_route_distance([nodes[node_id] for node_id in fastest_route])
         return cls(fastest_route, actual_distance, nodes)
 
     @classmethod
@@ -411,14 +422,12 @@ class Route:
         return cls(multi_route,multi_distance,nodes)
 
     @staticmethod
-    def get_route_distance(fastest_route:list,nodes:dict)-> float:
+    def get_route_distance(fastest_route_nodes:list)-> float:
         """
         Find route distance from route nodes
         Jason Yu
         """
-        route_points = [nodes[node_id] for node_id in fastest_route]
-        actual_distance = sum(route_points[index]-route_points[index+1] for index in range(len(route_points)-1))
-        return actual_distance
+        return sum(fastest_route_nodes[index]-fastest_route_nodes[index+1] for index in range(len(fastest_route_nodes)-1))
 
     @staticmethod
     def find_neighbours(ways: dict) -> dict:
