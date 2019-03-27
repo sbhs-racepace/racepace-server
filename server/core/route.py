@@ -276,7 +276,7 @@ class Route:
         delta_lon = other.longitude - location.longitude
         #Two Point Extensions for intial in either direction
         theta = atan2(delta_lat, delta_lon) #Intial theta based on intial points
-        point1 = Point(location.latitude + sin(theta - pi) * vert_scale,location.longitude + cos(theta - pi) * hor_scale)
+        point1 = Point(location.latitude + sin(theta) * vert_scale,location.longitude + cos(theta) * hor_scale)
         point2 = Point(other.latitude + sin(theta - pi) * vert_scale,other.longitude + cos(theta - pi) * hor_scale)
         #Four perpendicular vertices extended from extensions in either direction
         theta2 = (theta - pi/2) #Perpendicular to initial theta
