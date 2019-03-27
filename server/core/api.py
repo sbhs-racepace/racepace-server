@@ -27,7 +27,7 @@ async def multiple_route(request):
 
     path_euclidean_distance = Route.get_route_distance(location_points)
     if path_euclidean_distance > 50000: #50km
-        return response.json({'success': False, 'message': "Route too long."})
+        return response.json({'success': False, 'error_message': "Route too long."})
 
     bounding_box = Route.bounding_points_to_string(Route.convex_hull(location_points))
 
@@ -35,28 +35,29 @@ async def multiple_route(request):
     task = request.app.fetch(endpoint)
 
     print('getting map data')
-    data = await asyncio.gather(task)
-    data = data[0]
+    data = await asyncio.gather(task) #Data is array with response as first element
+    elements = data[0]['elements'] #Nodes and Ways are together in array in json
     print('successfuly got map data')
 
     #Seperate response into nodes and ways
     #Response always consists of all node first, then all the ways
-    node_data = []
-    while data["elements"][0]["type"] == "node":
-        node_data.append(data["elements"].pop(0))
-    way_data = data["elements"]
+    node_data, way_data = [], []
+    for element in elements:
+        if element["type"] == "node":
+            node_data.append(element)
+        elif element["type"] == "way": 
+            way_data.append(element)
+        else: raise Exception("Unidentified element type")
 
     nodes, ways = Route.transform_json_nodes_and_ways(node_data,way_data)
+    
     way_node_ids = Way.get_way_node_ids(ways)
-
-    waypoints = [point.closest_way_node(nodes, way_node_ids) for point in location_points]
-    waypoint_ids = [node.id for node in waypoints]
+    waypoint_nodes = [point.closest_way_node(nodes, way_node_ids) for point in location_points]
+    waypoint_ids = [node.id for node in waypoint_nodes]
 
     partial = functools.partial(Route.generate_multi_route, nodes, ways, waypoint_ids)
     route = await request.app.loop.run_in_executor(None, partial)
     return response.json(route.json)
-
-
 
 # @authrequired
 @api.get('/route')
@@ -73,7 +74,7 @@ async def route(request):
 
     euclidean_distance = start - end
     if euclidean_distance > 50000: #50km
-        return response.json({'success': False, 'message': "Route too long."})
+        return response.json({'success': False, 'error_message': "Route too long."})
 
     bounding_box = Route.bounding_points_to_string(Route.two_point_bounding_box(start, end))
 
@@ -81,25 +82,28 @@ async def route(request):
     task = request.app.fetch(endpoint)
 
     print('getting data')
-    data = await asyncio.gather(task)
-    data = data[0]
+    data = await asyncio.gather(task) #Data is array with response as first element
+    elements = data[0]['elements'] #Nodes and Ways are together in array in json
     print('successfuly got data')
 
     #Seperate response into nodes and ways
     #Response always consists of all node first, then all the ways
-    node_data = []
-    while data["elements"][0]["type"] == "node":
-        node_data.append(data["elements"].pop(0))
-    way_data = data["elements"]
+    node_data, way_data = [], []
+    for element in elements:
+        if element["type"] == "node":
+            node_data.append(element)
+        elif element["type"] == "way": 
+            way_data.append(element)
+        else: raise Exception("Unidentified element type")
 
     nodes, ways = Route.transform_json_nodes_and_ways(node_data,way_data)
+   
     way_node_ids = Way.get_way_node_ids(ways)
-
     start_node = start.closest_way_node(nodes, way_node_ids)
     end_node = end.closest_way_node(nodes, way_node_ids)
-
-    print("Start Node: " + str(start_node.id))
-    print("End Node: " + str(end_node.id))
+    
+    print("Start Node Id:{} Location: {} To Original Dist: {}".format(start_node.id, start_node, start_node-start))
+    print("End Node Id:{} Location: {} To Original Dist: {}".format(end_node.id, end_node, end_node-end))
 
     partial = functools.partial(Route.generate_route, nodes, ways, start_node.id, end_node.id)
 
