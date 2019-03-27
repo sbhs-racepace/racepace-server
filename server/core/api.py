@@ -18,15 +18,14 @@ cache = {}
 async def multiple_route(request):
     """
     Api Endpoint that returns a multiple waypoint route
-    Jason Yu/Abdur Raqueeb
+    Jason Yu/Abdur Raqueeb/Sunny Yan
     """
-
     data = request.args
 
     location_points = [Point.from_string(waypoint) for waypoint in data['waypoints']]
-
-    path_euclidean_distance = Route.get_route_distance(location_points)
-    if path_euclidean_distance > 50000: #50km
+    
+    min_euclidean_distance = Route.get_route_distance(location_points)
+    if min_euclidean_distance > 50000: #50km
         return response.json({'success': False, 'error_message': "Route too long."})
 
     bounding_box = Route.bounding_points_to_string(Route.convex_hull(location_points))
@@ -34,13 +33,12 @@ async def multiple_route(request):
     endpoint = Overpass.REQ.format(bounding_box) #Generate url to query api
     task = request.app.fetch(endpoint)
 
-    print('getting map data')
+    print('Fetching map data')
     data = await asyncio.gather(task) #Data is array with response as first element
     elements = data[0]['elements'] #Nodes and Ways are together in array in json
-    print('successfuly got map data')
+    print('Successfuly got map data')
 
     #Seperate response into nodes and ways
-    #Response always consists of all node first, then all the ways
     node_data, way_data = [], []
     for element in elements:
         if element["type"] == "node":
@@ -50,13 +48,14 @@ async def multiple_route(request):
         else: raise Exception("Unidentified element type")
 
     nodes, ways = Route.transform_json_nodes_and_ways(node_data,way_data)
-    
-    way_node_ids = Way.get_way_node_ids(ways)
-    waypoint_nodes = [point.closest_way_node(nodes, way_node_ids) for point in location_points]
+    waypoint_nodes = [point.closest_node(nodes) for point in location_points]
     waypoint_ids = [node.id for node in waypoint_nodes]
 
+    print("Generating route")
     partial = functools.partial(Route.generate_multi_route, nodes, ways, waypoint_ids)
     route = await request.app.loop.run_in_executor(None, partial)
+    print("Route successfully generated")
+
     return response.json(route.json)
 
 # @authrequired
@@ -65,15 +64,15 @@ async def multiple_route(request):
 async def route(request):
     """
     Api Endpoint that returns a route
-    Jason Yu/Abdur Raqueeb
+    Jason Yu/Abdur Raqueeb/Sunny Yan
     """
     data = request.args
     
     start = Point.from_string(data.get('start'))
     end = Point.from_string(data.get('end'))
 
-    euclidean_distance = start - end
-    if euclidean_distance > 50000: #50km
+    min_euclidean_distance = start - end
+    if min_euclidean_distance > 50000: #50km
         return response.json({'success': False, 'error_message': "Route too long."})
 
     bounding_box = Route.bounding_points_to_string(Route.two_point_bounding_box(start, end))
@@ -81,13 +80,12 @@ async def route(request):
     endpoint = Overpass.REQ.format(bounding_box) #Generate url to query api
     task = request.app.fetch(endpoint)
 
-    print('getting data')
+    print('Fetching map data')
     data = await asyncio.gather(task) #Data is array with response as first element
     elements = data[0]['elements'] #Nodes and Ways are together in array in json
-    print('successfuly got data')
+    print('Successfuly got map data')
 
     #Seperate response into nodes and ways
-    #Response always consists of all node first, then all the ways
     node_data, way_data = [], []
     for element in elements:
         if element["type"] == "node":
@@ -97,17 +95,13 @@ async def route(request):
         else: raise Exception("Unidentified element type")
 
     nodes, ways = Route.transform_json_nodes_and_ways(node_data,way_data)
-   
-    way_node_ids = Way.get_way_node_ids(ways)
-    start_node = start.closest_way_node(nodes, way_node_ids)
-    end_node = end.closest_way_node(nodes, way_node_ids)
+    start_node = start.closest_node(nodes)
+    end_node = end.closest_node(nodes)
     
-    print("Start Node Id:{} Location: {} To Original Dist: {}".format(start_node.id, start_node, start_node-start))
-    print("End Node Id:{} Location: {} To Original Dist: {}".format(end_node.id, end_node, end_node-end))
-
+    print("Generating route")
     partial = functools.partial(Route.generate_route, nodes, ways, start_node.id, end_node.id)
-
     route = await request.app.loop.run_in_executor(None, partial)
+    print("Route successfully generated")
 
     return response.json(route.json)
 
