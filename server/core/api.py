@@ -80,7 +80,7 @@ async def route(request):
     endpoint = Overpass.REQ.format(bounding_box) #Generate url to query api
     task = request.app.fetch(endpoint)
 
-    print('getting data')
+    print('getting data from',endpoint)
     data = await asyncio.gather(task)
     data = data[0]
     print('successfuly got data')
