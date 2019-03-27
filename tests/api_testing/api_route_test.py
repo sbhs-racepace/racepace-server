@@ -2,9 +2,12 @@ from client import TestApiClient
 
 
 client = TestApiClient()
+
+start = "-33.878363,151.104490" #burwood
+end = "-33.912466, 151.103120" #campsi
 #Not working for start and end
-start = "-33.892098, 151.216802"
-end = "-33.886053, 151.218030"
+# start = "-33.892098, 151.216802"
+# end = "-33.886053, 151.218030"
 
 #Working
 # start = "-33.8776173, 151.2012087"
