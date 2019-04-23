@@ -162,3 +162,29 @@ async def login(request):
         'user_id': account.id
     }
     return response.json(resp)
+
+
+@api.post('/get_info')
+@jsonrequired
+async def getinfo(request):
+    """
+    Get user info
+    Jason Yu/Sunny Yan
+    """
+    data = request.json
+    user_id = data.get('user_id')
+    query = {'user_id': user_id}
+    account = await request.app.users.find_account(**query)
+    info = account.to_dict()
+
+    if account is None:
+        abort(403, 'User ID invalid.')
+    resp = {
+        'success': True,
+        'info' : {
+            'full_name': info.full_name,
+            'routes': info.routes,
+        }
+    }
+    return response.json(resp)
+
