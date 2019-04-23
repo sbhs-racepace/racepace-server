@@ -22,11 +22,11 @@ class Credentials:
 class User:
     """
     User class for database that holds all information
-    Abdur Raqueeb
+    Abdur Raqueeb/Jason Yu
     """
     fields = ('id', 'credentials', 'routes')
 
-    def __init__(self, app, user_id, credentials, full_name):
+    def __init__(self, app, user_id, credentials, full_name="Temp"):
         self.app = app
         self.id = user_id
         self.credentials = credentials
@@ -133,7 +133,7 @@ class UserBase:
 
         email = data.get('email')
         password = data.get('password')
-        name = data.get('name')
+        full_name = data.get('full_name')
 
         query = {'credentials.email': email}
         exists = await self.find_account(**query)
@@ -144,7 +144,7 @@ class UserBase:
 
         document = {
             "user_id": snowflake(),
-            "name": name,
+            "full_name": full_name,
             "routes": {},
             "credentials": {
                 "email": email,
