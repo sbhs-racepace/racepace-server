@@ -116,7 +116,7 @@ class UserBase:
         Abdur Raqueeb
         """
         data = await self.app.db.users.find_one(query)
-
+        print("Debug",data)
         if not data:
             return None
         
