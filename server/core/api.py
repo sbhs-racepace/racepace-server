@@ -1,5 +1,6 @@
 import asyncio
 import functools
+import bson
 
 from sanic import Blueprint, response
 from sanic.exceptions import abort
@@ -174,7 +175,7 @@ async def getinfo(request):
     data = request.json
     user_id = data.get('user_id')
     print('User id', user_id)
-    query = {'_id': user_id}
+    query = {'_id': bson.objectid.ObjectId(user_id)}
     account = await request.app.users.find_account(**query)
     info = account.to_dict()
 
