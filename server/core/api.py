@@ -23,7 +23,7 @@ async def multiple_route(request):
     data = request.args
 
     location_points = [Point.from_string(waypoint) for waypoint in data['waypoints']]
-    
+
     min_euclidean_distance = Route.get_route_distance(location_points)
     if min_euclidean_distance > 50000: #50km
         return response.json({'success': False, 'error_message': "Route too long."})
@@ -41,10 +41,8 @@ async def multiple_route(request):
     #Seperate response into nodes and ways
     node_data, way_data = [], []
     for element in elements:
-        if element["type"] == "node":
-            node_data.append(element)
-        elif element["type"] == "way": 
-            way_data.append(element)
+        if element["type"] == "node": node_data.append(element)
+        elif element["type"] == "way": way_data.append(element)
         else: raise Exception("Unidentified element type")
 
     nodes, ways = Route.transform_json_nodes_and_ways(node_data,way_data)
@@ -88,10 +86,8 @@ async def route(request):
     #Seperate response into nodes and ways
     node_data, way_data = [], []
     for element in elements:
-        if element["type"] == "node":
-            node_data.append(element)
-        elif element["type"] == "way": 
-            way_data.append(element)
+        if element["type"] == "node": node_data.append(element)
+        elif element["type"] == "way": way_data.append(element)
         else: raise Exception("Unidentified element type")
 
     nodes, ways = Route.transform_json_nodes_and_ways(node_data,way_data)
