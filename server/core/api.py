@@ -173,7 +173,8 @@ async def getinfo(request):
     """
     data = request.json
     user_id = data.get('user_id')
-    query = {'user_id': user_id}
+    print('User id', user_id)
+    query = {'_id': user_id}
     account = await request.app.users.find_account(**query)
     info = account.to_dict()
 

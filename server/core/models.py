@@ -143,7 +143,6 @@ class UserBase:
         hashed = bcrypt.hashpw(password, salt)
 
         document = {
-            "user_id": snowflake(),
             "full_name": full_name,
             "routes": {},
             "credentials": {
@@ -153,10 +152,9 @@ class UserBase:
             }
         }
 
+        result = await self.app.db.users.insert_one(document)
+        document['user_id'] = str(result.inserted_id)
         user = User.from_data(self.app, document)
-
-        await self.app.db.users.insert_one(document)
-
         return user
 
     async def issue_token(self, user):
