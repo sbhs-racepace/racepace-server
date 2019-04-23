@@ -26,13 +26,14 @@ class User:
     """
     fields = ('id', 'credentials', 'routes')
 
-    def __init__(self, app, user_id, credentials):
+    def __init__(self, app, user_id, credentials, full_name):
         self.app = app
         self.id = user_id
         self.credentials = credentials
         self.routes = []
-        self.name = None
-        
+        self.full_name = full_name
+        self.groups = {}
+
     def __hash__(self):
         return self.id
 
@@ -43,8 +44,9 @@ class User:
         Abdur Raqueeb
         """
         user_id = data['user_id']
+        full_name = data['full_name']
         credentials = Credentials(*data['credentials'].values())
-        user = cls(app, user_id, credentials)
+        user = cls(app, user_id, credentials, full_name)
         user.routes = data['routes']
         return user
 
@@ -78,14 +80,31 @@ class User:
         return {
             "user_id": self.id,
             "routes": self.routes,
+            "full_name": self.full_name,
             "credentials": {
                 "email": self.credentials.email,
                 "password": self.credentials.password,
-                "token": self.credentials.token
+                "token": self.credentials.token,
             }
         }
 
+class Group:
+    """
+    A class that holds messages and information of members in a group
+    Jason Yu
+    """
+    def __init__(self, name, members, owner):
+        self.name = name
+        self.members = members
+        self.owner = owner
+        self.messages = []
 
+    def invite_person(self, person):
+        self.members.append(person)
+
+    def invite_people(self,people):
+        for person in people:
+            self.invite_person(person)
 
 class UserBase:
     def __init__(self, app):
