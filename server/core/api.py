@@ -185,8 +185,8 @@ async def getinfo(request):
     resp = {
         'success': True,
         'info' : {
-            'full_name': info.full_name,
-            'routes': info.routes,
+            'full_name': info['full_name'],
+            'routes': info['routes'],
         }
     }
     return response.json(resp)
