@@ -32,9 +32,13 @@ def authrequired(func):
     """    
     @wraps(func)
     async def wrapper(request, *args, **kwargs):
-        if not request.token or not await validate_token(request):
+        user = await request.app.users.find_account(
+            **{'credentials.token': str(request.token).encode('ascii')}
+            )
+        if user:
+            return await func(request, user, *args, **kwargs)
+        else:
             abort(401, "Invalid token")
-        return await func(request, *args, **kwargs)
     return wrapper
 
 def memoized(func):
