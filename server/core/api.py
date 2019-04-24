@@ -172,7 +172,9 @@ async def getinfo(request):
     Get user info
     Jason Yu/Sunny Yan
     """
+    print('request',request)
     data = request.json
+    print('data',data)
     user_id = data.get('user_id')
     print('User id', user_id)
     query = {'_id': bson.objectid.ObjectId(user_id)}
