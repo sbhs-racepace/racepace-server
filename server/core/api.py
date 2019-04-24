@@ -177,6 +177,7 @@ async def getinfo(request):
     print('User id', user_id)
     query = {'_id': bson.objectid.ObjectId(user_id)}
     account = await request.app.users.find_account(**query)
+    print('Account', account)
     info = account.to_dict()
 
     if account is None:
