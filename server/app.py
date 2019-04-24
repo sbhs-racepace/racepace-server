@@ -5,6 +5,7 @@ import datetime
 import traceback
 import os
 import sys
+from urllib.parse import parse_qs
 
 import socketio
 import aiohttp
@@ -123,19 +124,34 @@ async def index(request):
 
     return response.json(data)
 
+
+
+
 @sio.on('connect')
 async def on_connect(sid, environ):
-    print(sid)
-    print(environ)
+    try:
+        qs = environ['QUERY_STRING']
+        token = parse_qs(qs)['token'][0]
+        user_id = jwt.decode(token, app.secret)['sub']
+        user = app.users.find_account(user_id=user_id)
+        await sio.save_session(sid, {'user': user})
+        print('Connected', user_id)
+    except:
+        print('Connection refused')
+        return False
+
+@sio.on('message')
+async def on_message(sid, data):
+    user = (await sio.get_session(sid))['user']
+    group = data['group_id']
 
 
 @sio.on('disconnect')
-async def on_disconnect(sid, environ):
+async def on_disconnect(sid):
     print(sid)
-    print(environ)
 
 if __name__ == '__main__':
     if os.getenv('dev'):
-        app.run()
+        app.run(debug=True)
     else: 
         app.run(host='0.0.0.0', port=os.getenv('PORT', 80))
