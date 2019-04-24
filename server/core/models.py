@@ -140,8 +140,8 @@ class UserBase:
         email = data.get('email')
         password = data.get('password')
         full_name = data.get('full_name')
-        username = data.get('username')
         dob = data.get('dob')
+        username = data.get('username')
 
         query = {'credentials.email': email}
         exists = await self.find_account(**query)
@@ -152,14 +152,14 @@ class UserBase:
 
         document = {
             "full_name": full_name,
-            "username": username,
-            "dob": dob,
             "routes": {},
             "credentials": {
                 "email": email,
                 "password": hashed,
                 "token": None
-            }
+            },
+            "username": username,
+            "dob": dob,
         }
 
         result = await self.app.db.users.insert_one(document)
