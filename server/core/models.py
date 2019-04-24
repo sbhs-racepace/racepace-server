@@ -22,17 +22,20 @@ class Credentials:
 class User:
     """
     User class for database that holds all information
-    Abdur Raqueeb
+    Abdur Raqueeb/Jason Yu
     """
     fields = ('id', 'credentials', 'routes')
 
-    def __init__(self, app, user_id, credentials):
+    def __init__(self, app, user_id, credentials, full_name='temp', dob='temp', username='temp'):
         self.app = app
         self.id = user_id
         self.credentials = credentials
+        self.dob = dob
+        self.username = username
         self.routes = []
-        self.name = None
-        
+        self.full_name = full_name
+        self.groups = {}
+
     def __hash__(self):
         return self.id
 
@@ -42,9 +45,13 @@ class User:
         Generates User class from python data
         Abdur Raqueeb
         """
-        user_id = data['user_id']
+        print(data)
+        user_id = str(data['_id'])
+        full_name = data['full_name']
+        username = data['username']
+        dob = data['dob']
         credentials = Credentials(*data['credentials'].values())
-        user = cls(app, user_id, credentials)
+        user = cls(app, user_id, credentials, full_name, dob, username)
         user.routes = data['routes']
         return user
 
@@ -78,14 +85,33 @@ class User:
         return {
             "user_id": self.id,
             "routes": self.routes,
+            "full_name": self.full_name,
+            "username": self.username,
+            "dob": self.dob,
             "credentials": {
                 "email": self.credentials.email,
                 "password": self.credentials.password,
-                "token": self.credentials.token
+                "token": self.credentials.token,
             }
         }
 
+class Group:
+    """
+    A class that holds messages and information of members in a group
+    Jason Yu
+    """
+    def __init__(self, name, members, owner):
+        self.name = name
+        self.members = members
+        self.owner = owner
+        self.messages = []
 
+    def invite_person(self, person):
+        self.members.append(person)
+
+    def invite_people(self,people):
+        for person in people:
+            self.invite_person(person)
 
 class UserBase:
     def __init__(self, app):
@@ -97,7 +123,6 @@ class UserBase:
         Abdur Raqueeb
         """
         data = await self.app.db.users.find_one(query)
-
         if not data:
             return None
         
@@ -114,8 +139,9 @@ class UserBase:
 
         email = data.get('email')
         password = data.get('password')
-        name = data.get('name')
-
+        full_name = data.get('full_name')
+        dob = data.get('dob')
+        username = data.get('username')
         query = {'credentials.email': email}
         exists = await self.find_account(**query)
         if exists: abort(403, 'Email already in use.') 
@@ -124,20 +150,20 @@ class UserBase:
         hashed = bcrypt.hashpw(password, salt)
 
         document = {
-            "user_id": snowflake(),
-            "name": name,
+            "full_name": full_name,
             "routes": {},
             "credentials": {
                 "email": email,
                 "password": hashed,
                 "token": None
-            }
+            },
+            "username": username,
+            "dob": dob,
         }
 
+        result = await self.app.db.users.insert_one(document)
+        document['user_id'] = str(result.inserted_id)
         user = User.from_data(self.app, document)
-
-        await self.app.db.users.insert_one(document)
-
         return user
 
     async def issue_token(self, user):

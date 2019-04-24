@@ -1,5 +1,6 @@
 import asyncio
 import functools
+import bson
 
 from sanic import Blueprint, response
 from sanic.exceptions import abort
@@ -23,7 +24,7 @@ async def multiple_route(request):
     data = request.args
 
     location_points = [Point.from_string(waypoint) for waypoint in data['waypoints']]
-    
+
     min_euclidean_distance = Route.get_route_distance(location_points)
     if min_euclidean_distance > 50000: #50km
         return response.json({'success': False, 'error_message': "Route too long."})
@@ -41,10 +42,8 @@ async def multiple_route(request):
     #Seperate response into nodes and ways
     node_data, way_data = [], []
     for element in elements:
-        if element["type"] == "node":
-            node_data.append(element)
-        elif element["type"] == "way": 
-            way_data.append(element)
+        if element["type"] == "node": node_data.append(element)
+        elif element["type"] == "way": way_data.append(element)
         else: raise Exception("Unidentified element type")
 
     nodes, ways = Route.transform_json_nodes_and_ways(node_data,way_data)
@@ -87,10 +86,8 @@ async def route(request):
     #Seperate response into nodes and ways
     node_data, way_data = [], []
     for element in elements:
-        if element["type"] == "node":
-            node_data.append(element)
-        elif element["type"] == "way": 
-            way_data.append(element)
+        if element["type"] == "node": node_data.append(element)
+        elif element["type"] == "way": way_data.append(element)
         else: raise Exception("Unidentified element type")
 
     nodes, ways = Route.transform_json_nodes_and_ways(node_data,way_data)
@@ -165,3 +162,35 @@ async def login(request):
         'user_id': account.id
     }
     return response.json(resp)
+
+
+@api.post('/get_info')
+@jsonrequired
+async def getinfo(request):
+    """
+    Get user info
+    Jason Yu/Sunny Yan
+    """
+    print('request',request)
+    data = request.json
+    print('data',data)
+    user_id = data.get('user_id')
+    print('User id', user_id)
+    query = {'_id': bson.objectid.ObjectId(user_id)}
+    account = await request.app.users.find_account(**query)
+    print('Account', account)
+    info = account.to_dict()
+
+    if account is None:
+        abort(403, 'User ID invalid.')
+    resp = {
+        'success': True,
+        'info' : {
+            'full_name': info['full_name'],
+            'routes': info['routes'],
+            'username': info['username'],
+            'dob': info['dob'],
+        }
+    }
+    return response.json(resp)
+
