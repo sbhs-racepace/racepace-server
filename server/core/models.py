@@ -26,10 +26,12 @@ class User:
     """
     fields = ('id', 'credentials', 'routes')
 
-    def __init__(self, app, user_id, credentials, full_name="Temp"):
+    def __init__(self, app, user_id, credentials, full_name, dob, username):
         self.app = app
         self.id = user_id
         self.credentials = credentials
+        self.dob = dob
+        self.username = username
         self.routes = []
         self.full_name = full_name
         self.groups = {}
@@ -45,8 +47,10 @@ class User:
         """
         user_id = str(data['_id'])
         full_name = data['full_name']
+        username = data['username']
+        dob = data['dob']
         credentials = Credentials(*data['credentials'].values())
-        user = cls(app, user_id, credentials, full_name)
+        user = cls(app, user_id, credentials, full_name, dob, username)
         user.routes = data['routes']
         return user
 
@@ -81,6 +85,8 @@ class User:
             "user_id": self.id,
             "routes": self.routes,
             "full_name": self.full_name,
+            "username": self.username,
+            "dob": self.dob,
             "credentials": {
                 "email": self.credentials.email,
                 "password": self.credentials.password,
@@ -134,6 +140,8 @@ class UserBase:
         email = data.get('email')
         password = data.get('password')
         full_name = data.get('full_name')
+        username = data.get('username')
+        dob = data.get('dob')
 
         query = {'credentials.email': email}
         exists = await self.find_account(**query)
@@ -144,6 +152,8 @@ class UserBase:
 
         document = {
             "full_name": full_name,
+            "username": username,
+            "dob": dob,
             "routes": {},
             "credentials": {
                 "email": email,
