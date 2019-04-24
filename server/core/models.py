@@ -26,7 +26,7 @@ class User:
     """
     fields = ('id', 'credentials', 'routes')
 
-    def __init__(self, app, user_id, credentials, full_name, dob, username):
+    def __init__(self, app, user_id, credentials, full_name='temp', dob='temp', username='temp'):
         self.app = app
         self.id = user_id
         self.credentials = credentials
@@ -123,7 +123,6 @@ class UserBase:
         Abdur Raqueeb
         """
         data = await self.app.db.users.find_one(query)
-        print("Debug",data)
         if not data:
             return None
         
@@ -143,7 +142,6 @@ class UserBase:
         full_name = data.get('full_name')
         dob = data.get('dob')
         username = data.get('username')
-
         query = {'credentials.email': email}
         exists = await self.find_account(**query)
         if exists: abort(403, 'Email already in use.') 
