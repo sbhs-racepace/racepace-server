@@ -45,6 +45,7 @@ class User:
         Generates User class from python data
         Abdur Raqueeb
         """
+        print(data)
         user_id = str(data['_id'])
         full_name = data['full_name']
         username = data['username']
