@@ -26,7 +26,7 @@ class User:
     """
     fields = ('id', 'credentials', 'routes')
 
-    def __init__(self, app, user_id, credentials, full_name='temp', dob='temp', username='temp'):
+    def __init__(self, app, user_id, credentials, full_name, dob, username, stats):
         self.app = app
         self.id = user_id
         self.credentials = credentials
@@ -35,6 +35,7 @@ class User:
         self.routes = []
         self.full_name = full_name
         self.groups = {}
+        self.stats = UserStats()
 
     def __hash__(self):
         return self.id
@@ -47,6 +48,7 @@ class User:
         """
         routes = data.pop('routes')
         data['user_id'] = str(data.pop('_id'))
+        data['stats'] = UserStats(*(data.pop('stats')).value())
         data['credentials'] = Credentials(*(data.pop('credentials')).values())
         user = cls(app, **data)
         user.routes = routes
@@ -94,6 +96,18 @@ class User:
             "full_name": self.full_name,
             "username": self.username,
             "dob": self.dob,
+            "stats": {
+                "num_runs": self.stats.num_runs,
+                "total_distance": self.stats.total_distance,
+                "longest_distance_ran": self.stats.longest_distance_ran,
+                "fastest_km" : self.stats.fastest_km,
+                "fastest_5km": self.stats.fastest_5km,
+                "fastest_10km" : self.stats.fastest_10km,
+                "fastest_marathon": self.stats.fastest_marathon,
+                "estimated_v02_max": self.stats.estimated_v02_max,
+                "average_heart_rate": self.stats.average_heart_rate,
+                "cadence": self.stats.cadence,
+            },
             "credentials": {
                 "email": self.credentials.email,
                 "password": self.credentials.password,
@@ -101,9 +115,27 @@ class User:
             }
         }
 
+@dataclass
+class UserStats:
+    """
+    Class to hold user running stats
+    Jason Yu
+    """
+    num_runs: int = 0
+    total_distance: int = 0
+    longest_distance_ran: int = None
+    fastest_km : int = None
+    fastest_5km: int = None
+    fastest_10km : int = None
+    fastest_marathon: int = None
+    estimated_v02_max: int = None
+    average_heart_rate: int = None
+    cadence: int = None
+
 class SavedRoute: 
     """
     A route that has been saved by the user to be shared on feed
+    Jason Yu
     """
     def __init__(self, route, start_time, end_time, duration, points, description, route_image):
         self.distance = route.distance
@@ -113,6 +145,25 @@ class SavedRoute:
         self.points = points
         self.description = description
         self.route_image = route_image
+
+        self.comments = []
+        self.likes = 0
+
+    def to_dict(self):
+        return  {
+            "distance": self.distance,
+            "start_time": self.start_time,
+            "end_time": self.end_time,
+            "duration": self.duration,
+            "points": self.points,
+            "description": self.description,
+            "route_image": self.route_image,
+            "comments": self.comments,
+            "likes": self.likes
+        }
+
+    def get_route_image(self):
+        return self.route_image
 
 class Group:
     """
@@ -133,6 +184,15 @@ class Group:
         for person in people:
             self.invite_person(person)
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "members": self.members,
+            "owner": self.owner,
+            "messages": self.messages
+        }
+
 class UserBase:
     def __init__(self, app):
         self.app = app
@@ -143,8 +203,7 @@ class UserBase:
         Abdur Raqeeb
         """
         data = await self.app.db.users.find_one(query)
-        if not data:
-            return None
+        if not data: return None
         
         user = User.from_data(self.app, data)
 
@@ -171,7 +230,7 @@ class UserBase:
 
         document = {
             "full_name": full_name,
-            "routes": {},
+            "routes": [],
             "credentials": {
                 "email": email,
                 "password": hashed,
