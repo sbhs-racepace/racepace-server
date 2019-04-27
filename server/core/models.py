@@ -45,10 +45,11 @@ class User:
         Generates User class from python data
         Abdur Raqeeb
         """
+        routes = data.pop('routes')
         data['user_id'] = str(data.pop('_id'))
         data['credentials'] = Credentials(*(data.pop('credentials')).values())
         user = cls(app, **data)
-        user.routes = data['routes']
+        user.routes = routes
         return user
 
     def check_password(self, password):
