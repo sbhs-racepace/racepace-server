@@ -24,7 +24,6 @@ class User:
     User class for database that holds all information
     Abdur Raqeeb/Jason Yu
     """
-    fields = ('id', 'credentials', 'routes')
 
     def __init__(self, app, user_id, credentials, full_name='temp', dob='temp', username='temp'):
         self.app = app
@@ -45,14 +44,9 @@ class User:
         Generates User class from python data
         Abdur Raqeeb
         """
-        print(data)
-        user_id = str(data['_id'])
-        full_name = data['full_name']
-        username = data['username']
-        dob = data['dob']
-        credentials = Credentials(*data['credentials'].values())
-        user = cls(app, user_id, credentials, full_name, dob, username)
-        user.routes = data['routes']
+        routes = data.pop('routes')
+        user = cls(app=app, **data)
+        user.routes = routes
         return user
 
     def check_password(self, password):
@@ -109,6 +103,7 @@ class SavedRoute:
     A route that has been saved by the user to be shared on feed
     """
     def __init__(self, route, start_time, end_time, duration):
+        self.route = route
         self.distance = route.distance
         self.start_time = start_time
         self.end_time = end_time
@@ -172,11 +167,11 @@ class UserBase:
         document = {
             "full_name": full_name,
             "routes": {},
-            "credentials": {
+            "credentials": Credentials({
                 "email": email,
                 "password": hashed,
                 "token": None
-            },
+            }),
             "username": username,
             "dob": dob,
         }
