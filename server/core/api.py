@@ -77,9 +77,10 @@ async def route(request):
     bounding_box = Route.bounding_points_to_string(Route.two_point_bounding_box(start, end))
 
     endpoint = Overpass.REQ.format(bounding_box) #Generate url to query api
+    task = request.app.fetch(endpoint)
 
     print('Fetching map data')
-    data = await request.app.fetch(endpoint)
+    data = await asyncio.gather(task) #Data is array with response as first element
     elements = data[0]['elements'] #Nodes and Ways are together in array in json
     print('Successfuly got map data')
 
