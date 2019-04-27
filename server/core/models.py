@@ -46,7 +46,7 @@ class User:
         Abdur Raqeeb
         """
         data['_id'] = str(data['_id'])
-        data['credentials'] = Credentials(*(data['credentials'].pop()).values())
+        data['credentials'] = Credentials(*(data.pop('credentials')).values())
         user = cls(app, **data)
         user.routes = data['routes']
         return user
