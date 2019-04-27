@@ -170,7 +170,7 @@ class UserBase:
         document = {
             "full_name": full_name,
             "routes": {},
-            "credentials": Credentials(**{
+            "credentials": Credentials({
                 "email": email,
                 "password": hashed,
                 "token": None
