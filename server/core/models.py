@@ -44,8 +44,7 @@ class User:
         Generates User class from python data
         Abdur Raqeeb
         """
-        routes,credentials = data.pop('routes'),data.pop('credentials')
-        data['credentials'] = Credentials(**credentials)
+        routes = data.pop('routes')
         user = cls(app=app, **data)
         user.routes = routes
         return user
@@ -171,11 +170,11 @@ class UserBase:
         document = {
             "full_name": full_name,
             "routes": {},
-            "credentials": {
+            "credentials": Credentials(**{
                 "email": email,
                 "password": hashed,
                 "token": None
-            },
+            }),
             "username": username,
             "dob": dob,
         }
