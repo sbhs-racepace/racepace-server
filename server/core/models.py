@@ -104,12 +104,15 @@ class SavedRoute:
     """
     A route that has been saved by the user to be shared on feed
     """
-    def __init__(self, route, start_time, end_time, duration):
+    def __init__(self, route, start_time, end_time, duration, description, points, route_image):
         self.route = route
         self.distance = route.distance
         self.start_time = start_time
         self.end_time = end_time
         self.duration = duration
+        self.points = points
+        self.description = description
+        self.route_image = route_image
 
 class Group:
     """
