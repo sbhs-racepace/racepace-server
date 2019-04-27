@@ -195,3 +195,19 @@ async def getinfo(request):
     }
     return response.json(resp)
 
+
+@api.post('/groups/create')
+@authrequired
+async def create_group(request, user):
+    info = request.json
+    await user.create_group(info)
+
+@api.patch('/groups/<group_id>/edit')
+async def create_group(request, user, group_id):
+    pass
+
+@api.delete('/groups/<group_id>/delete')
+async def create_group(request, user, group_id):
+    pass
+
+

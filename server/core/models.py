@@ -13,7 +13,7 @@ from .utils import snowflake
 class Credentials:
     """
     Class to hold important user information
-    Abdur Raqueeb
+    Abdur Raqeeb
     """
     email: str
     password: str
@@ -22,7 +22,7 @@ class Credentials:
 class User:
     """
     User class for database that holds all information
-    Abdur Raqueeb/Jason Yu
+    Abdur Raqeeb/Jason Yu
     """
     fields = ('id', 'credentials', 'routes')
 
@@ -43,7 +43,7 @@ class User:
     def from_data(cls, app, data):
         """
         Generates User class from python data
-        Abdur Raqueeb
+        Abdur Raqeeb
         """
         print(data)
         user_id = str(data['_id'])
@@ -58,14 +58,14 @@ class User:
     def check_password(self, password):
         """
         Checks encrypted password
-        Abdur Raqueeb
+        Abdur Raqeeb
         """
         return bcrypt.checkpw(password, self.credentials.password)
 
     async def update(self):
         """
         Updates user with current data
-        Abdur Raqueeb
+        Abdur Raqeeb
         """
         document = self.to_dict()
         await self.app.db.users.update_one({'user_id': self.id}, document)
@@ -73,14 +73,23 @@ class User:
     async def delete(self):
         """
         Deletes user from database
-        Abdur Raqueeb
+        Abdur Raqeeb
         """
         await self.app.db.users.delete_one({'user_id': self.id})
+    
+    async def create_group(self):
+        return NotImplemented
+    
+    async def edit_group(self):
+        return NotImplemented
+    
+    async def delete_group(self):
+        return NotImplemented
     
     def to_dict(self):
         """
         Returns user data as a dict
-        Abdur Raqueeb
+        Abdur Raqeeb
         """
         return {
             "user_id": self.id,
@@ -110,7 +119,8 @@ class Group:
     A class that holds messages and information of members in a group
     Jason Yu
     """
-    def __init__(self, name, members, owner):
+    def __init__(self, id, name, members, owner):
+        self.id = id
         self.name = name
         self.members = members
         self.owner = owner
@@ -130,7 +140,7 @@ class UserBase:
     async def find_account(self, **query):
         """
         Returns a user object based on the query
-        Abdur Raqueeb
+        Abdur Raqeeb
         """
         data = await self.app.db.users.find_one(query)
         if not data:
@@ -143,7 +153,7 @@ class UserBase:
     async def register(self, request):
         """
         Registers user to database
-        Abdur Raqueeb
+        Abdur Raqeeb
         """
         data = request.json
 
@@ -179,7 +189,7 @@ class UserBase:
     async def issue_token(self, user):
         '''
         Creates and returns a token if not already existing
-        Abdur Raqueeb
+        Abdur Raqeeb
         '''
         if user.credentials.token:
             return user.credentials.token
