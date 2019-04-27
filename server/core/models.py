@@ -95,6 +95,16 @@ class User:
             }
         }
 
+class SavedRoute: 
+    """
+    A route that has been saved by the user to be shared on feed
+    """
+    def __init__(self, route, start_time, end_time, duration):
+        self.distance = route.distance
+        self.start_time = start_time
+        self.end_time = end_time
+        self.duration = duration
+
 class Group:
     """
     A class that holds messages and information of members in a group
