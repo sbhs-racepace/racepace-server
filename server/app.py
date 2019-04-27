@@ -5,7 +5,9 @@ import datetime
 import traceback
 import os
 import sys
+from urllib.parse import parse_qs
 
+import socketio
 import aiohttp
 import bcrypt
 import jwt
@@ -21,12 +23,15 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from core.api import api
 from core.route import Route
 from core.models import Overpass, Color, User, UserBase
-from core.decorators import jsonrequired, memoized, authrequired
+from core.decorators import jsonrequired, memoized, authrequired, validate_token
 from core.utils import run_with_ngrok, snowflake
 from core import config
 
+sio = socketio.AsyncServer(async_mode='sanic')
+
 app = Sanic('majorproject')
 app.blueprint(api)
+sio.attach(app)
 
 if len(sys.argv) > 1 and sys.argv[1] == '-ngrok':
     run_with_ngrok(app)
@@ -119,38 +124,34 @@ async def index(request):
 
     return response.json(data)
 
-@app.post('api/importGPX')
-async def importGPX(request):
-    data = request.json
-    if data.get('usercode') in import_codes:
-        userID = import_codes[data.get('usercode')]
-    elif request.token:
-        userID = jwt.decode(request.token, app.secret)['sub']
-    else:
-        abort(401, "No token or usercode supplied")
 
-    #Read GPX file and convert coords to floats
-    file = request.files.get('gpx')
-    root = ET.fromstring(file.body)
-    trk = root.getchildren()[1].getchildren()[1]
-    trk = [(float(pt.get('lat')),float(pt.get('lon')))
-           for pt in trk]
 
-    #Work out the bounding box and download the node data for that area
-    bound1 = " ".join(max(trk, key=lambda pt: pt[0]))
-    bound2 = " ".join(min(trk, key=lambda pt: pt[0]))
-    bound3 = " ".join(max(trk, key=lambda pt: pt[1]))
-    bound4 = " ".join(min(trk, key=lambda pt: pt[1]))
-    bounding_box = " ".join((bound1,bound2,bound3,bound4))
-    url = Overpass.NODES.format(bounding_box)
-    nodes = await fetch(url)
 
-    #Create a route object
-    route = Route.from_GPX(nodes, trk)
-    route.save_route(app.db, userID)
+@sio.on('connect')
+async def on_connect(sid, environ):
+    try:
+        qs = environ['QUERY_STRING']
+        token = parse_qs(qs)['token'][0]
+        user_id = jwt.decode(token, app.secret)['sub']
+        user = app.users.find_account(user_id=user_id)
+        await sio.save_session(sid, {'user': user})
+        print('Connected', user_id)
+    except:
+        print('Connection refused')
+        return False
+
+@sio.on('message')
+async def on_message(sid, data):
+    user = (await sio.get_session(sid))['user']
+    group = data['group_id']
+
+
+@sio.on('disconnect')
+async def on_disconnect(sid):
+    print(sid)
 
 if __name__ == '__main__':
     if os.getenv('dev'):
-        app.run()
+        app.run(debug=True)
     else: 
         app.run(host='0.0.0.0', port=os.getenv('PORT', 80))

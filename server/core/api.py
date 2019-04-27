@@ -77,10 +77,9 @@ async def route(request):
     bounding_box = Route.bounding_points_to_string(Route.two_point_bounding_box(start, end))
 
     endpoint = Overpass.REQ.format(bounding_box) #Generate url to query api
-    task = request.app.fetch(endpoint)
 
     print('Fetching map data')
-    data = await asyncio.gather(task) #Data is array with response as first element
+    data = await request.app.fetch(endpoint)
     print(data)
     elements = data[0]['elements'] #Nodes and Ways are together in array in json
     print('Successfuly got map data')
@@ -173,11 +172,14 @@ async def getinfo(request):
     Get user info
     Jason Yu/Sunny Yan
     """
+    print('request',request)
     data = request.json
+    print('data',data)
     user_id = data.get('user_id')
     print('User id', user_id)
     query = {'_id': bson.objectid.ObjectId(user_id)}
     account = await request.app.users.find_account(**query)
+    print('Account', account)
     info = account.to_dict()
 
     if account is None:
@@ -185,9 +187,27 @@ async def getinfo(request):
     resp = {
         'success': True,
         'info' : {
-            'full_name': info.full_name,
-            'routes': info.routes,
+            'full_name': info['full_name'],
+            'routes': info['routes'],
+            'username': info['username'],
+            'dob': info['dob'],
         }
     }
     return response.json(resp)
+
+
+@api.post('/groups/create')
+@authrequired
+async def create_group(request, user):
+    info = request.json
+    await user.create_group(info)
+
+@api.patch('/groups/<group_id>/edit')
+async def create_group(request, user, group_id):
+    pass
+
+@api.delete('/groups/<group_id>/delete')
+async def create_group(request, user, group_id):
+    pass
+
 
