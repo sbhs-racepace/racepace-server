@@ -50,7 +50,7 @@ class User:
         username = data['username']
         dob = data['dob']
         credentials = Credentials(*data['credentials'].values())
-        kwargs = {"user_id":user_id, "credentials":credentials, "full_name":full_name,"dob":dob,"username"}
+        kwargs = {"user_id":user_id, "credentials":credentials, "full_name":full_name,"dob":dob,"username":username}
         user = cls(app, **kwargs)
         user.routes = data['routes']
         return user
