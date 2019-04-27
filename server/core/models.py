@@ -45,13 +45,13 @@ class User:
         Generates User class from python data
         Abdur Raqeeb
         """
-        print(data)
         user_id = str(data['_id'])
         full_name = data['full_name']
         username = data['username']
         dob = data['dob']
         credentials = Credentials(*data['credentials'].values())
-        user = cls(app, user_id, credentials, full_name, dob, username)
+        kwargs = {"user_id":user_id, "credentials":credentials, "full_name":full_name,"dob":dob,"username"}
+        user = cls(app, **kwargs)
         user.routes = data['routes']
         return user
 
