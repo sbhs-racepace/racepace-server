@@ -81,6 +81,7 @@ async def route(request):
 
     print('Fetching map data')
     data = await asyncio.gather(task) #Data is array with response as first element
+    print(data)
     elements = data[0]['elements'] #Nodes and Ways are together in array in json
     print('Successfuly got map data')
 
