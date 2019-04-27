@@ -78,7 +78,7 @@ async def route(request):
 
     endpoint = Overpass.REQ.format(bounding_box) #Generate url to query api
 
-    print('Fetching map data')
+    print('Fetching map data from', endpoint)
     data = await request.app.fetch(endpoint)
     print(data)
     elements = data[0]['elements'] #Nodes and Ways are together in array in json
