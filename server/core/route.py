@@ -368,7 +368,7 @@ class Route:
         end_point = nodes[end_id]
         #Verify whether route can be completed
         if end_id not in nodes:     raise Exception('End node not in node space. Specify a valid node.')
-        elif start_id not in nodes: raise Exception('End node not in node space. Specify a valid node.')
+        elif start_id not in nodes: raise Exception('Start node not in node space. Specify a valid node.')
         elif end_id not in neighbours or start_id not in neighbours: raise Exception('No connecting neighbour')
         else: current = start_id
         #Loop through nodes and find all best sub-routes to then determine best route
