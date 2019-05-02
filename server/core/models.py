@@ -131,7 +131,7 @@ class RealTimeRoute:
     Real time route might be to connect multiple people running same race
     Jason Yu
     """
-    def __init__(self, update_freq, location_history=[]):
+    def __init__(self, update_freq, location_history):
         self.location_history = location_history
         self.update_freq = update_freq
 
@@ -177,9 +177,8 @@ class RealTimeRoute:
         return {"minutes": minutes, "seconds": seconds}
 
     @classmethod
-    def from_data(cls, data):
-        update_freq = data['update_freq']
-        location_history = [LocationPacket(location_packet.location, location_packet.time) for location_packet in data['location_history']]
+    def from_data(cls, update_freq, location_history):
+        location_history = [LocationPacket(location_packet.location, location_packet.time) for location_packet in location_history]
         real_time_route = cls(update_freq, location_history)
         return real_time_route
 
