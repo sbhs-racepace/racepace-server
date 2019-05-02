@@ -7,7 +7,7 @@ from sanic.exceptions import abort
 from sanic.log import logger
 
 from core.route import Route, Point, Node, Way
-from core.models import Overpass, Color, User
+from core.models import Overpass, Color, User, RealTimeRoute, RunningSession
 from core.decorators import jsonrequired, memoized, authrequired
 
 api = Blueprint('api', url_prefix='/api')
@@ -195,6 +195,32 @@ async def getinfo(request):
     }
     return response.json(resp)
 
+@api.post('/send_real_time_location')
+@jsonrequired
+async def update_runner_location(request):
+    """
+    Sends current location of user
+    Jason Yu
+    """
+    print('request',request)
+    data = request.json
+    print('data',data)
+    location = data.get('location')
+    time = data.get('time')
+    location_packet = [location, time]
+
+    full_name = data.get('full_name')
+    query = {'full_name': full_name}
+    account = await request.app.users.find_account(**query)
+
+    if account is None: 
+        abort(403, 'User ID invalid.')
+    else:
+        account.updateOne({'$push': {'real_time_route.location_history': location_packet})
+        resp = {
+            'success': True,
+        }
+        return response.json(resp)
 
 @api.post('/groups/create')
 @authrequired
