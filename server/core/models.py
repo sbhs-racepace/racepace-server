@@ -323,13 +323,27 @@ class UserBase:
             "full_name": full_name,
             "username": username,
             "dob": dob,
-            "stats": UserStats(),
+            "stats":  {               
+                "num_runs": 0,
+                "total_distance": 0,
+                "longest_distance_ran": 0,
+                "fastest_km" : None,
+                "fastest_5km": None,
+                "fastest_10km" : None,
+                "fastest_marathon": None,
+                "estimated_v02_max": None,
+                "average_heart_rate": None,
+                "cadence": None,
+            },
             "credentials": {
                 "email": email,
                 "password": hashed,
                 "token": None
             },
-            "real_time_route" : RealTimeRoute(1),
+            "real_time_route" : {
+                "location_history" : [],
+                "update_freq": None,
+            },
             "groups": [],
         }
 
