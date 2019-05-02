@@ -9,6 +9,8 @@ from sanic.exceptions import abort
 
 from .utils import snowflake
 
+from route import Route 
+
 @dataclass
 class Credentials:
     """
@@ -26,16 +28,17 @@ class User:
     """
     fields = ('id', 'credentials', 'routes')
 
-    def __init__(self, app, user_id, credentials, full_name, dob, username, stats):
+    def __init__(self, app, user_id, credentials, full_name, dob, username, routes, groups, stats, real_time_route):
         self.app = app
         self.id = user_id
         self.credentials = credentials
         self.dob = dob
         self.username = username
-        self.routes = []
         self.full_name = full_name
-        self.groups = {}
-        self.stats = UserStats()
+        self.routes = routes
+        self.groups = groups
+        self.stats = stats
+        self.real_time_route = real_time_route
 
     def __hash__(self):
         return self.id
@@ -43,13 +46,14 @@ class User:
     @classmethod
     def from_data(cls, app, data):
         """
-        Generates User class from python data
+        Generates User class from database data
         Abdur Raqeeb
         """
         routes = data.pop('routes')
         data['user_id'] = str(data.pop('_id'))
-        data['stats'] = UserStats(*(data.pop('stats')).value())
         data['credentials'] = Credentials(*(data.pop('credentials')).values())
+        data['stats'] = UserStats(*(data.pop('stats')).value())
+        data['real_time_route'] = RealTimeRoute(*(data.pop('real_time_route')).value())
         user = cls(app, **data)
         user.routes = routes
         return user
@@ -88,7 +92,7 @@ class User:
     def to_dict(self):
         """
         Returns user data as a dict
-        Abdur Raqeeb
+        Abdur Raqeeb/ Jason Yu
         """
         return {
             "user_id": self.id,
@@ -112,8 +116,94 @@ class User:
                 "email": self.credentials.email,
                 "password": self.credentials.password,
                 "token": self.credentials.token,
-            }
+            },
+            "real_time_route" : {
+                "location_history" : self.real_time_route.location_history,
+                "update_freq": self.real_time_route.update_freq
+            },
+            "groups": self.groups,
         }
+
+class RealTimeRoute: 
+    """
+    Class that contains information of a real time run
+    Not sure currently whether to implement on javascript side or not
+    Real time route might be to connect multiple people running same race
+    Jason Yu
+    """
+    def __init__(self, update_freq, location_history=[]):
+        self.location_history = location_history
+        self.update_freq = update_freq
+
+    def update_location_history(self, location, time):
+        self.location_history.append((location,time))
+
+    @staticmethod
+    def get_distance(locations):
+        return Route.get_route_distance(locations)
+
+    def calculate_speed(self, period):
+        """
+        Speed for the last period of time
+        Jason Yu
+        """
+        location_count = int(period / self.update_freq)
+        if location_count < 2: 
+            raise Exception("Period not long enough")
+        else:
+            history_length = len(self.location_history)
+            locations = self.location_history[(history_length-1)-location_count:]
+            total_distance = RealTimeRoute.get_distance(locations)
+            speed = total_distance / period
+            return speed
+
+    def calculate_average_speed(self):
+        """
+        Speed for the whole duration of time
+        Jason Yu
+        """
+        current_duration = (len(self.location_history) - 1) * self.update_freq #Total elapsed time
+        total_distance = RealTimeRoute.get_distance(self.location_history)
+        speed = total_distance / current_duration
+        return speed
+
+    @staticmethod
+    def calculate_pace(speed):
+        """Speed is in m/s"""
+        total_seconds = int(1000 / speed)
+        minutes = int(total_seconds / 60)
+        seconds = total_seconds - 60 * minutes
+        return {"minutes": minutes, "seconds": seconds}
+
+class RunningSession:
+    """
+    Running Session holds multiple people running the same race
+    Coaches can view runners realtime data
+    """
+    def __init__(self, users):
+        self.runners = dict((user.fullname, user) for user in users)
+
+    def get_speeds(self, period):
+        information = {}
+        for user_name,user in self.runners.items(): 
+            speed = user.running_session.calculate_speed(period)
+            information[user_name] = speed
+        return information
+
+    def get_average_speeds(self):
+        information = {}
+        for user_name,user in self.runners.items(): 
+            speed = user.running_session.calculate_average_speed()
+            information[user_name] = speed
+        return information
+
+    def get_distances(self):
+        information = {}
+        for user_name,user in self.runners.items(): 
+            locations = user.running_session.location_history
+            distance = RealTimeRoute.get_distance(locations)
+            information[user_name] = distance
+        return information
 
 @dataclass
 class UserStats:
@@ -229,15 +319,18 @@ class UserBase:
         hashed = bcrypt.hashpw(password, salt)
 
         document = {
-            "full_name": full_name,
             "routes": [],
+            "full_name": full_name,
+            "username": username,
+            "dob": dob,
+            "stats": UserStats(),
             "credentials": {
                 "email": email,
                 "password": hashed,
                 "token": None
             },
-            "username": username,
-            "dob": dob,
+            "real_time_route" : RealTimeRoute(1),
+            "groups": [],
         }
 
         result = await self.app.db.users.insert_one(document)
