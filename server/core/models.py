@@ -19,6 +19,36 @@ class Credentials:
     password: str
     token: str = None
 
+class Group:
+    """
+    A class that holds messages and information of members in a group
+    Jason Yu
+    """
+    def __init__(self, app, data):
+        self.app = app
+        self.id = data['id']
+        self.name = data['name']
+        self.members = data['members']
+        self.owner = data['owner']
+        self.messages = []
+
+    def invite_person(self, person):
+        self.members.append(person)
+
+    def invite_people(self,people):
+        for person in people:
+            self.invite_person(person)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "members": self.members,
+            "owner": self.owner,
+            "messages": self.messages
+        }
+
+
 class User:
     """
     User class for database that holds all information
@@ -50,6 +80,7 @@ class User:
         data['user_id'] = str(data.pop('_id'))
         data['stats'] = UserStats(*(data.pop('stats')).value())
         data['credentials'] = Credentials(*(data.pop('credentials')).values())
+        data['groups'] = [Group(app, g) for g in data.get('groups', [])]
         user = cls(app, **data)
         user.routes = routes
         return user
@@ -96,6 +127,7 @@ class User:
             "full_name": self.full_name,
             "username": self.username,
             "dob": self.dob,
+            "avatar_url": None,
             "stats": {
                 "num_runs": self.stats.num_runs,
                 "total_distance": self.stats.total_distance,
@@ -165,48 +197,30 @@ class SavedRoute:
     def get_route_image(self):
         return self.route_image
 
-class Group:
-    """
-    A class that holds messages and information of members in a group
-    Jason Yu
-    """
-    def __init__(self, id, name, members, owner):
-        self.id = id
-        self.name = name
-        self.members = members
-        self.owner = owner
-        self.messages = []
-
-    def invite_person(self, person):
-        self.members.append(person)
-
-    def invite_people(self,people):
-        for person in people:
-            self.invite_person(person)
-
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "name": self.name,
-            "members": self.members,
-            "owner": self.owner,
-            "messages": self.messages
-        }
-
 class UserBase:
     def __init__(self, app):
         self.app = app
+        self.user_cache = {}
+        self.group_cache = {}
     
     async def find_account(self, **query):
         """
         Returns a user object based on the query
         Abdur Raqeeb
         """
+
+        if len(query) == 1 and 'user_id' in query:
+            user =  self.user_cache.get(query['user_id'])
+            if user:
+                return user
+
         data = await self.app.db.users.find_one(query)
-        if not data: return None
+
+        if not data: 
+            return None
         
         user = User.from_data(self.app, data)
-
+        self.user_cache[user.id] = user
         return user
 
     async def register(self, request):

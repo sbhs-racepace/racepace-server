@@ -102,9 +102,10 @@ async def route(request):
 
     return response.json(route.json)
 
-@authrequired
+
 @api.patch('/users/<user_id:int>')
-async def update_user(request, user_id):
+@authrequired
+async def update_user(request, user, user_id):
     """
     Change user information
     Abdur Raqueeb
@@ -112,8 +113,6 @@ async def update_user(request, user_id):
     data = request.json
     token = request.token
     password = data.get('password')
-    user_id = jwt.decode(token, request.app.secret)['sub']
-    user = await request.app.users.find_account(user_id=user_id)
     salt = bcrypt.gensalt()
     user.credentials.password = bcrypt.hashpw(password, salt)
     await user.update()
@@ -121,12 +120,11 @@ async def update_user(request, user_id):
 
 @api.delete('/users/<user_id:int>')
 @authrequired
-async def delete_user(request, user_id):
+async def delete_user(request, user, user_id):
     """
     Deletes user from database
     Abdur Raqueeb
     """
-    user = await request.app.users.find_account(user_id=user_id)
     await user.delete()
     return response.json({'success': True})
 
