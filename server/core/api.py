@@ -172,14 +172,10 @@ async def getinfo(request):
     Get user info
     Jason Yu/Sunny Yan
     """
-    print('request',request)
     data = request.json
-    print('data',data)
     user_id = data.get('user_id')
-    print('User id', user_id)
     query = {'_id': bson.objectid.ObjectId(user_id)}
     account = await request.app.users.find_account(**query)
-    print('Account', account)
     info = account.to_dict()
 
     if account is None:
@@ -203,17 +199,16 @@ async def update_runner_location(request):
     Jason Yu
     """
     print('request',request)
+    
     data = request.json
-    print('data',data)
     location = data.get('location')
     time = data.get('time')
-
-    full_name = data.get('full_name')
-    query = {'full_name': full_name}
+    token = request.token
+    query = {'token': token}
     account = await request.app.users.find_account(**query)
 
     if account is None: 
-        abort(403, 'User ID invalid.')
+        abort(403, 'User Token invalid.')
     else:
         account.updateOne({'$push': {'real_time_route.location_history': {"location": location, "time": time}}})
         resp = {
