@@ -51,9 +51,9 @@ class User:
         """
         routes = data.pop('routes')
         data['user_id'] = str(data.pop('_id'))
-        data['credentials'] = Credentials(*(data.pop('credentials')).values())
-        data['stats'] = UserStats(*(data.pop('stats')).value())
-        data['real_time_route'] = RealTimeRoute(*(data.pop('real_time_route')).value())
+        data['credentials'] = Credentials(*(data.pop('credentials'))
+        data['stats'] = UserStats(*(data.pop('stats')))
+        data['real_time_route'] = RealTimeRoute.from_data(*(data.pop('real_time_route')))
         user = cls(app, **data)
         user.routes = routes
         return user
@@ -175,6 +175,13 @@ class RealTimeRoute:
         minutes = int(total_seconds / 60)
         seconds = total_seconds - 60 * minutes
         return {"minutes": minutes, "seconds": seconds}
+
+    @classmethod
+    def from_data(cls, data):
+        update_freq = data['update_freq']
+        location_history = [LocationPacket(location_packet.location, location_packet.time) for location_packet in data['location_history']]
+        real_time_route = cls(update_freq, location_history)
+        return real_time_route
 
 class LocationPacket:
     def __init__(self, location, time):
