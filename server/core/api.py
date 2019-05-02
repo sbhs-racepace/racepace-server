@@ -216,7 +216,7 @@ async def update_runner_location(request):
     if account is None: 
         abort(403, 'User ID invalid.')
     else:
-        account.updateOne({'$push': {'real_time_route.location_history': location_packet})
+        account.updateOne({'$push': {'real_time_route.location_history': location_packet}})
         resp = {
             'success': True,
         }
