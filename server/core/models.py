@@ -51,7 +51,7 @@ class User:
         """
         routes = data.pop('routes')
         data['user_id'] = str(data.pop('_id'))
-        data['credentials'] = Credentials(*(data.pop('credentials'))
+        data['credentials'] = Credentials(*(data.pop('credentials')))
         data['stats'] = UserStats(*(data.pop('stats')))
         data['real_time_route'] = RealTimeRoute.from_data(*(data.pop('real_time_route')))
         user = cls(app, **data)
