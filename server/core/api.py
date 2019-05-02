@@ -207,7 +207,6 @@ async def update_runner_location(request):
     print('data',data)
     location = data.get('location')
     time = data.get('time')
-    location_packet = [location, time]
 
     full_name = data.get('full_name')
     query = {'full_name': full_name}
@@ -216,7 +215,7 @@ async def update_runner_location(request):
     if account is None: 
         abort(403, 'User ID invalid.')
     else:
-        account.updateOne({'$push': {'real_time_route.location_history': location_packet}})
+        account.updateOne({'$push': {'real_time_route.location_history': {"location": location, "time": time}}})
         resp = {
             'success': True,
         }

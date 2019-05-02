@@ -9,7 +9,7 @@ from sanic.exceptions import abort
 
 from .utils import snowflake
 
-from route import Route 
+from .route import Route 
 
 @dataclass
 class Credentials:
@@ -118,7 +118,7 @@ class User:
                 "token": self.credentials.token,
             },
             "real_time_route" : {
-                "location_history" : self.real_time_route.location_history,
+                "location_history" : [{'location': location_packet.location,'time': location_packet.time} for location_packet in self.real_time_route.location_history],
                 "update_freq": self.real_time_route.update_freq
             },
             "groups": self.groups,
@@ -136,7 +136,7 @@ class RealTimeRoute:
         self.update_freq = update_freq
 
     def update_location_history(self, location, time):
-        self.location_history.append((location,time))
+        self.location_history.append(LocationPacket(location,time))
 
     @staticmethod
     def get_distance(locations):
@@ -152,7 +152,7 @@ class RealTimeRoute:
             raise Exception("Period not long enough")
         else:
             history_length = len(self.location_history)
-            locations = self.location_history[(history_length-1)-location_count:]
+            locations = [location_packet.location for location_packet in self.location_history[(history_length-1)-location_count:]]
             total_distance = RealTimeRoute.get_distance(locations)
             speed = total_distance / period
             return speed
@@ -163,7 +163,8 @@ class RealTimeRoute:
         Jason Yu
         """
         current_duration = (len(self.location_history) - 1) * self.update_freq #Total elapsed time
-        total_distance = RealTimeRoute.get_distance(self.location_history)
+        locations = [location_packet.location for location_packet in self.location_history]
+        total_distance = RealTimeRoute.get_distance(locations)
         speed = total_distance / current_duration
         return speed
 
@@ -174,6 +175,11 @@ class RealTimeRoute:
         minutes = int(total_seconds / 60)
         seconds = total_seconds - 60 * minutes
         return {"minutes": minutes, "seconds": seconds}
+
+class LocationPacket:
+    def __init__(self, location, time):
+        self.location = location
+        self.time = time
 
 class RunningSession:
     """
