@@ -80,7 +80,7 @@ class User:
         Generates User class from database data
         Abdur Raqeeb
         """
-        data['routes'] = **data.pop('routes')
+        data['routes'] = [Route.from_data(route.route, route.distance) for route in data.pop('routes')]
         data['user_id'] = str(data.pop('_id'))
         data['groups'] = [Group(app, g) for g in data.get('groups', [])]
         data['credentials'] = Credentials(**(data.pop('credentials')))
@@ -123,8 +123,7 @@ class User:
             'members': [ self.id ],
             'messages': []
             }
-            
-            )
+        )
         
 
     
@@ -145,8 +144,8 @@ class User:
             "username": self.username,
             "avatar_url": self.avatar_url,
             "dob": self.dob,
-            "routes": self.routes,
-            "saved_routes": self.saved_routes,
+            "routes": [route.to_dict() for route in self.routes],
+            "saved_routes": [saved_route.to_dict() for saved_route in self.saved_routes],
             "stats": {
                 "num_runs": self.stats.num_runs,
                 "total_distance": self.stats.total_distance,
@@ -296,9 +295,6 @@ class SavedRoute:
         self.description = description
         self.route_image = route_image
 
-        self.comments = []
-        self.likes = 0
-
     def to_dict(self):
         return  {
             "name": self.name
@@ -313,9 +309,6 @@ class SavedRoute:
             "likes": self.likes,
             "route": self.route.to_dict()
         }
-
-    def get_route_image(self):
-        return self.route_image
 
 class UserBase:
     def __init__(self, app):
