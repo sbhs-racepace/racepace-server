@@ -50,7 +50,6 @@ class Group:
             "messages": self.messages
         }
 
-
 class User:
     """
     User class for database that holds all information
@@ -58,7 +57,7 @@ class User:
     """
     fields = ('id', 'credentials', 'routes')
 
-    def __init__(self, app, user_id, credentials, full_name, dob, username, avatar_url, routes, groups, stats, real_time_route):
+    def __init__(self, app, user_id, credentials, full_name, dob, username, avatar_url, routes, groups, stats, real_time_route, saved_routes):
         self.app = app
         self.id = user_id
         self.credentials = credentials
@@ -69,6 +68,7 @@ class User:
         self.routes = routes
         self.groups = groups
         self.stats = stats
+        self.saved_routes = saved_routes
         self.real_time_route = real_time_route
 
     def __hash__(self):
@@ -80,14 +80,13 @@ class User:
         Generates User class from database data
         Abdur Raqeeb
         """
-        routes = data.pop('routes')
+        data['routes'] = **data.pop('routes')
         data['user_id'] = str(data.pop('_id'))
         data['groups'] = [Group(app, g) for g in data.get('groups', [])]
-        data['credentials'] = Credentials(*(data.pop('credentials')))
-        data['stats'] = UserStats(*(data.pop('stats')))
-        data['real_time_route'] = RealTimeRoute.from_data(*(data.pop('real_time_route')))
+        data['credentials'] = Credentials(**(data.pop('credentials')))
+        data['stats'] = UserStats(**(data.pop('stats')))
+        data['real_time_route'] = RealTimeRoute.from_data(**(data.pop('real_time_route')))
         user = cls(app, **data)
-        user.routes = routes
         return user
 
     def check_password(self, password):
@@ -133,6 +132,7 @@ class User:
             "avatar_url": self.avatar_url,
             "dob": self.dob,
             "routes": self.routes,
+            "saved_routes": self.saved_routes,
             "stats": {
                 "num_runs": self.stats.num_runs,
                 "total_distance": self.stats.total_distance,
@@ -272,7 +272,8 @@ class SavedRoute:
     A route that has been saved by the user to be shared on feed
     Jason Yu
     """
-    def __init__(self, route, start_time, end_time, duration, points, description, route_image):
+    def __init__(self, name, route, start_time, end_time, duration, route_image, points=0, description=""):
+        self.name = name
         self.distance = route.distance
         self.start_time = start_time
         self.end_time = end_time
@@ -286,6 +287,7 @@ class SavedRoute:
 
     def to_dict(self):
         return  {
+            "name": self.name
             "distance": self.distance,
             "start_time": self.start_time,
             "end_time": self.end_time,
@@ -294,7 +296,8 @@ class SavedRoute:
             "description": self.description,
             "route_image": self.route_image,
             "comments": self.comments,
-            "likes": self.likes
+            "likes": self.likes,
+            "route": self.route.to_dict()
         }
 
     def get_route_image(self):
@@ -347,6 +350,7 @@ class UserBase:
 
         document = {
             "routes": [],
+            "saved_routes": {},
             "full_name": full_name,
             "username": username,
             "avatar_url": "https://cdn.iconscout.com/icon/free/png-256/avatar-372-456324.png", # default
