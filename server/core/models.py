@@ -28,11 +28,11 @@ class Group:
     """
     def __init__(self, app, data):
         self.app = app
-        self.id = data['id']
+        self.id = data['group_id']
         self.name = data['name']
         self.members = data['members']
-        self.owner = data['owner']
-        self.messages = []
+        self.owner = data['owner_id']
+        self.messages = data['messages']
 
     def invite_person(self, person):
         self.members.append(person)
@@ -112,8 +112,22 @@ class User:
         """
         await self.app.db.users.delete_one({'user_id': self.id})
     
-    async def create_group(self):
-        return NotImplemented
+    async def create_group(self, info):
+        
+        group_id = snowflake()
+
+        await self.app.db.groups.insert_one({   
+            '_id': group_id,
+            'group_id': group_id,
+            'name': info['name'],
+            'owner_id': self.id,
+            'members': [ self.id ],
+            'messages': []
+            }
+            
+            )
+        
+
     
     async def edit_group(self):
         return NotImplemented

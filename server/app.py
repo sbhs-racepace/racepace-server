@@ -125,8 +125,6 @@ async def index(request):
     return response.json(data)
 
 
-
-
 @sio.on('connect')
 async def on_connect(sid, environ):
     try:
@@ -173,9 +171,10 @@ class Message:
         group = user.groups.get(data['group_id'])
         content = data.get('content')
         image = data.get('image')
-        self = cls(message_id, user, group, content, image)
+        msg = cls(message_id, user, group, content, image)
         await self.app.db.groups.update_one(
-            {'group_id': self.group.id}
+            {'group_id': self.group.id},
+            {'$push': {'messages': msg.to_dict()}}
             )
 
 @sio.on('message')
@@ -187,8 +186,6 @@ async def on_message(sid, data):
         return
 
     message = await Message.create(app, user, data)
-
-
 
 @sio.on('disconnect')
 async def on_disconnect(sid):
