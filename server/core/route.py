@@ -245,10 +245,17 @@ class Route:
         """
         Jason Yu/Abdur Raqueeb
         """
+        json = self.to_dict()
+        json['success'] = True
+        return json
+
+    def to_dict(self):
+        """
+        Jason Yu/Abdur Raqueeb
+        """
         route_nodes = [self.nodes[node_id] for node_id in self.route]
         route = [{'latitude': node.latitude, 'longitude': node.longitude} for node in route_nodes]
         return {
-            "success": True,
             "route": route,
             "dist": self.distance
         }
