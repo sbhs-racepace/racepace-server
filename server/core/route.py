@@ -235,10 +235,9 @@ class Route:
     Class that describes a running route
     Jason Yu/Abdur Raqueeb
     """
-    def __init__(self, route: list, distance: int, nodes: dict):
+    def __init__(self, route: list, distance: int):
         self.route = route
         self.distance = distance
-        self.nodes = nodes
 
     @property
     def json(self):
@@ -253,7 +252,6 @@ class Route:
         """
         Jason Yu/Abdur Raqueeb
         """
-        route_nodes = [self.nodes[node_id] for node_id in self.route]
         route = [{'latitude': node.latitude, 'longitude': node.longitude} for node in route_nodes]
         return {
             "route": route,
@@ -409,8 +407,9 @@ class Route:
                 else: current = next_node
         #Retrieve route, calculate actual distance
         heuristic_cost, fastest_route = path_dict[end_id]
+        route = [nodes[node_id] for node_id in fastest_route]
         actual_distance = cls.get_route_distance([nodes[node_id] for node_id in fastest_route])
-        return cls(fastest_route, actual_distance, nodes)
+        return cls(route, actual_distance)
 
     @classmethod
     def generate_multi_route(cls, nodes: dict, ways: dict, node_waypoint_ids: list) -> Route:
@@ -426,7 +425,8 @@ class Route:
             route = cls.generate_route(nodes,ways,current_node,next_node)
             multi_distance += route.distance
             multi_route += route.route[1:]
-        return cls(multi_route,multi_distance,nodes)
+        route = [nodes[node_id] for node_id in multi_route]
+        return cls(route,multi_distance)
 
     @staticmethod
     def get_route_distance(fastest_route_nodes:list)-> float:
