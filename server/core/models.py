@@ -58,12 +58,13 @@ class User:
     """
     fields = ('id', 'credentials', 'routes')
 
-    def __init__(self, app, user_id, credentials, full_name, dob, username, routes, groups, stats, real_time_route):
+    def __init__(self, app, user_id, credentials, full_name, dob, username, avatar_url, routes, groups, stats, real_time_route):
         self.app = app
         self.id = user_id
         self.credentials = credentials
         self.dob = dob
         self.username = username
+        self.avatar_url = avatar_url
         self.full_name = full_name
         self.routes = routes
         self.groups = groups
@@ -127,11 +128,11 @@ class User:
         """
         return {
             "user_id": self.id,
-            "routes": self.routes,
             "full_name": self.full_name,
             "username": self.username,
+            "avatar_url": self.avatar_url,
             "dob": self.dob,
-            "avatar_url": None,
+            "routes": self.routes,
             "stats": {
                 "num_runs": self.stats.num_runs,
                 "total_distance": self.stats.total_distance,
@@ -348,6 +349,7 @@ class UserBase:
             "routes": [],
             "full_name": full_name,
             "username": username,
+            "avatar_url": "https://cdn.iconscout.com/icon/free/png-256/avatar-372-456324.png", # default
             "dob": dob,
             "stats":  {               
                 "num_runs": 0,

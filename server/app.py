@@ -155,8 +155,16 @@ class Message:
 
     def to_dict(self):
         return {
+            'content': self.content,
+            'image': self.image,
+            'group': self.group.id,
             'message_id': self.id,
-            'author': self.author.to_dict()
+            'author': {
+                "user_id": self.author.id,
+                "full_name": self.author.full_name,
+                "username": self.author.username,
+                "avatar_url": self.author.avatar_url
+                }
         }
 
     @classmethod
@@ -166,8 +174,9 @@ class Message:
         content = data.get('content')
         image = data.get('image')
         self = cls(message_id, user, group, content, image)
-
-
+        await self.app.db.groups.update_one(
+            {'group_id': self.group.id}
+            )
 
 @sio.on('message')
 async def on_message(sid, data):
