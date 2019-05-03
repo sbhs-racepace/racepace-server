@@ -231,6 +231,7 @@ async def save_route(request):
     duration = data.get('duration')
     description = data.get('description')
     route_image = data.get('route_image')
+    route = Route.from_data(**data.get('route'))
     token = request.token
     query = {'token': token}
     saved_route = SavedRoute(name, route, start_time, end_time, duration, route_image, points, description)

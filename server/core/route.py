@@ -259,6 +259,11 @@ class Route:
         }
 
     @classmethod
+    def from_data(cls, route, distance):
+        route = [Point(node_json.latitude, node_json.longitude) for node_json in route]
+        return cls(route, distance)
+
+    @classmethod
     def rectangle_bounding_box(cls,location:Point,length:float,width:float)-> str:
         """
         Takes point and generates rectangular bounding box
