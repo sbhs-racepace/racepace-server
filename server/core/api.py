@@ -219,7 +219,7 @@ async def update_runner_location(request):
 async def create_group(request, user):
     info = request.json
     await user.create_group(info)
-
+    return response.json({'success': True})
 
 @api.patch('/groups/<group_id>/edit')
 async def create_group(request, user, group_id):

@@ -1,4 +1,4 @@
-from api_test import TestApiClient
+from client import TestApiClient
 
 client = TestApiClient()
 client.register_user(email='gahugga@gmail.com', password='bobby')
