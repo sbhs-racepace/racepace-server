@@ -7,7 +7,7 @@ from sanic.exceptions import abort
 from sanic.log import logger
 
 from core.route import Route, Point, Node, Way
-from core.models import Overpass, Color, User, RealTimeRoute, RunningSession
+from core.models import Overpass, Color, User, RealTimeRoute, RunningSession, SavedRoute
 from core.decorators import jsonrequired, memoized, authrequired
 
 api = Blueprint('api', url_prefix='/api')
@@ -209,6 +209,38 @@ async def update_runner_location(request):
         abort(403, 'User Token invalid.')
     else:
         account.updateOne({'$push': {'real_time_route.location_history': {"location": location, "time": time}}})
+        resp = {
+            'success': True,
+        }
+        return response.json(resp)
+
+@api.post('/save_route')
+@jsonrequired
+async def save_route(request):
+    """
+    Sends current location of user
+    Jason Yu
+    """
+    print('request',request)
+    
+    data = request.json
+    name = data.get('name')
+    distance = data.get('distance')
+    start_time = data.get('start_time')
+    end_time = data.get('end_time')
+    duration = data.get('duration')
+    description = data.get('description')
+    route_image = data.get('route_image')
+    route = Route.from_data(**data.get('route'))
+    token = request.token
+    query = {'token': token}
+    saved_route = SavedRoute(name, route, start_time, end_time, duration, route_image, points, description)
+    account = await request.app.users.find_account(**query)
+
+    if account is None: 
+        abort(403, 'User Token invalid.')
+    else:
+        account.updateOne({"$set": {f"saved_routes.{name}": saved_route.to_dict()}})
         resp = {
             'success': True,
         }
