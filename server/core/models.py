@@ -297,7 +297,7 @@ class SavedRoute:
 
     def to_dict(self):
         return  {
-            "name": self.name
+            "name": self.name,
             "distance": self.distance,
             "start_time": self.start_time,
             "end_time": self.end_time,
@@ -307,7 +307,7 @@ class SavedRoute:
             "route_image": self.route_image,
             "comments": self.comments,
             "likes": self.likes,
-            "route": self.route.to_dict()
+            "route": self.route.to_dict(),
         }
 
 class UserBase:
