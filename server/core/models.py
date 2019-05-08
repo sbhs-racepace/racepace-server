@@ -123,9 +123,7 @@ class User:
             'owner_id': self.id,
             'members': [ self.id ],
             'messages': []
-            }
-            
-            )
+            })
         
 
     
@@ -360,6 +358,7 @@ class UserBase:
         hashed = bcrypt.hashpw(password, salt)
 
         document = {
+            "_id": snowflake(),
             "routes": [],
             "full_name": full_name,
             "username": username,

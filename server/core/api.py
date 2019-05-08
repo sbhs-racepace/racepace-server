@@ -220,6 +220,7 @@ async def create_group(request, user):
     info = request.json
     await user.create_group(info)
 
+
 @api.patch('/groups/<group_id>/edit')
 async def create_group(request, user, group_id):
     pass
