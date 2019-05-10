@@ -1,6 +1,8 @@
 from __future__ import annotations
 import copy
 import json
+from staticmap import StaticMap, Line
+from io import BytesIO
 from math import *
 
 EARTH_RADIUS = 6371000
@@ -499,6 +501,20 @@ class Route:
                 }
             }
         self.id = await db.routes.insert_one(document).inserted_id
+		
+	def generateStaticMap(self):
+		"""
+		Generate static 100x100 PNG of the route, encoded in Base64
+		"""
+		m = StaticMap(100,100)
+		route = map(lambda pt:list(pt),self.route)
+		for pts in zip(route[:-1],route[1:]):
+			line = Line(pts,"blue", 2)
+			m.add_line(line)
+		image = m.render()
+		buffer = BytesIO()
+		image.save(buffer, format="PNG")
+		return buffer
 
 if __name__ == '__main__':
     pass
