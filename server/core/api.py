@@ -233,14 +233,11 @@ async def save_route(request, user):
     route = Route.from_data(**data.get('route'))
     saved_route = SavedRoute(name, route, start_time, end_time, duration, points, description)
 
-    if account is None: 
-        abort(403, 'User Token invalid.')
-    else:
-        account.updateOne({"$set": {f"saved_routes.{name}": saved_route.to_dict()}})
-        resp = {
-            'success': True,
-        }
-        return response.json(resp)
+	account.updateOne({"$set": {f"saved_routes.{name}": saved_route.to_dict()}})
+	resp = {
+		'success': True,
+	}
+	return response.json(resp)
 
 @api.post('/groups/create')
 @authrequired
