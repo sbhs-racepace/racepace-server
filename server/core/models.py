@@ -24,7 +24,7 @@ class Credentials:
 class Group:
     """
     A class that holds messages and information of members in a group
-    Jason Yu
+    Jason Yu/Sunny Yan (DB methods)
     """
     def __init__(self, app, data):
         self.app = app
@@ -33,6 +33,11 @@ class Group:
         self.members = data['members']
         self.owner = data['owner_id']
         self.messages = data['messages']
+	
+	@classmethod
+	def from_db(self, app, group_id):
+		document = app.db.groups.find_one({'_id':group_id})
+		return cls(app,document)
 
     def invite_person(self, person):
         self.members.append(person)
@@ -41,14 +46,17 @@ class Group:
         for person in people:
             self.invite_person(person)
 
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "name": self.name,
-            "members": self.members,
-            "owner": self.owner,
-            "messages": self.messages
-        }
+	def __iter__(self):
+		return zip(vars(self).keys(),vars(self).values())
+    
+	def to_dict(self):
+        return vars(self)
+	
+	def update_db(self):
+		self.app.db.groups.update_one(
+			{'id':group_id},
+			{'$set': self.__dict__}
+		)
 
 class User:
     """
@@ -111,27 +119,47 @@ class User:
         """
         await self.app.db.users.delete_one({'user_id': self.id})
     
-    async def create_group(self, info):
+    async def create_group(self, name):
         
         group_id = snowflake()
 
         await self.app.db.groups.insert_one({   
             '_id': group_id,
-            'group_id': group_id,
-            'name': info['name'],
+            'name': name,
             'owner_id': self.id,
             'members': [ self.id ],
             'messages': []
-            }
-        )
-        
-
+            })
+		await self.app.db.users.update_one(
+			{'_id':self.id},
+			{'$addToSet': {'groups': group_id}}
+		)
     
-    async def edit_group(self):
-        return NotImplemented
+    async def add_to_group(self,group_id):
+        """
+		Adds the user to a group
+		"""
+		await self.app.db.groups.update_one(
+			{'_id':group_id},
+			{'$addToSet': {'members':self.id}}
+		)
+		await self.app.db.users.update_one(
+			{'_id':self.id},
+			{'$addToSet': {'groups': group_id}}
+		)
     
-    async def delete_group(self):
-        return NotImplemented
+    async def remove_from_group(self, group_id):
+        """
+		Removes the user from the group
+		"""
+		await self.app.db.groups.update_one(
+			{'_id':group_id},
+			{'$pull': {'members':self.id}}
+		)
+		await self.app.db.users.update_one(
+			{'_id':self.id},
+			{'$pull': {'groups': group_id}}
+		)
     
     def to_dict(self):
         """
@@ -356,6 +384,7 @@ class UserBase:
         hashed = bcrypt.hashpw(password, salt)
 
         document = {
+            "_id": snowflake(),
             "routes": [],
             "saved_routes": {},
             "full_name": full_name,
