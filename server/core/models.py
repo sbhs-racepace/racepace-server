@@ -150,16 +150,16 @@ class User:
     
     async def remove_from_group(self, group_id):
         """
-		Removes the user from the group
-		"""
-		await self.app.db.groups.update_one(
-			{'_id':group_id},
-			{'$pull': {'members':self.id}}
-		)
-		await self.app.db.users.update_one(
-			{'_id':self.id},
-			{'$pull': {'groups': group_id}}
-		)
+        Removes the user from the group
+        """
+        await self.app.db.groups.update_one(
+            {'_id':group_id},
+            {'$pull': {'members':self.id}}
+        )
+        await self.app.db.users.update_one(
+            {'_id':self.id},
+            {'$pull': {'groups': group_id}}
+        )
     
     def to_dict(self):
         """
