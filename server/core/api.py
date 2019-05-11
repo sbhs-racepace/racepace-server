@@ -227,7 +227,7 @@ async def save_route(request, user):
     Jason Yu
     """
     print('request',request)
-    
+
     data = request.json
     name = data.get('name')
     start_time = data.get('start_time')
@@ -235,15 +235,15 @@ async def save_route(request, user):
     duration = data.get('duration')
     description = data.get('description')
     route = Route.from_data(**data.get('route'))
-	route_image = route.generateStaticMap()
+    route_image = route.generateStaticMap()
     saved_route = SavedRoute(name, route, start_time, end_time, duration, route_image, points, description)
 
-	user.saved_routes[name] = saved_route.to_dict()
-	user.update()
-	resp = {
-		'success': True,
-	}
-	return response.json(resp)
+    user.saved_routes[name] = saved_route.to_dict()
+    user.update()
+    resp = {
+        'success': True,
+    }
+    return response.json(resp)
 
 @api.post('/save_recent_route')
 @authrequired
