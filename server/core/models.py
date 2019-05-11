@@ -88,7 +88,7 @@ class User:
         Generates User class from database data
         Abdur Raqeeb
         """
-        data['routes'] = [Route.from_data(route.route, route.distance) for route in data.pop('routes')]
+        data['saved_routes'] = [SavedRoute(**route) for route in data.pop('routes')]
         data['user_id'] = str(data.pop('_id'))
         data['groups'] = [Group(app, g) for g in data.get('groups', [])]
         data['credentials'] = Credentials(**(data.pop('credentials')))
@@ -315,14 +315,20 @@ class SavedRoute:
     """
     def __init__(self, name, route, start_time, end_time, duration, pace_history, route_image, points=0, description=""):
         self.name = name
-        self.route = route
+		if type(route) == dict:
+			self.route = Route.from_data(**route)
+		else:
+			self.route = route
         self.distance = route.distance
         self.start_time = start_time
         self.end_time = end_time
         self.duration = duration
         self.points = points
         self.description = description
-        self.route_image = route_image
+		if type(route_image) == bytes:
+			self.route_image = BytesIO(route_image)
+		else:
+			self.route_image = route_image			
         self.pace_history = pace_history # Every km, there is an average pace associated with it
 
         self.comments = []
