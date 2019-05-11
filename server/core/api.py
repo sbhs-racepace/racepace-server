@@ -138,7 +138,7 @@ async def register(request):
     Abdur Raqueeb/Sunny Yan
     """
     user = await request.app.users.register(request)
-	token = await request.app.users.issue_token(user)
+    token = await request.app.users.issue_token(user)
     return response.json({'success': True,
 	'token': token.decode("utf-8"),
 	'user_id': user.id})
@@ -209,7 +209,7 @@ async def update_runner_location(request, user):
     location = data.get('location')
     time = data.get('time')
 	
-	user.updateOne({'$push': {'real_time_route.location_history': {"location": location, "time": time}}})
+    user.updateOne({'$push': {'real_time_route.location_history': {"location": location, "time": time}}})
 	locationCache[user] = (location,time)
 	resp = {
 		'success': True,
@@ -300,5 +300,19 @@ async def get_locations(request):
 			groupLocations[user.full_name] = locationPacket
 	
 	return response.json(groupLocations)
+
+@api.post('/images/save_image')
+async def save_image(request):
+    data = request.json
+    image_data = data.get('image_data')
+    user_id = data.get('user_id')
+
+@api.post('/images/save_route_image')
+async def save_route_image(request):
+    data = request.json
+    image_data = data.get('image_data')
+    user_id = data.get('user_id')
+
+
 
 

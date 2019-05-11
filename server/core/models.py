@@ -313,7 +313,7 @@ class SavedRoute:
     A route that has been saved by the user to be shared on feed
     Jason Yu
     """
-    def __init__(self, name, route, start_time, end_time, duration, route_image, points=0, description=""):
+    def __init__(self, name, route, start_time, end_time, duration, pace_history, route_image, points=0, description=""):
         self.name = name
         self.route = route
         self.distance = route.distance
@@ -323,6 +323,7 @@ class SavedRoute:
         self.points = points
         self.description = description
         self.route_image = route_image
+        self.pace_history = pace_history # Every km, there is an average pace associated with it
 
         self.comments = []
         self.likes = 0
@@ -339,6 +340,7 @@ class SavedRoute:
             "description": self.description,
             "route_image": self.route_image,
             "comments": self.comments,
+            "pace_history": self.pace_history,
             "likes": self.likes,
             "route": self.route.to_dict(),
         }
@@ -348,12 +350,13 @@ class RecentRoute:
     All routes are automatically stored
     Jason Yu
     """
-    def __init__(self, route, start_time, end_time, duration):
+    def __init__(self, route, start_time, end_time, duration, distance_history, pace_history):
         self.route = route
         self.distance = route.distance
         self.start_time = start_time
         self.end_time = end_time
         self.duration = duration
+        self.pace_history = pace_history
 
     def to_dict(self):
         return  {
@@ -362,6 +365,7 @@ class RecentRoute:
             "end_time": self.end_time,
             "duration": self.duration,
             "route": self.route.to_dict(),
+            "pace_history": self.pace_history,
         }
 
 class UserBase:
