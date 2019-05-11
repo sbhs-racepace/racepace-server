@@ -253,19 +253,27 @@ async def save_recent_route(request, user):
     Sends current location of user
     Jason Yu
     """
-    print('request',request)
+    # print('request',request)
 
-    data = request.json
-    start_time = data.get('start_time')
-    end_time = data.get('end_time')
-    duration = data.get('duration')
-    route = Route.from_data(**data.get('route'))
-    recent_route = RecentRoute(route, start_time, end_time, duration)
-    user.recent_routes.append(recent_route.to_dict())
-    user.update()
-    resp = {
-        'success': True,
-    }
+    # data = request.json
+    # start_time = data.get('start_time')
+    # end_time = data.get('end_time')
+    # duration = data.get('duration')
+    # route = Route.from_data(**data.get('route'))
+    # recent_route = RecentRoute(route, start_time, end_time, duration)
+    # user.recent_routes.append(recent_route.to_dict())
+    # if (len(user.recent_routes) == 10):
+    #     user.recent_routes.pop(0)
+    #     user.recent_routes.append()
+
+    # elif (len(user.recent_routes) > 10):
+
+
+
+    # user.update()
+    # resp = {
+    #     'success': True,
+    # }
     return response.json(resp)
 
 @api.post('/get_saved_routes')
@@ -279,7 +287,7 @@ async def save_recent_route(request, user):
     print('request',request)
 
     data = request.json
-    saved_routes_json = [saved_route.to_dict() for saved_route inuser.saved_routes]
+    saved_routes_json = [saved_route.to_dict() for saved_route in user.saved_routes]
     resp = {
         'success': True,
         'saved_routes_json': saved_routes_json,
