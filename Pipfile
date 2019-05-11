@@ -13,6 +13,7 @@ pyjwt = "*"
 dhooks = "*"
 python-decouple = "*"
 python-socketio = {extras = ["asyncio_client"], version = "*"}
+staticmap = "*"
 
 [dev-packages]
 requests = "*"
