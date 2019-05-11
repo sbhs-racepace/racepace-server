@@ -57,7 +57,7 @@ class User:
     """
     fields = ('id', 'credentials', 'routes')
 
-    def __init__(self, app, user_id, credentials, full_name, dob, username, avatar_url, routes, groups, stats, real_time_route, saved_routes):
+    def __init__(self, app, user_id, credentials, full_name, dob, username, avatar_url, recent_routes, groups, stats, real_time_route, saved_routes):
         self.app = app
         self.id = user_id
         self.credentials = credentials
@@ -65,7 +65,7 @@ class User:
         self.username = username
         self.avatar_url = avatar_url
         self.full_name = full_name
-        self.routes = routes
+        self.recent_routes = recent_routes
         self.groups = groups
         self.stats = stats
         self.saved_routes = saved_routes
@@ -144,8 +144,8 @@ class User:
             "username": self.username,
             "avatar_url": self.avatar_url,
             "dob": self.dob,
-            "routes": [route.to_dict() for route in self.routes],
-            "saved_routes": [saved_route.to_dict() for saved_route in self.saved_routes],
+            "recent_routes": [recent_route.to_dict() for recent_route in self.recent_routes],
+            "saved_routes": {(saved_route.name,saved_route.to_dict()) for saved_route in self.saved_routes},
             "stats": {
                 "num_runs": self.stats.num_runs,
                 "total_distance": self.stats.total_distance,
@@ -287,6 +287,7 @@ class SavedRoute:
     """
     def __init__(self, name, route, start_time, end_time, duration, route_image, points=0, description=""):
         self.name = name
+        self.route = route
         self.distance = route.distance
         self.start_time = start_time
         self.end_time = end_time
@@ -294,6 +295,10 @@ class SavedRoute:
         self.points = points
         self.description = description
         self.route_image = route_image
+
+        self.comments = []
+        self.likes = 0
+
 
     def to_dict(self):
         return  {
@@ -307,6 +312,27 @@ class SavedRoute:
             "route_image": self.route_image,
             "comments": self.comments,
             "likes": self.likes,
+            "route": self.route.to_dict(),
+        }
+
+class RecentRoute: 
+    """
+    All routes are automatically stored
+    Jason Yu
+    """
+    def __init__(self, route, start_time, end_time, duration):
+        self.route = route
+        self.distance = route.distance
+        self.start_time = start_time
+        self.end_time = end_time
+        self.duration = duration
+
+    def to_dict(self):
+        return  {
+            "distance": self.distance,
+            "start_time": self.start_time,
+            "end_time": self.end_time,
+            "duration": self.duration,
             "route": self.route.to_dict(),
         }
 
@@ -356,11 +382,11 @@ class UserBase:
         hashed = bcrypt.hashpw(password, salt)
 
         document = {
-            "routes": [],
+            "recent_routes": [],
             "saved_routes": {},
             "full_name": full_name,
             "username": username,
-            "avatar_url": "https://cdn.iconscout.com/icon/free/png-256/avatar-372-456324.png", # default
+            "avatar_url": "https://cdn.iconscout.com/icon/free/png-256/avatar-372-456324.png",
             "dob": dob,
             "stats":  {               
                 "num_runs": 0,
