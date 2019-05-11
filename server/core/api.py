@@ -253,33 +253,32 @@ async def save_recent_route(request, user):
     Sends current location of user
     Jason Yu
     """
-    # print('request',request)
+    print('request',request)
 
-    # data = request.json
-    # start_time = data.get('start_time')
-    # end_time = data.get('end_time')
-    # duration = data.get('duration')
-    # route = Route.from_data(**data.get('route'))
-    # recent_route = RecentRoute(route, start_time, end_time, duration)
-    # user.recent_routes.append(recent_route.to_dict())
-    # if (len(user.recent_routes) == 10):
-    #     user.recent_routes.pop(0)
-    #     user.recent_routes.append()
+    data = request.json
+    start_time = data.get('start_time')
+    end_time = data.get('end_time')
+    duration = data.get('duration')
+    route = Route.from_data(**data.get('route'))
+    recent_route = RecentRoute(route, start_time, end_time, duration)
+    curr_num_recent_routes = len(user.recent_routes)
 
-    # elif (len(user.recent_routes) > 10):
-
-
-
-    # user.update()
-    # resp = {
-    #     'success': True,
-    # }
+    #Makes sure that only the 10 most recent routes are saved
+    if (curr_num_recent_routes < 10):
+        user.recent_routes.append(recent_route.to_dict())
+    else:
+        user.recent_routes = user.recent_routes[curr_num_recent_routes-9:]
+        user.recent_routes.append(recent_route.to_dict())
+    user.update()
+    resp = {
+        'success': True,
+    }
     return response.json(resp)
 
 @api.post('/get_saved_routes')
 @authrequired
 @jsonrequired
-async def save_recent_route(request, user):
+async def get_saved_routes(request, user):
     """
     Sends current location of user
     Jason Yu
