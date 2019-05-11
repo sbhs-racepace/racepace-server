@@ -4,6 +4,8 @@ import datetime
 import bcrypt
 import jwt
 
+from PIL import Image
+
 from io import BytesIO
 from sanic import Sanic
 from sanic.exceptions import abort
@@ -66,13 +68,13 @@ class User:
     """
     fields = ('id', 'credentials', 'routes')
 
-    def __init__(self, app, user_id, credentials, full_name, dob, username, avatar_url, recent_routes, groups, stats, real_time_route, saved_routes):
+    def __init__(self, app, user_id, credentials, full_name, dob, username, avatar, recent_routes, groups, stats, real_time_route, saved_routes):
         self.app = app
         self.id = user_id
         self.credentials = credentials
         self.dob = dob
         self.username = username
-        self.avatar_url = avatar_url
+        self.avatar = avatar
         self.full_name = full_name
         self.recent_routes = recent_routes
         self.groups = groups
@@ -96,6 +98,7 @@ class User:
         data['credentials'] = Credentials(**(data['credentials']))
         data['stats'] = UserStats(**(data['stats']))
         data['real_time_route'] = RealTimeRoute.from_data(**(data['real_time_route']))
+        data['avatar'] = BytesIO(data['avatar'])
         user = cls(app, **data)
         return user
 
@@ -172,7 +175,7 @@ class User:
             "user_id": self.id,
             "full_name": self.full_name,
             "username": self.username,
-            "avatar_url": self.avatar_url,
+            "avatar": self.avatar,
             "dob": self.dob,
             "recent_routes": [recent_route.to_dict() for recent_route in self.recent_routes],
             "saved_routes": {saved_route.name:saved_route.to_dict() for saved_route in self.saved_routes},
@@ -430,6 +433,10 @@ class UserBase:
         full_name = data.get('full_name')
         dob = data.get('dob')
         username = data.get('username')
+        avatar = Image.open('avatar.png')
+        byte_io = BytesIO()
+        avatar.save(byte_io, 'PNG')
+
         query = {'credentials.email': email}
         exists = await self.find_account(**query)
         if exists: abort(403, 'Email already in use.') 
@@ -443,7 +450,7 @@ class UserBase:
             "saved_routes": {},
             "full_name": full_name,
             "username": username,
-            "avatar_url": "https://cdn.iconscout.com/icon/free/png-256/avatar-372-456324.png",
+            "avatar": avatar,
             "dob": dob,
             "stats":  {               
                 "num_runs": 0,
