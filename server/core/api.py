@@ -231,6 +231,7 @@ async def save_route(request, user):
     duration = data.get('duration')
     description = data.get('description')
     route = Route.from_data(**data.get('route'))
+	route_image = route.generateStaticMap()
     saved_route = SavedRoute(name, route, start_time, end_time, duration, route_image, points, description)
 
 	account.updateOne({"$set": {f"saved_routes.{name}": saved_route.to_dict()}})
