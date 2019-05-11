@@ -4,6 +4,7 @@ import datetime
 import bcrypt
 import jwt
 
+from io import BytesIO
 from sanic import Sanic
 from sanic.exceptions import abort
 
@@ -88,12 +89,13 @@ class User:
         Generates User class from database data
         Abdur Raqeeb
         """
-        data['saved_routes'] = [SavedRoute(**route) for route in data.pop('routes')]
-        data['user_id'] = str(data.pop('_id'))
+        data['saved_routes'] = [SavedRoute.from_data(route) for route in data['saved_routes']]
+        data['recent_routes'] = [RecentRoute.from_data(route) for route in data['recent_routes']]
+        data['user_id'] = str(data['user_id'])
         data['groups'] = [Group(app, g) for g in data.get('groups', [])]
-        data['credentials'] = Credentials(**(data.pop('credentials')))
-        data['stats'] = UserStats(**(data.pop('stats')))
-        data['real_time_route'] = RealTimeRoute.from_data(**(data.pop('real_time_route')))
+        data['credentials'] = Credentials(**(data['credentials']))
+        data['stats'] = UserStats(**(data['stats']))
+        data['real_time_route'] = RealTimeRoute.from_data(**(data['real_time_route']))
         user = cls(app, **data)
         return user
 
@@ -315,20 +317,14 @@ class SavedRoute:
     """
     def __init__(self, name, route, start_time, end_time, duration, pace_history, route_image, points=0, description=""):
         self.name = name
-		if type(route) == dict:
-			self.route = Route.from_data(**route)
-		else:
-			self.route = route
+        self.route = route
         self.distance = route.distance
         self.start_time = start_time
         self.end_time = end_time
         self.duration = duration
         self.points = points
         self.description = description
-		if type(route_image) == bytes:
-			self.route_image = BytesIO(route_image)
-		else:
-			self.route_image = route_image			
+        self.route_image = route_image			
         self.pace_history = pace_history # Every km, there is an average pace associated with it
 
         self.comments = []
@@ -350,6 +346,18 @@ class SavedRoute:
             "likes": self.likes,
             "route": self.route.to_dict(),
         }
+
+    @classmethod
+    def from_data(cls, data):
+        """
+        Generates Saved Route class from database data
+        Jason Yu
+        """
+        data['route'] = Route.from_data(**(data['route']))
+        data['route_image'] = BytesIO(data['route_image'])
+        saved_route = cls(**data)
+        return saved_route
+
 
 class RecentRoute: 
     """
@@ -373,6 +381,16 @@ class RecentRoute:
             "route": self.route.to_dict(),
             "pace_history": self.pace_history,
         }
+
+    @classmethod
+    def from_data(cls, data):
+        """
+        Generates Saved Route class from database data
+        Jason Yu
+        """
+        data['route'] = Route.from_data(**(data['route']))
+        recent_route = cls(**data)
+        return recent_route
 
 class UserBase:
     def __init__(self, app):
