@@ -236,7 +236,8 @@ async def save_route(request, user):
 	route_image = route.generateStaticMap()
     saved_route = SavedRoute(name, route, start_time, end_time, duration, route_image, points, description)
 
-	user.updateOne({"$set": {f"saved_routes.{name}": saved_route.to_dict()}})
+	user.saved_routes[name] = saved_route.to_dict()
+	user.update()
 	resp = {
 		'success': True,
 	}
