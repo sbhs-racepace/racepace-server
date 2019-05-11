@@ -212,11 +212,11 @@ async def update_runner_location(request, user):
     time = data.get('time')
 	
     user.updateOne({'$push': {'real_time_route.location_history': {"location": location, "time": time}}})
-	locationCache[user] = (location,time)
-	resp = {
-		'success': True,
+    locationCache[user] = (location,time)
+    resp = {
+        'success': True,
 	}
-	return response.json(resp)
+    return response.json(resp)
 
 @api.post('/save_route')
 @jsonrequired
