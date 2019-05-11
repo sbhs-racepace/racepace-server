@@ -306,7 +306,7 @@ async def get_image(request,user_id,route_name):
     user = await request.app.users.find_account(**query)
     image = user.saved_routes[route_name].route_image
     image_file = io.BytesIO(image)
-	return response.file(image)
+	return response.stream(image)
 
 
 
