@@ -7,8 +7,10 @@ from sanic.exceptions import abort
 from sanic.log import logger
 
 from core.route import Route, Point, Node, Way
-from core.models import Overpass, Color, User, RealTimeRoute, RunningSession, SavedRoute
+from core.models import Overpass, Color, User, RealTimeRoute, RunningSession, SavedRoute, RecentRoute
 from core.decorators import jsonrequired, memoized, authrequired
+
+
 
 api = Blueprint('api', url_prefix='/api')
 
@@ -188,6 +190,7 @@ async def getinfo(request):
             'routes': info['routes'],
             'username': info['username'],
             'dob': info['dob'],
+            'user_image': info['avatar_url'],
         }
     }
     return response.json(resp)
@@ -225,7 +228,6 @@ async def save_route(request, user):
     
     data = request.json
     name = data.get('name')
-    distance = data.get('distance')
     start_time = data.get('start_time')
     end_time = data.get('end_time')
     duration = data.get('duration')
@@ -234,11 +236,41 @@ async def save_route(request, user):
 	route_image = route.generateStaticMap()
     saved_route = SavedRoute(name, route, start_time, end_time, duration, route_image, points, description)
 
-	account.updateOne({"$set": {f"saved_routes.{name}": saved_route.to_dict()}})
+	user.updateOne({"$set": {f"saved_routes.{name}": saved_route.to_dict()}})
 	resp = {
 		'success': True,
 	}
 	return response.json(resp)
+
+@api.post('/save_recent_route')
+@jsonrequired
+async def save_recent_route(request):
+    """
+    Sends current location of user
+    Jason Yu
+    """
+    print('request',request)
+    
+    data = request.json
+    distance = data.get('distance')
+    start_time = data.get('start_time')
+    end_time = data.get('end_time')
+    duration = data.get('duration')
+    route_image = data.get('route_image')
+    route = Route.from_data(**data.get('route'))
+    token = request.token
+    query = {'token': token}
+    recent_route = RecentRoute(route, start_time, end_time, duration)
+    account = await request.app.users.find_account(**query)
+
+    if account is None: 
+        abort(403, 'User Token invalid.')
+    else:
+        account.updateOne({"$add": {f"recent_routes": recent_route.to_dict()}})
+        resp = {
+            'success': True,
+        }
+        return response.json(resp)
 
 @api.post('/groups/create')
 @authrequired
