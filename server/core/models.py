@@ -88,7 +88,7 @@ class User:
         Generates User class from database data
         Abdur Raqeeb
         """
-        data['saved_routes'] = [SavedRoute(**route) for route in data.pop('routes')]
+        data['saved_routes'] = {route['name']:SavedRoute(**route) for route in data.pop('routes')}
         data['user_id'] = str(data.pop('_id'))
         data['groups'] = [Group(app, g) for g in data.get('groups', [])]
         data['credentials'] = Credentials(**(data.pop('credentials')))
@@ -173,7 +173,7 @@ class User:
             "avatar_url": self.avatar_url,
             "dob": self.dob,
             "recent_routes": [recent_route.to_dict() for recent_route in self.recent_routes],
-            "saved_routes": {(saved_route.name,saved_route.to_dict()) for saved_route in self.saved_routes},
+            "saved_routes": {saved_route.name:saved_route.to_dict() for saved_route in self.saved_routes},
             "stats": {
                 "num_runs": self.stats.num_runs,
                 "total_distance": self.stats.total_distance,
