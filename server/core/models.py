@@ -433,9 +433,10 @@ class UserBase:
         full_name = data.get('full_name')
         dob = data.get('dob')
         username = data.get('username')
-        avatar = Image.open('avatar.png')
-        byte_io = BytesIO()
-        avatar.save(byte_io, 'PNG')
+
+        avatar_png = Image.open('avatar.png')
+        avatar = BytesIO()
+        avatar_png.save(avatar, 'PNG')
 
         query = {'credentials.email': email}
         exists = await self.find_account(**query)
@@ -450,7 +451,7 @@ class UserBase:
             "saved_routes": {},
             "full_name": full_name,
             "username": username,
-            "avatar": avatar,
+            "avatar": avatar.getvalue(),
             "dob": dob,
             "stats":  {               
                 "num_runs": 0,
