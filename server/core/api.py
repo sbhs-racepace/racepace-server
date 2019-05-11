@@ -2,6 +2,8 @@ import asyncio
 import functools
 import bson
 
+from io import BytesIO
+
 from sanic import Blueprint, response
 from sanic.exceptions import abort
 from sanic.log import logger
@@ -244,8 +246,9 @@ async def save_route(request, user):
 	return response.json(resp)
 
 @api.post('/save_recent_route')
+@authrequired
 @jsonrequired
-async def save_recent_route(request):
+async def save_recent_route(request, user):
     """
     Sends current location of user
     Jason Yu
@@ -259,19 +262,13 @@ async def save_recent_route(request):
     duration = data.get('duration')
     route_image = data.get('route_image')
     route = Route.from_data(**data.get('route'))
-    token = request.token
-    query = {'token': token}
     recent_route = RecentRoute(route, start_time, end_time, duration)
-    account = await request.app.users.find_account(**query)
-
-    if account is None: 
-        abort(403, 'User Token invalid.')
-    else:
-        account.updateOne({"$add": {f"recent_routes": recent_route.to_dict()}})
-        resp = {
-            'success': True,
-        }
-        return response.json(resp)
+    user.recent_routes.append(recent_route.to_dict())
+    user.update()
+    resp = {
+		'success': True,
+	}
+	return response.json(resp)
 
 @api.post('/groups/create')
 @authrequired
@@ -281,10 +278,12 @@ async def create_group(request, user):
     return response.json({'success': True})
 
 @api.patch('/groups/<group_id>/edit')
+@authrequired
 async def edit_group(request, user, group_id):
     pass
 
 @api.delete('/groups/<group_id>/delete')
+@authrequired
 async def delete_group(request, user, group_id):
     pass
 	
@@ -300,17 +299,16 @@ async def get_locations(request):
 	
 	return response.json(groupLocations)
 
-@api.post('/images/save_image')
-async def save_image(request):
-    data = request.json
-    image_data = data.get('image_data')
-    user_id = data.get('user_id')
+@api.get('/images/get_image/<user_id>/<route_name>')
+@jsonrequired
+async def get_image(request,user_id,route_name):
+    query = {'_id': user_id}
+    user = await request.app.users.find_account(**query)
+    image = user.saved_routes[route_name].route_image
+    image_file = io.BytesIO(image)
+	return response.file(image)
 
-@api.post('/images/save_route_image')
-async def save_route_image(request):
-    data = request.json
-    image_data = data.get('image_data')
-    user_id = data.get('user_id')
+
 
 
 
