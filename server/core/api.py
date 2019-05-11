@@ -268,6 +268,24 @@ async def save_recent_route(request, user):
     }
     return response.json(resp)
 
+@api.post('/get_saved_routes')
+@authrequired
+@jsonrequired
+async def save_recent_route(request, user):
+    """
+    Sends current location of user
+    Jason Yu
+    """
+    print('request',request)
+
+    data = request.json
+    saved_routes_json = [saved_route.to_dict() for saved_route inuser.saved_routes]
+    resp = {
+        'success': True,
+        'saved_routes_json': saved_routes_json,
+    }
+    return response.json(resp)
+
 @api.post('/groups/create')
 @authrequired
 async def create_group(request, user):
@@ -314,6 +332,8 @@ async def get_user_image(request,user_id):
     image = user.avatar
     image_file = BytesIO(image)
     return response.stream(image_file)
+
+
 
 
 

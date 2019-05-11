@@ -14,7 +14,6 @@ dhooks = "*"
 python-decouple = "*"
 python-socketio = {extras = ["asyncio_client"], version = "*"}
 pillow = "*"
-socketio = "*"
 staticmap = "*"
 
 [dev-packages]
