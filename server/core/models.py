@@ -34,10 +34,10 @@ class Group:
         self.owner = data['owner_id']
         self.messages = data['messages']
 	
-	@classmethod
-	def from_db(self, app, group_id):
-		document = app.db.groups.find_one({'_id':group_id})
-		return cls(app,document)
+    @classmethod
+    def from_db(self, app, group_id):
+        document = app.db.groups.find_one({'_id':group_id})
+        return cls(app,document)
 
     def invite_person(self, person):
         self.members.append(person)
@@ -46,17 +46,17 @@ class Group:
         for person in people:
             self.invite_person(person)
 
-	def __iter__(self):
-		return zip(vars(self).keys(),vars(self).values())
-    
-	def to_dict(self):
+    def __iter__(self):
+        return zip(vars(self).keys(),vars(self).values())
+
+    def to_dict(self):
         return vars(self)
-	
-	def update_db(self):
-		self.app.db.groups.update_one(
-			{'id':group_id},
-			{'$set': self.__dict__}
-		)
+
+    def update_db(self):
+        self.app.db.groups.update_one(
+            {'id':group_id},
+            {'$set': self.__dict__}
+        )
 
 class User:
     """
@@ -130,36 +130,36 @@ class User:
             'members': [ self.id ],
             'messages': []
             })
-		await self.app.db.users.update_one(
-			{'_id':self.id},
-			{'$addToSet': {'groups': group_id}}
-		)
-    
+        await self.app.db.users.update_one(
+            {'_id':self.id},
+            {'$addToSet': {'groups': group_id}}
+        )
+
     async def add_to_group(self,group_id):
         """
-		Adds the user to a group
-		"""
-		await self.app.db.groups.update_one(
-			{'_id':group_id},
-			{'$addToSet': {'members':self.id}}
-		)
-		await self.app.db.users.update_one(
-			{'_id':self.id},
-			{'$addToSet': {'groups': group_id}}
-		)
+        Adds the user to a group
+        """
+        await self.app.db.groups.update_one(
+            {'_id':group_id},
+            {'$addToSet': {'members':self.id}}
+        )
+        await self.app.db.users.update_one(
+            {'_id':self.id},
+            {'$addToSet': {'groups': group_id}}
+        )
     
     async def remove_from_group(self, group_id):
         """
-		Removes the user from the group
-		"""
-		await self.app.db.groups.update_one(
-			{'_id':group_id},
-			{'$pull': {'members':self.id}}
-		)
-		await self.app.db.users.update_one(
-			{'_id':self.id},
-			{'$pull': {'groups': group_id}}
-		)
+        Removes the user from the group
+        """
+        await self.app.db.groups.update_one(
+            {'_id':group_id},
+            {'$pull': {'members':self.id}}
+        )
+        await self.app.db.users.update_one(
+            {'_id':self.id},
+            {'$pull': {'groups': group_id}}
+        )
     
     def to_dict(self):
         """
