@@ -175,7 +175,7 @@ class User:
             "avatar_url": self.avatar_url,
             "dob": self.dob,
             "recent_routes": [recent_route.to_dict() for recent_route in self.recent_routes],
-            "saved_routes": {(saved_route.name,saved_route.to_dict()) for saved_route in self.saved_routes},
+            "saved_routes": {saved_route.name:saved_route.to_dict() for saved_route in self.saved_routes},
             "stats": {
                 "num_runs": self.stats.num_runs,
                 "total_distance": self.stats.total_distance,
