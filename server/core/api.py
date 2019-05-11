@@ -256,11 +256,9 @@ async def save_recent_route(request, user):
     print('request',request)
 
     data = request.json
-    distance = data.get('distance')
     start_time = data.get('start_time')
     end_time = data.get('end_time')
     duration = data.get('duration')
-    route_image = data.get('route_image')
     route = Route.from_data(**data.get('route'))
     recent_route = RecentRoute(route, start_time, end_time, duration)
     user.recent_routes.append(recent_route.to_dict())
