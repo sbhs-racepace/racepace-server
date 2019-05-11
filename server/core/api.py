@@ -299,14 +299,25 @@ async def get_locations(request):
 	
 	return response.json(groupLocations)
 
-@api.get('/images/get_image/<user_id>/<route_name>')
+@api.get('/images/get_route_image/<user_id>/<route_name>')
 @jsonrequired
-async def get_image(request,user_id,route_name):
+async def get_route_image(request,user_id,route_name):
     query = {'_id': user_id}
     user = await request.app.users.find_account(**query)
     image = user.saved_routes[route_name].route_image
-    image_file = io.BytesIO(image)
-    return response.stream(image)
+    image_file = BytesIO(image)
+    return response.stream(image_file)
+
+@api.get('/images/get_user_image/<user_id>')
+@jsonrequired
+async def get_user_image(request,user_id):
+    query = {'_id': user_id}
+    user = await request.app.users.find_account(**query)
+    image = user.avatar
+    image_file = BytesIO(image)
+    return response.stream(image_file)
+
+
 
 
 
