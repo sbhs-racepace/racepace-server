@@ -338,7 +338,7 @@ class SavedRoute:
             "duration": self.duration,
             "points": self.points,
             "description": self.description,
-            "route_image": self.route_image,
+            "route_image": self.route_image.getvalue(),
             "comments": self.comments,
             "pace_history": self.pace_history,
             "likes": self.likes,
