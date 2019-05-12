@@ -141,9 +141,11 @@ async def register(request):
     """
     user = await request.app.users.register(request)
     token = await request.app.users.issue_token(user)
-    return response.json({'success': True,
-	'token': token.decode("utf-8"),
-	'user_id': user.id})
+    return response.json({
+        'success': True,
+	    'token': token.decode("utf-8"),
+	    'user_id': user.user_id}
+    )
 
 @api.post('/login')
 @jsonrequired
@@ -156,16 +158,16 @@ async def login(request):
     email = data.get('email')
     password = data.get('password')
     query = {'credentials.email': email}
-    account = await request.app.users.find_account(**query)
-    if account is None:
+    user = await request.app.users.find_account(**query)
+    if user is None:
         abort(403, 'Credentials invalid.')
-    elif account.check_password(password) == False:
+    elif user.check_password(password) == False:
         abort(403, 'Credentials invalid.')
-    token = await request.app.users.issue_token(account)
+    token = await request.app.users.issue_token(user)
     resp = {
         'success': True,
         'token': token.decode("utf-8"),
-        'user_id': account.id
+        'user_id': user.user_id
     }
     return response.json(resp)
 
@@ -179,7 +181,7 @@ async def getinfo(request):
     """
     data = request.json
     user_id = data.get('user_id')
-    query = {'_id': bson.objectid.ObjectId(user_id)}
+    query = {'_id': user_id}
     account = await request.app.users.find_account(**query)
     info = account.to_dict()
 
@@ -314,7 +316,7 @@ async def get_locations(request):
 	
 	groupLocations = {}
 	for user, locationPacket in locationCache.items():
-		if user.id in group.members:
+		if user.user_id in group.members:
 			groupLocations[user.full_name] = locationPacket
 	
 	return response.json(groupLocations)
@@ -343,7 +345,7 @@ async def get_user_image(request,user_id):
 async def find_friends(request,user):
     name = request.json.name
     results = request.app.db.users.find({"full_name":{"$regex":name}})
-    results = [{user_id:user.id,name:user.name,bio:user.bio} for user in results]
+    results = [{"user_id":user.user_id,"name":user.name,"bio":user.bio} for user in results]
     return response.json(results)
         
     
