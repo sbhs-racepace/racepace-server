@@ -329,7 +329,7 @@ async def get_locations(request):
 async def get_route_image(request,user_id,route_name):
     query = {'_id': user_id}
     user = await request.app.users.find_account(**query)
-    image = user.saved_routes[route_name].route_image
+    image = bytes(user.saved_routes[route_name].route_image)
     return response.raw(image, content_type='image/png')
 
 @api.get('/avatars/<user_id>.png')
