@@ -353,6 +353,16 @@ async def get_user_image(request,user_id):
     image_file = BytesIO(image)
     return response.stream(image_file)
 
+@api.post('/find_friends')
+@authrequired
+@jsonrequired
+async def find_friends(request,user):
+    name = request.json.name
+    results = request.app.db.users.find({"full_name":{"$regex":name}})
+    results = [{user_id:user.id,name:user.name,bio:user.bio} for user in results]
+    return response.json(results)
+        
+    
 
 
 
