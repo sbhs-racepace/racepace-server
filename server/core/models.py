@@ -4,6 +4,9 @@ import datetime
 import bcrypt
 import jwt
 
+from PIL import Image
+
+from io import BytesIO
 from sanic import Sanic
 from sanic.exceptions import abort
 
@@ -24,7 +27,7 @@ class Credentials:
 class Group:
     """
     A class that holds messages and information of members in a group
-    Jason Yu
+    Jason Yu/Sunny Yan (DB methods)
     """
     def __init__(self, app, data):
         self.app = app
@@ -33,6 +36,11 @@ class Group:
         self.members = data['members']
         self.owner = data['owner_id']
         self.messages = data['messages']
+	
+    @classmethod
+    def from_db(self, app, group_id):
+        document = app.db.groups.find_one({'_id':group_id})
+        return cls(app,document)
 
     def invite_person(self, person):
         self.members.append(person)
@@ -41,14 +49,17 @@ class Group:
         for person in people:
             self.invite_person(person)
 
+    def __iter__(self):
+        return zip(vars(self).keys(),vars(self).values())
+
     def to_dict(self):
-        return {
-            "id": self.id,
-            "name": self.name,
-            "members": self.members,
-            "owner": self.owner,
-            "messages": self.messages
-        }
+        return vars(self)
+
+    def update_db(self):
+        self.app.db.groups.update_one(
+            {'id':group_id},
+            {'$set': self.__dict__}
+        )
 
 class User:
     """
@@ -57,15 +68,15 @@ class User:
     """
     fields = ('id', 'credentials', 'routes')
 
-    def __init__(self, app, user_id, credentials, full_name, dob, username, avatar_url, routes, groups, stats, real_time_route, saved_routes):
+    def __init__(self, app, user_id, credentials, full_name, dob, username, avatar, recent_routes, groups, stats, real_time_route, saved_routes):
         self.app = app
         self.id = user_id
         self.credentials = credentials
         self.dob = dob
         self.username = username
-        self.avatar_url = avatar_url
+        self.avatar = avatar
         self.full_name = full_name
-        self.routes = routes
+        self.recent_routes = recent_routes
         self.groups = groups
         self.stats = stats
         self.saved_routes = saved_routes
@@ -80,12 +91,14 @@ class User:
         Generates User class from database data
         Abdur Raqeeb
         """
-        data['routes'] = [Route.from_data(route.route, route.distance) for route in data.pop('routes')]
-        data['user_id'] = str(data.pop('_id'))
+        data['saved_routes'] = [SavedRoute.from_data(route) for route in data['saved_routes']]
+        data['recent_routes'] = [RecentRoute.from_data(route) for route in data['recent_routes']]
+        data['user_id'] = str(data['user_id'])
         data['groups'] = [Group(app, g) for g in data.get('groups', [])]
-        data['credentials'] = Credentials(**(data.pop('credentials')))
-        data['stats'] = UserStats(**(data.pop('stats')))
-        data['real_time_route'] = RealTimeRoute.from_data(**(data.pop('real_time_route')))
+        data['credentials'] = Credentials(**(data['credentials']))
+        data['stats'] = UserStats(**(data['stats']))
+        data['real_time_route'] = RealTimeRoute.from_data(**(data['real_time_route']))
+        data['avatar'] = BytesIO(data['avatar'])
         user = cls(app, **data)
         return user
 
@@ -111,26 +124,47 @@ class User:
         """
         await self.app.db.users.delete_one({'user_id': self.id})
     
-    async def create_group(self, info):
+    async def create_group(self, name):
         
         group_id = snowflake()
 
         await self.app.db.groups.insert_one({   
             '_id': group_id,
-            'group_id': group_id,
-            'name': info['name'],
+            'name': name,
             'owner_id': self.id,
             'members': [ self.id ],
             'messages': []
             })
-        
+        await self.app.db.users.update_one(
+            {'_id':self.id},
+            {'$addToSet': {'groups': group_id}}
+        )
 
+    async def add_to_group(self,group_id):
+        """
+        Adds the user to a group
+        """
+        await self.app.db.groups.update_one(
+            {'_id':group_id},
+            {'$addToSet': {'members':self.id}}
+        )
+        await self.app.db.users.update_one(
+            {'_id':self.id},
+            {'$addToSet': {'groups': group_id}}
+        )
     
-    async def edit_group(self):
-        return NotImplemented
-    
-    async def delete_group(self):
-        return NotImplemented
+    async def remove_from_group(self, group_id):
+        """
+        Removes the user from the group
+        """
+        await self.app.db.groups.update_one(
+            {'_id':group_id},
+            {'$pull': {'members':self.id}}
+        )
+        await self.app.db.users.update_one(
+            {'_id':self.id},
+            {'$pull': {'groups': group_id}}
+        )
     
     def to_dict(self):
         """
@@ -141,10 +175,10 @@ class User:
             "user_id": self.id,
             "full_name": self.full_name,
             "username": self.username,
-            "avatar_url": self.avatar_url,
+            "avatar": self.avatar,
             "dob": self.dob,
-            "routes": [route.to_dict() for route in self.routes],
-            "saved_routes": [saved_route.to_dict() for saved_route in self.saved_routes],
+            "recent_routes": [recent_route.to_dict() for recent_route in self.recent_routes],
+            "saved_routes": {saved_route.name:saved_route.to_dict() for saved_route in self.saved_routes},
             "stats": {
                 "num_runs": self.stats.num_runs,
                 "total_distance": self.stats.total_distance,
@@ -284,15 +318,21 @@ class SavedRoute:
     A route that has been saved by the user to be shared on feed
     Jason Yu
     """
-    def __init__(self, name, route, start_time, end_time, duration, route_image, points=0, description=""):
+    def __init__(self, name, route, start_time, end_time, duration, pace_history, route_image, points=0, description=""):
         self.name = name
+        self.route = route
         self.distance = route.distance
         self.start_time = start_time
         self.end_time = end_time
         self.duration = duration
         self.points = points
         self.description = description
-        self.route_image = route_image
+        self.route_image = route_image			
+        self.pace_history = pace_history # Every km, there is an average pace associated with it
+
+        self.comments = []
+        self.likes = 0
+
 
     def to_dict(self):
         return  {
@@ -303,11 +343,57 @@ class SavedRoute:
             "duration": self.duration,
             "points": self.points,
             "description": self.description,
-            "route_image": self.route_image,
+            "route_image": self.route_image.getvalue(),
             "comments": self.comments,
+            "pace_history": self.pace_history,
             "likes": self.likes,
             "route": self.route.to_dict(),
         }
+
+    @classmethod
+    def from_data(cls, data):
+        """
+        Generates Saved Route class from database data
+        Jason Yu
+        """
+        data['route'] = Route.from_data(**(data['route']))
+        data['route_image'] = BytesIO(data['route_image'])
+        saved_route = cls(**data)
+        return saved_route
+
+
+class RecentRoute: 
+    """
+    All routes are automatically stored
+    Jason Yu
+    """
+    def __init__(self, route, start_time, end_time, duration, distance_history, pace_history):
+        self.route = route
+        self.distance = route.distance
+        self.start_time = start_time
+        self.end_time = end_time
+        self.duration = duration
+        self.pace_history = pace_history
+
+    def to_dict(self):
+        return  {
+            "distance": self.distance,
+            "start_time": self.start_time,
+            "end_time": self.end_time,
+            "duration": self.duration,
+            "route": self.route.to_dict(),
+            "pace_history": self.pace_history,
+        }
+
+    @classmethod
+    def from_data(cls, data):
+        """
+        Generates Saved Route class from database data
+        Jason Yu
+        """
+        data['route'] = Route.from_data(**(data['route']))
+        recent_route = cls(**data)
+        return recent_route
 
 class UserBase:
     def __init__(self, app):
@@ -347,6 +433,11 @@ class UserBase:
         full_name = data.get('full_name')
         dob = data.get('dob')
         username = data.get('username')
+
+        avatar_png = Image.open('avatar.png')
+        avatar = BytesIO()
+        avatar_png.save(avatar, 'PNG')
+
         query = {'credentials.email': email}
         exists = await self.find_account(**query)
         if exists: abort(403, 'Email already in use.') 
@@ -356,11 +447,11 @@ class UserBase:
 
         document = {
             "_id": snowflake(),
-            "routes": [],
+            "recent_routes": [],
             "saved_routes": {},
             "full_name": full_name,
             "username": username,
-            "avatar_url": "https://cdn.iconscout.com/icon/free/png-256/avatar-372-456324.png", # default
+            "avatar": avatar.getvalue(),
             "dob": dob,
             "stats":  {               
                 "num_runs": 0,

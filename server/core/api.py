@@ -2,17 +2,21 @@ import asyncio
 import functools
 import bson
 
+from io import BytesIO
+
 from sanic import Blueprint, response
 from sanic.exceptions import abort
 from sanic.log import logger
 
 from core.route import Route, Point, Node, Way
-from core.models import Overpass, Color, User, RealTimeRoute, RunningSession, SavedRoute
+from core.models import Overpass, Color, User, RealTimeRoute, RunningSession, SavedRoute, RecentRoute
 from core.decorators import jsonrequired, memoized, authrequired
+
+
 
 api = Blueprint('api', url_prefix='/api')
 
-cache = {}
+locationCache = {}
 
 @api.get('/route/multiple')
 @memoized
@@ -132,11 +136,14 @@ async def delete_user(request, user, user_id):
 @jsonrequired
 async def register(request):
     """
-    Register a user into the database
-    Abdur Raqueeb
+    Register a user into the database, then logs in
+    Abdur Raqueeb/Sunny Yan
     """
     user = await request.app.users.register(request)
-    return response.json({'success': True})
+    token = await request.app.users.issue_token(user)
+    return response.json({'success': True,
+	'token': token.decode("utf-8"),
+	'user_id': user.id})
 
 @api.post('/login')
 @jsonrequired
@@ -185,13 +192,15 @@ async def getinfo(request):
             'routes': info['routes'],
             'username': info['username'],
             'dob': info['dob'],
+            'user_image': info['avatar_url'],
         }
     }
     return response.json(resp)
 
 @api.post('/send_real_time_location')
 @jsonrequired
-async def update_runner_location(request):
+@authrequired
+async def update_runner_location(request, user):
     """
     Sends current location of user
     Jason Yu
@@ -201,50 +210,88 @@ async def update_runner_location(request):
     data = request.json
     location = data.get('location')
     time = data.get('time')
-    token = request.token
-    query = {'token': token}
-    account = await request.app.users.find_account(**query)
-
-    if account is None: 
-        abort(403, 'User Token invalid.')
-    else:
-        account.updateOne({'$push': {'real_time_route.location_history': {"location": location, "time": time}}})
-        resp = {
-            'success': True,
-        }
-        return response.json(resp)
+	
+    user.updateOne({'$push': {'real_time_route.location_history': {"location": location, "time": time}}})
+    locationCache[user] = (location,time)
+    resp = {
+        'success': True,
+	}
+    return response.json(resp)
 
 @api.post('/save_route')
 @jsonrequired
-async def save_route(request):
+@authrequired
+async def save_route(request, user):
     """
     Sends current location of user
     Jason Yu
     """
     print('request',request)
-    
+
     data = request.json
     name = data.get('name')
-    distance = data.get('distance')
     start_time = data.get('start_time')
     end_time = data.get('end_time')
     duration = data.get('duration')
     description = data.get('description')
-    route_image = data.get('route_image')
     route = Route.from_data(**data.get('route'))
-    token = request.token
-    query = {'token': token}
+    route_image = route.generateStaticMap()
     saved_route = SavedRoute(name, route, start_time, end_time, duration, route_image, points, description)
-    account = await request.app.users.find_account(**query)
 
-    if account is None: 
-        abort(403, 'User Token invalid.')
+    user.saved_routes[name] = saved_route.to_dict()
+    user.update()
+    resp = {
+        'success': True,
+    }
+    return response.json(resp)
+
+@api.post('/save_recent_route')
+@authrequired
+@jsonrequired
+async def save_recent_route(request, user):
+    """
+    Sends current location of user
+    Jason Yu
+    """
+    print('request',request)
+
+    data = request.json
+    start_time = data.get('start_time')
+    end_time = data.get('end_time')
+    duration = data.get('duration')
+    route = Route.from_data(**data.get('route'))
+    recent_route = RecentRoute(route, start_time, end_time, duration)
+    curr_num_recent_routes = len(user.recent_routes)
+
+    #Makes sure that only the 10 most recent routes are saved
+    if (curr_num_recent_routes < 10):
+        user.recent_routes.append(recent_route.to_dict())
     else:
-        account.updateOne({"$set": {f"saved_routes.{name}": saved_route.to_dict()}})
-        resp = {
-            'success': True,
-        }
-        return response.json(resp)
+        user.recent_routes = user.recent_routes[curr_num_recent_routes-9:]
+        user.recent_routes.append(recent_route.to_dict())
+    user.update()
+    resp = {
+        'success': True,
+    }
+    return response.json(resp)
+
+@api.post('/get_saved_routes')
+@authrequired
+@jsonrequired
+async def get_saved_routes(request, user):
+    """
+    Sends current location of user
+    Jason Yu
+    """
+    print('request',request)
+
+    data = request.json
+    saved_routes_json = [saved_route.to_dict() for saved_route in user.saved_routes]
+    resp = {
+        'success': True,
+        'saved_routes_json': saved_routes_json,
+    }
+    return response.json(resp)
 
 
 @api.post('/avatars/upload')
@@ -267,11 +314,51 @@ async def create_group(request, user):
     return response.json({'success': True})
 
 @api.patch('/groups/<group_id>/edit')
-async def create_group(request, user, group_id):
+@authrequired
+async def edit_group(request, user, group_id):
     pass
 
 @api.delete('/groups/<group_id>/delete')
-async def create_group(request, user, group_id):
+@authrequired
+async def delete_group(request, user, group_id):
     pass
+	
+@api.post('/get_locations')
+async def get_locations(request):
+	group_id = request.json.group_id
+	group = await request.app.group.from_db(group_id,request.app)
+	
+	groupLocations = {}
+	for user, locationPacket in locationCache.items():
+		if user.id in group.members:
+			groupLocations[user.full_name] = locationPacket
+	
+	return response.json(groupLocations)
+
+@api.get('/images/get_route_image/<user_id>/<route_name>')
+@jsonrequired
+async def get_route_image(request,user_id,route_name):
+    query = {'_id': user_id}
+    user = await request.app.users.find_account(**query)
+    image = user.saved_routes[route_name].route_image
+    image_file = BytesIO(image)
+    return response.stream(image_file)
+
+@api.get('/images/get_user_image/<user_id>')
+@jsonrequired
+async def get_user_image(request,user_id):
+    query = {'_id': user_id}
+    user = await request.app.users.find_account(**query)
+    image = user.avatar
+    image_file = BytesIO(image)
+    return response.stream(image_file)
+
+
+
+
+
+
+
+
 
 
