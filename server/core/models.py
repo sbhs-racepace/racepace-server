@@ -6,6 +6,7 @@ import jwt
 
 from PIL import Image
 
+import os
 from io import BytesIO
 from sanic import Sanic
 from sanic.exceptions import abort
@@ -433,7 +434,7 @@ class UserBase:
         full_name = data.get('full_name')
         dob = data.get('dob')
         username = data.get('username')
-        
+        print(os.listdir())
         avatar_png = Image.open('/server/core/avatar.png')
         avatar = BytesIO()
         avatar_png.save(avatar, 'PNG')
