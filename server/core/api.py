@@ -324,7 +324,6 @@ async def get_locations(request):
 	return response.json(groupLocations)
 
 @api.get('/images/get_route_image/<user_id>/<route_name>')
-@jsonrequired
 async def get_route_image(request,user_id,route_name):
     query = {'_id': user_id}
     user = await request.app.users.find_account(**query)
@@ -333,7 +332,6 @@ async def get_route_image(request,user_id,route_name):
     return response.raw(image_file, content_type='image/png')
 
 @api.get('/images/get_user_image/<user_id>')
-@jsonrequired
 async def get_user_image(request,user_id):
     query = {'_id': user_id}
     user = await request.app.users.find_account(**query)
@@ -343,7 +341,6 @@ async def get_user_image(request,user_id):
 
 @api.post('/find_friends')
 @authrequired
-@jsonrequired
 async def find_friends(request,user):
     name = request.json.name
     results = request.app.db.users.find({"full_name":{"$regex":name}})
