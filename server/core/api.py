@@ -330,7 +330,7 @@ async def get_route_image(request,user_id,route_name):
     user = await request.app.users.find_account(**query)
     image = user.saved_routes[route_name].route_image
     image_file = BytesIO(image)
-    return response.stream(image_file)
+    return response.raw(image_file, content_type='image/png')
 
 @api.get('/images/get_user_image/<user_id>')
 @jsonrequired
@@ -339,7 +339,7 @@ async def get_user_image(request,user_id):
     user = await request.app.users.find_account(**query)
     image = user.avatar
     image_file = BytesIO(image)
-    return response.stream(image_file)
+    return response.raw(image_file, content_type='image/png')
 
 @api.post('/find_friends')
 @authrequired
