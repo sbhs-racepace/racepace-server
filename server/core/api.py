@@ -332,12 +332,10 @@ async def get_route_image(request,user_id,route_name):
     image = user.saved_routes[route_name].route_image
     return response.raw(image, content_type='image/png')
 
-@api.get('/images/get_user_image/<user_id>')
+@api.get('/avatars/<user_id>.png')
 async def get_user_image(request,user_id):
-    query = {'_id': user_id}
-    user = await request.app.users.find_account(**query)
-    image = user.avatar
-    return response.raw(image, content_type='image/png')
+    doc = await request.app.db.images.find_one({'user_id': user_id})
+    return response.raw(doc['avatar'], content_type='image/png')
 
 @api.post('/find_friends')
 @authrequired

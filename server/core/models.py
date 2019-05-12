@@ -434,10 +434,7 @@ class UserBase:
         full_name = data.get('full_name')
         dob = data.get('dob')
         username = data.get('username')
-
-        avatar_png = Image.open('server/core/avatar.png')
-        avatar = BytesIO()
-        avatar_png.save(avatar, 'PNG')
+        
         
         query = {'credentials.email': email}
         exists = await self.find_account(**query)
@@ -447,13 +444,20 @@ class UserBase:
         hashed = bcrypt.hashpw(password, salt)
         user_id = str(snowflake())
 
+        with open('server/core/avatar.png', 'rb') as img:
+            avatar = img.read()
+        
+        await self.app.db.images.insert_one({
+            'user_id': user_id,
+            'avatar': avatar
+            })
+
         document = {
             "_id": user_id,
             "recent_routes": [],
             "saved_routes": {},
             "full_name": full_name,
             "username": username,
-            "avatar": avatar.getvalue(),
             "dob": dob,
             "stats":  {               
                 "num_runs": 0,
