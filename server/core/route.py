@@ -515,7 +515,7 @@ class Route:
         image = m.render()
         buffer = BytesIO()
         image.save(buffer, format="PNG")
-        return buffer
+        return buffer.read() #Converting bytes io to bytes
 
 if __name__ == '__main__':
     pass
