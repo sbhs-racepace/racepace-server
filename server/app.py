@@ -195,4 +195,4 @@ if __name__ == '__main__':
     if os.getenv('dev'):
         app.run(debug=True)
     else: 
-        app.run(host='0.0.0.0', port=os.getenv('PORT', 80))
+        app.run(host=os.getenv('HOST', '0.0.0.0'), port=os.getenv('PORT', 80))
