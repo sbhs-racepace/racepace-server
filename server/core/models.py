@@ -92,7 +92,7 @@ class User:
         Generates User class from database data
         Abdur Raqeeb
         """
-        data['user_id'] = data.pop('_id') #Discard _id and replace name with user_id
+        data.pop('_id') #Discard _id with replacement of user_id
 
         data['saved_routes'] = [SavedRoute.from_data(route) for route in data['saved_routes']]
         data['recent_routes'] = [RecentRoute.from_data(route) for route in data['recent_routes']]
@@ -481,6 +481,7 @@ class UserBase:
         }
 
         result = await self.app.db.users.insert_one(document)
+        document['user_id'] = str(result.inserted_id)
         user = User.from_data(self.app, document)
         return user
 
