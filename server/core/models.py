@@ -445,6 +445,14 @@ class UserBase:
         hashed = bcrypt.hashpw(password, salt)
         user_id = str(snowflake())
 
+        with open('server/core/avatar.png', 'rb') as img:
+            avatar = img.read()
+        
+        await self.app.db.images.insert_one({
+            'user_id': user_id,
+            'avatar': avatar
+            })
+
         document = {
             "_id": user_id,
             "recent_routes": [],
