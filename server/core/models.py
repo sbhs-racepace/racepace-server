@@ -434,8 +434,7 @@ class UserBase:
         dob = data.get('dob')
         username = data.get('username')
         
-        print(open('avatar.png'))
-        avatar_png = Image.open('avatar.png')
+        avatar_png = Image.open('/server/core/avatar.png')
         avatar = BytesIO()
         avatar_png.save(avatar, 'PNG')
         
