@@ -434,11 +434,9 @@ class UserBase:
         full_name = data.get('full_name')
         dob = data.get('dob')
         username = data.get('username')
+        with open('server/core/avatar.png','rb') as f:
+            avatar = f.read()
 
-        avatar_png = Image.open('server/core/avatar.png')
-        avatar = BytesIO()
-        avatar_png.save(avatar, 'PNG')
-        
         query = {'credentials.email': email}
         exists = await self.find_account(**query)
         if exists: abort(403, 'Email already in use.') 
@@ -453,7 +451,7 @@ class UserBase:
             "saved_routes": {},
             "full_name": full_name,
             "username": username,
-            "avatar": avatar.getvalue(),
+            "avatar": avatar,
             "dob": dob,
             "stats":  {               
                 "num_runs": 0,
