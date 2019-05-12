@@ -246,6 +246,19 @@ async def save_route(request):
         }
         return response.json(resp)
 
+
+@api.post('/avatars/upload')
+@authrequired
+async def upload_avatar(request, user):
+    img = request.data
+    await request.app.images.update_one({'user_id': user.id}, {'$set': {'image': img}})
+    return request.json({'success': True, 'avatar_url': 'x'})
+
+@api.get('/avatars/<user_id:int>.png')
+async def get_avatar(request):
+    pass
+
+
 @api.post('/groups/create')
 @authrequired
 async def create_group(request, user):
