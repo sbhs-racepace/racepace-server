@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-ujson = {version = "*", sys_platform = "== 'darwin'"}
+ujson = {version = "*",sys_platform = "== 'darwin'"}
 sanic = "*"
 aiohttp = "*"
 py-bcrypt = "*"
@@ -12,14 +12,15 @@ motor = "*"
 pyjwt = "*"
 dhooks = "*"
 python-decouple = "*"
-python-socketio = {extras = ["asyncio_client"], git = "https://github.com/kyb3r/python-socketio"}
 pillow = "*"
 staticmap = "*"
+python-socketio = "*"
 
 [dev-packages]
 requests = "*"
 sphinx = "*"
-v = {version = "*", editable = true}
+v = {version = "*",editable = true}
+pylint = "*"
 
 [requires]
 python_version = "3.7"
