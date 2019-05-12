@@ -338,9 +338,11 @@ async def get_route_image(request,user_id,route_name):
 @api.get('/avatars/<user_id>.png')
 async def get_user_image(request,user_id):
     doc = await request.app.db.images.find_one({'user_id': user_id})
+    if not doc:
+        abort(404)
     return response.raw(doc['avatar'], content_type='image/png')
 
-@api.post('/find_friends')
+@api.post('/find_friends')t
 @authrequired
 @jsonrequired
 async def find_friends(request,user):
