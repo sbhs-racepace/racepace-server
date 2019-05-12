@@ -27,7 +27,7 @@ from core.decorators import jsonrequired, memoized, authrequired, validate_token
 from core.utils import run_with_ngrok, snowflake
 from core import config
 
-# sio = socketio.AsyncServer(async_mode='sanic')
+sio = socketio.AsyncServer(async_mode='sanic')
 
 app = Sanic('majorproject')
 app.blueprint(api)
