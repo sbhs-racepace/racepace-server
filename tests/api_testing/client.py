@@ -52,7 +52,8 @@ class TestApiClient:
 
     def create_group(self, **info):
         resp = self.session.post(self.BASE+'/groups/create', json=info)
-        return response.json()
+        print(resp)
+        return resp.json()
 
     def get_multiple_route(self, waypoints):
         response = requests.get(self.BASE + '/route/multiple', params={'waypoints': waypoints})
