@@ -12,7 +12,7 @@ motor = "*"
 pyjwt = "*"
 dhooks = "*"
 python-decouple = "*"
-python-socketio = {extras = ["asyncio_client"], version = "*"}
+python-socketio = {extras = ["asyncio_client"], git = "https://github.com/kyb3r/python-socketio"}
 pillow = "*"
 staticmap = "*"
 
