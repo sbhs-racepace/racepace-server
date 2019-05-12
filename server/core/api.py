@@ -296,6 +296,7 @@ async def get_saved_routes(request, user):
 
 @api.post('/groups/create')
 @authrequired
+@jsonrequired
 async def create_group(request, user):
     info = request.json
     await user.create_group(info)
@@ -303,6 +304,7 @@ async def create_group(request, user):
 
 @api.patch('/groups/<group_id>/edit')
 @authrequired
+@jsonrequired
 async def edit_group(request, user, group_id):
     pass
 
@@ -328,7 +330,7 @@ async def get_route_image(request,user_id,route_name):
     query = {'_id': user_id}
     user = await request.app.users.find_account(**query)
     image = user.saved_routes[route_name].route_image
-    image_file = BytesIO(image)
+    image_file = bytes(image)
     return response.raw(image_file, content_type='image/png')
 
 @api.get('/images/get_user_image/<user_id>')
@@ -336,11 +338,12 @@ async def get_user_image(request,user_id):
     query = {'_id': user_id}
     user = await request.app.users.find_account(**query)
     image = user.avatar
-    image_file = BytesIO(image)
+    image_file = bytes(image)
     return response.raw(image_file, content_type='image/png')
 
 @api.post('/find_friends')
 @authrequired
+@jsonrequired
 async def find_friends(request,user):
     name = request.json.name
     results = request.app.db.users.find({"full_name":{"$regex":name}})
