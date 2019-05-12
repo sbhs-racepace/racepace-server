@@ -445,8 +445,7 @@ class UserBase:
 
         salt = bcrypt.gensalt()
         hashed = bcrypt.hashpw(password, salt)
-        user_id = int(snowflake())
-        print('Check 1',user_id)
+        user_id = str(snowflake())
 
         document = {
             "_id": user_id,
@@ -480,11 +479,8 @@ class UserBase:
             "groups": [],
         }
 
-        print('Check 2',user_id)
-
         result = await self.app.db.users.insert_one(document)
         user = User.from_data(self.app, document)
-        print('Check 3',user.user_id)
         return user
 
     async def issue_token(self, user):
