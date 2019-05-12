@@ -189,10 +189,8 @@ async def getinfo(request):
         'success': True,
         'info' : {
             'full_name': info['full_name'],
-            'routes': info['routes'],
             'username': info['username'],
             'dob': info['dob'],
-            'user_image': info['avatar_url'],
         }
     }
     return response.json(resp)
