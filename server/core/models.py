@@ -94,7 +94,7 @@ class User:
 
         data['saved_routes'] = [SavedRoute.from_data(route) for route in data['saved_routes']]
         data['recent_routes'] = [RecentRoute.from_data(route) for route in data['recent_routes']]
-        data['user_id'] = str(data.pop('_id')) # Replcement of _id to user_id for class use
+        data['user_id'] = data.pop('_id') # Replcement of _id to user_id for class use
         data['groups'] = [Group(app, g) for g in data.get('groups', [])]
         data['credentials'] = Credentials(**(data['credentials']))
         data['stats'] = UserStats(**(data['stats']))
