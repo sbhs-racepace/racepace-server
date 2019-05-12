@@ -164,6 +164,7 @@ async def login(request):
     elif user.check_password(password) == False:
         abort(403, 'Credentials invalid.')
     token = await request.app.users.issue_token(user)
+    print("User id",user.user_id)
     resp = {
         'success': True,
         'token': token.decode("utf-8"),
