@@ -27,7 +27,7 @@ from core.decorators import jsonrequired, memoized, authrequired, validate_token
 from core.utils import run_with_ngrok, snowflake
 from core import config
 
-sio = socketio.AsyncServer(async_mode='sanic')
+# sio = socketio.AsyncServer(async_mode='sanic')
 
 app = Sanic('majorproject')
 app.blueprint(api)
@@ -125,26 +125,67 @@ async def index(request):
     return response.json(data)
 
 
-
-
 @sio.on('connect')
 async def on_connect(sid, environ):
     try:
         qs = environ['QUERY_STRING']
         token = parse_qs(qs)['token'][0]
         user_id = jwt.decode(token, app.secret)['sub']
-        user = app.users.find_account(user_id=user_id)
+        user = await app.users.find_account(user_id=user_id)
+
+        for group in user.groups:
+            sio.enter_room(sid, group.id)
+
         await sio.save_session(sid, {'user': user})
         print('Connected', user_id)
     except:
         print('Connection refused')
         return False
 
+
+class Message:
+    def __init__(self, id, author, group, content=None, image=None):
+        self.id = id
+        self.author = author
+        self.group = group
+        self.content = content
+        self.image = image
+
+    def to_dict(self):
+        return {
+            'content': self.content,
+            'image': self.image,
+            'group': self.group.id,
+            'message_id': self.id,
+            'author': {
+                "user_id": self.author.id,
+                "full_name": self.author.full_name,
+                "username": self.author.username,
+                "avatar_url": self.author.avatar_url
+                }
+        }
+
+    @classmethod
+    async def create(self, app, user, data):
+        message_id = snowflake()
+        group = user.groups.get(data['group_id'])
+        content = data.get('content')
+        image = data.get('image')
+        msg = cls(message_id, user, group, content, image)
+        await self.app.db.groups.update_one(
+            {'group_id': self.group.id},
+            {'$push': {'messages': msg.to_dict()}}
+            )
+
 @sio.on('message')
 async def on_message(sid, data):
     user = (await sio.get_session(sid))['user']
-    group = data['group_id']
+    group = user.groups.get(data['group_id'])
 
+    if not group:
+        return
+
+    message = await Message.create(app, user, data)
 
 @sio.on('disconnect')
 async def on_disconnect(sid):
