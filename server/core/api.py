@@ -233,7 +233,7 @@ async def save_route(request, user):
     start_time = data.get('start_time')
     end_time = data.get('end_time')
     duration = data.get('duration')
-    points =data.get('points')
+    points = data.get('points')
     description = data.get('description')
     route = Route.from_data(**data.get('route'))
     route_image = route.generateStaticMap()

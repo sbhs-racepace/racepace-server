@@ -15,53 +15,6 @@ from .utils import snowflake
 
 from .route import Route 
 
-@dataclass
-class Credentials:
-    """
-    Class to hold important user information
-    Abdur Raqeeb
-    """
-    email: str
-    password: str
-    token: str = None
-
-class Group:
-    """
-    A class that holds messages and information of members in a group
-    Jason Yu/Sunny Yan (DB methods)
-    """
-    def __init__(self, app, data):
-        self.app = app
-        self.id = data['group_id']
-        self.name = data['name']
-        self.members = data['members']
-        self.owner = data['owner_id']
-        self.messages = data['messages']
-	
-    @classmethod
-    def from_db(self, app, group_id):
-        document = app.db.groups.find_one({'_id':group_id})
-        return cls(app,document)
-
-    def invite_person(self, person):
-        self.members.append(person)
-
-    def invite_people(self,people):
-        for person in people:
-            self.invite_person(person)
-
-    def __iter__(self):
-        return zip(vars(self).keys(),vars(self).values())
-
-    def to_dict(self):
-        return vars(self)
-
-    def update_db(self):
-        self.app.db.groups.update_one(
-            {'_id':group_id},
-            {'$set': self.__dict__}
-        )
-
 class User:
     """
     User class for database that holds all information
@@ -82,26 +35,24 @@ class User:
         self.saved_routes = saved_routes
         self.real_time_route = real_time_route
 
-    def __hash__(self):
-        return self.user_id
-
     @classmethod
     def from_data(cls, app, data):
         """
         Generates User class from database data
-        Abdur Raqeeb
+        Modifies certain variables to be in python data type
+        Abdur Raqeeb/Jason Yu
         """
-
-        data['saved_routes'] = [SavedRoute.from_data(route) for route in data['saved_routes']]
-        data['recent_routes'] = [RecentRoute.from_data(route) for route in data['recent_routes']]
-        data['user_id'] = data.pop('_id') # Replcement of _id to user_id for class use
-        data['groups'] = [Group(app, g) for g in data.get('groups', [])]
-        data['credentials'] = Credentials(**(data['credentials']))
-        data['stats'] = UserStats(**(data['stats']))
+        data['saved_routes']    = [SavedRoute.from_data(route) for route in data['saved_routes']]
+        data['recent_routes']   = [RecentRoute.from_data(route) for route in data['recent_routes']]
+        data['groups']          = [Group(app, g) for g in data.get('groups', [])]
+        data['credentials']     = Credentials(**(data['credentials']))
+        data['stats']           = UserStats(**(data['stats']))
         data['real_time_route'] = RealTimeRoute.from_data(**(data['real_time_route']))
-        data['avatar'] = BytesIO(data['avatar'])
         user = cls(app, **data)
         return user
+
+    def __hash__(self):
+        return self.user_id
 
     def check_password(self, password):
         """
@@ -180,29 +131,62 @@ class User:
             "dob": self.dob,
             "recent_routes": [recent_route.to_dict() for recent_route in self.recent_routes],
             "saved_routes": {saved_route.name:saved_route.to_dict() for saved_route in self.saved_routes},
-            "stats": {
-                "num_runs": self.stats.num_runs,
-                "total_distance": self.stats.total_distance,
-                "longest_distance_ran": self.stats.longest_distance_ran,
-                "fastest_km" : self.stats.fastest_km,
-                "fastest_5km": self.stats.fastest_5km,
-                "fastest_10km" : self.stats.fastest_10km,
-                "fastest_marathon": self.stats.fastest_marathon,
-                "estimated_v02_max": self.stats.estimated_v02_max,
-                "average_heart_rate": self.stats.average_heart_rate,
-                "cadence": self.stats.cadence,
-            },
+            "stats": self.stats.to_dict(),
             "credentials": {
                 "email": self.credentials.email,
                 "password": self.credentials.password,
                 "token": self.credentials.token,
             },
-            "real_time_route" : {
-                "location_history" : [{'location': location_packet.location,'time': location_packet.time} for location_packet in self.real_time_route.location_history],
-                "update_freq": self.real_time_route.update_freq
-            },
+            "real_time_route" : self.real_time_route.to_dict(),
             "groups": self.groups,
         }
+
+@dataclass
+class Credentials:
+    """
+    Class to hold important user information
+    Abdur Raqeeb
+    """
+    email: str
+    password: str
+    token: str = None
+
+class Group:
+    """
+    A class that holds messages and information of members in a group
+    Jason Yu/Sunny Yan (DB methods)
+    """
+    def __init__(self, app, data):
+        self.app = app
+        self.id = data['group_id']
+        self.name = data['name']
+        self.members = data['members']
+        self.owner = data['owner_id']
+        self.messages = data['messages']
+	
+    @classmethod
+    def from_db(cls, app, group_id):
+        document = app.db.groups.find_one({'_id':group_id})
+        return cls(app,document)
+
+    def invite_person(self, person):
+        self.members.append(person)
+
+    def invite_people(self,people):
+        for person in people:
+            self.invite_person(person)
+
+    def __iter__(self):
+        return zip(vars(self).keys(),vars(self).values())
+
+    def to_dict(self):
+        return vars(self)
+
+    def update_db(self):
+        self.app.db.groups.update_one(
+            {'_id': self.group_id},
+            {'$set': self.__dict__}
+        )
 
 class RealTimeRoute: 
     """
@@ -262,10 +246,23 @@ class RealTimeRoute:
         real_time_route = cls(update_freq, location_history)
         return real_time_route
 
+    def to_dict(self):
+        return {
+            "location_history" : [location_packet.to_dict() for location_packet in self.location_history],
+            "update_freq": self.update_freq
+        }
+
 class LocationPacket:
     def __init__(self, location, time):
         self.location = location
         self.time = time
+
+    def to_dict(self):
+        return {
+            'latitude': self.location.latitude,
+            'longitude': self.location.longitue,
+            'time': self.time
+        }
 
 class RunningSession:
     """
@@ -297,7 +294,6 @@ class RunningSession:
             information[user_name] = distance
         return information
 
-@dataclass
 class UserStats:
     """
     Class to hold user running stats
@@ -314,12 +310,26 @@ class UserStats:
     average_heart_rate: int = None
     cadence: int = None
 
+    def to_dict(self):
+        return  {
+            "num_runs": self.num_runs,
+            "total_distance": self.total_distance,
+            "longest_distance_ran": self.longest_distance_ran,
+            "fastest_km" : self.fastest_km,
+            "fastest_5km": self.fastest_5km,
+            "fastest_10km" : self.fastest_10km,
+            "fastest_marathon": self.fastest_marathon,
+            "estimated_v02_max": self.estimated_v02_max,
+            "average_heart_rate": self.average_heart_rate,
+            "cadence": self.cadence,
+        }
+
 class SavedRoute: 
     """
     A route that has been saved by the user to be shared on feed
     Jason Yu
     """
-    def __init__(self, name, route, start_time, end_time, duration, pace_history, route_image, points=0, description=""):
+    def __init__(self, name, route, start_time, end_time, duration, pace_history, route_image, points=0, description="No Description"):
         self.name = name
         self.route = route
         self.distance = route.distance
@@ -329,26 +339,20 @@ class SavedRoute:
         self.points = points
         self.description = description
         self.route_image = route_image			
-        self.pace_history = pace_history # Every km, there is an average pace associated with it
-
-        self.comments = []
-        self.likes = 0
-
+        self.pace_history = pace_history 
 
     def to_dict(self):
         return  {
             "name": self.name,
+            "route": self.route.to_dict(),
             "distance": self.distance,
             "start_time": self.start_time,
             "end_time": self.end_time,
             "duration": self.duration,
             "points": self.points,
             "description": self.description,
-            "route_image": self.route_image.getvalue(),
-            "comments": self.comments,
+            "route_image": self.route_image,
             "pace_history": self.pace_history,
-            "likes": self.likes,
-            "route": self.route.to_dict(),
         }
 
     @classmethod
@@ -365,7 +369,7 @@ class SavedRoute:
 
 class RecentRoute: 
     """
-    All routes are automatically stored
+    All recent routes that user has finish are automatically stored
     Jason Yu
     """
     def __init__(self, route, start_time, end_time, duration, distance_history, pace_history):
@@ -434,8 +438,8 @@ class UserBase:
         full_name = data.get('full_name')
         dob = data.get('dob')
         username = data.get('username')
-        with open('server/core/avatar.png','rb') as f:
-            avatar = f.read()
+        with open('server/core/resources/avatar.png','rb') as img:
+            avatar = img.read()
 
         query = {'credentials.email': email}
         exists = await self.find_account(**query)
@@ -444,9 +448,6 @@ class UserBase:
         salt = bcrypt.gensalt()
         hashed = bcrypt.hashpw(password, salt)
         user_id = str(snowflake())
-
-        with open('server/core/avatar.png', 'rb') as img:
-            avatar = img.read()
         
         await self.app.db.images.insert_one({
             'user_id': user_id,
@@ -478,7 +479,7 @@ class UserBase:
                 "token": None
             },
             "real_time_route" : {
-                "location_history" : [],
+                "location_history" : None,
                 "update_freq": None,
             },
             "groups": [],
