@@ -254,7 +254,7 @@ class Route:
         """
         Jason Yu/Abdur Raqueeb
         """
-        route = [{'latitude': node.latitude, 'longitude': node.longitude} for node in route_nodes]
+        route = [{'latitude': node.latitude, 'longitude': node.longitude} for node in self.route]
         return {
             "route": route,
             "dist": self.distance
