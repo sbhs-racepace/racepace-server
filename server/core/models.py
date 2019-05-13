@@ -42,6 +42,7 @@ class User:
         Modifies certain variables to be in python data type
         Abdur Raqeeb/Jason Yu
         """
+        data['user_id']         = data.pop('_id')
         data['saved_routes']    = [SavedRoute.from_data(route) for route in data['saved_routes']]
         data['recent_routes']   = [RecentRoute.from_data(route) for route in data['recent_routes']]
         data['groups']          = [Group(app, g) for g in data.get('groups', [])]
