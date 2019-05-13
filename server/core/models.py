@@ -211,7 +211,7 @@ class RealTimeRoute:
     Real time route might be to connect multiple people running same race
     Jason Yu
     """
-    def __init__(self, update_freq, location_history):
+    def __init__(self, update_freq=5, location_history):
         self.location_history = location_history
         self.update_freq = update_freq
 
