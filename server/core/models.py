@@ -195,17 +195,17 @@ class RealTimeRoute:
     Real time route might be to connect multiple people running same race
     Jason Yu
     """
-    def __init__(self, location_history=[], pace_history=[], update_freq=5):
+    def __init__(self, location_history=[]):
         self.location_history = location_history
-        self.pace_history = pace_history
-        self.update_freq = update_freq
+
+    @classmethod
+    def from_data(cls, location_history):
+        location_history = [LocationPacket(location_packet.location, location_packet.time) for location_packet in location_history]
+        real_time_route = cls(location_history)
+        return real_time_route
 
     def update_location_history(self, location, time):
         self.location_history.append(LocationPacket(location,time))
-
-    @staticmethod
-    def get_distance(locations):
-        return Route.get_route_distance(locations)
 
     def calculate_speed(self, period):
         """
@@ -234,6 +234,10 @@ class RealTimeRoute:
         return speed
 
     @staticmethod
+    def get_distance(locations):
+        return Route.get_route_distance(locations)
+
+    @staticmethod
     def calculate_pace(speed):
         """Speed is in m/s"""
         total_seconds = int(1000 / speed)
@@ -241,17 +245,9 @@ class RealTimeRoute:
         seconds = total_seconds - 60 * minutes
         return {"minutes": minutes, "seconds": seconds}
 
-    @classmethod
-    def from_data(cls, update_freq, location_history):
-        location_history = [LocationPacket(location_packet.location, location_packet.time) for location_packet in location_history]
-        real_time_route = cls(update_freq, location_history)
-        return real_time_route
-
     def to_dict(self):
         return {
             "location_history" : [location_packet.to_dict() for location_packet in self.location_history],
-            "pace_history": self.pace_history,
-            "update_freq": self.update_freq
         }
 
 class LocationPacket:
@@ -296,6 +292,7 @@ class RunningSession:
             information[user_name] = distance
         return information
 
+@dataclass
 class UserStats:
     """
     Class to hold user running stats
@@ -362,7 +359,6 @@ class SavedRoute:
         data['route'] = Route.from_data(**(data['route']))
         saved_route = cls(**data)
         return saved_route
-
 
 class RecentRoute: 
     """
@@ -498,7 +494,6 @@ class UserBase:
 
 class Overpass:
     """Sunny"""
-    
     BASE = 'http://overpass-api.de/api/interpreter?data='
     REQ = BASE + '''
 [out:json];
