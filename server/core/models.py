@@ -459,7 +459,6 @@ class UserBase:
             "saved_routes": {},
             "full_name": full_name,
             "username": username,
-            "avatar": avatar,
             "dob": dob,
             "stats":  {               
                 "num_runs": 0,
@@ -485,7 +484,7 @@ class UserBase:
             "groups": [],
         }
 
-        result = await self.app.db.users.insert_one(document)
+        await self.app.db.users.insert_one(document)
         user = User.from_data(self.app, document)
         return user
 

@@ -237,6 +237,11 @@ async def save_route(request, user):
     description = data.get('description')
     route = Route.from_data(**data.get('route'))
     route_image = route.generateStaticMap()
+    await request.app.db.images.insert_one({
+        'user_id': user.user_id,
+        'route_name': name,
+        'route_image': route_image
+    })
     saved_route = SavedRoute(name, route, start_time, end_time, duration, route_image, points, description)
 
     user.saved_routes[name] = saved_route.to_dict()
@@ -325,12 +330,10 @@ async def get_locations(request):
 	
 	return response.json(groupLocations)
 
-@api.get('/images/get_route_image/<user_id>/<route_name>')
+@api.get('/route_images/<user_id>/<route_name>')
 async def get_route_image(request,user_id,route_name):
-    query = {'_id': user_id}
-    user = await request.app.users.find_account(**query)
-    image = user.saved_routes[route_name].route_image
-    return response.raw(image, content_type='image/png')
+    doc = await request.app.db.images.find_one({'user_id': user_id, 'route_name':route_name})
+    return response.raw(doc['route_image'], content_type='image/png')
 
 @api.get('/avatars/<user_id>.png')
 async def get_user_image(request,user_id):
@@ -339,7 +342,7 @@ async def get_user_image(request,user_id):
         abort(404)
     return response.raw(doc['avatar'], content_type='image/png')
 
-@api.post('/find_friends')t
+@api.post('/find_friends')
 @authrequired
 @jsonrequired
 async def find_friends(request,user):
