@@ -453,7 +453,7 @@ class UserBase:
             "saved_routes": {},
             "full_name": full_name,
             "username": username,
-            "avatar": avatar
+            "avatar": avatar,
             "dob": dob,
             "stats": initial_stats.to_dict(),
             "credentials": {
