@@ -412,6 +412,7 @@ class UserBase:
         data = await self.app.db.users.find_one(query)
         if not data: 
             return None
+        print(data)
         user = User.from_data(self.app, data)
         self.user_cache[user.user_id] = user
         return user
