@@ -342,7 +342,7 @@ async def get_user_image(request,user_id):
         abort(404)
     return response.raw(doc['avatar'], content_type='image/png')
 
-@api.post('/find_friends')t
+@api.post('/find_friends')
 @authrequired
 @jsonrequired
 async def find_friends(request,user):

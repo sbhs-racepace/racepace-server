@@ -484,7 +484,7 @@ class UserBase:
             "groups": [],
         }
 
-        result = await self.app.db.users.insert_one(document)
+        await self.app.db.users.insert_one(document)
         user = User.from_data(self.app, document)
         return user
 
