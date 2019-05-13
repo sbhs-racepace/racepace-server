@@ -187,6 +187,11 @@ async def on_message(sid, data):
 
     message = await Message.create(app, user, data)
 
+@sio.on('location_update')
+async def on_location_update(sid, data):
+    user = (await sio.get_session(sid))
+    print(data)
+
 @sio.on('disconnect')
 async def on_disconnect(sid):
     print(sid)
@@ -195,4 +200,4 @@ if __name__ == '__main__':
     if os.getenv('dev'):
         app.run(debug=True)
     else: 
-        app.run(host='0.0.0.0', port=os.getenv('PORT', 80))
+        app.run(host=os.getenv('HOST', '0.0.0.0'), port=os.getenv('PORT', 80))

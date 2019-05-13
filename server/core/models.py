@@ -6,6 +6,7 @@ import jwt
 
 from PIL import Image
 
+import os
 from io import BytesIO
 from sanic import Sanic
 from sanic.exceptions import abort
@@ -13,6 +14,129 @@ from sanic.exceptions import abort
 from .utils import snowflake
 
 from .route import Route 
+
+class User:
+    """
+    User class for database that holds all information
+    Abdur Raqeeb/Jason Yu
+    """
+
+    def __init__(self, app, user_id, credentials, full_name, dob, username, avatar, recent_routes, groups, stats, real_time_route, saved_routes):
+        self.app = app
+        self.user_id = user_id
+        self.credentials = credentials
+        self.dob = dob
+        self.username = username
+        self.avatar = avatar
+        self.full_name = full_name
+        self.recent_routes = recent_routes
+        self.groups = groups
+        self.stats = stats
+        self.saved_routes = saved_routes
+        self.real_time_route = real_time_route
+
+    @classmethod
+    def from_data(cls, app, data):
+        """
+        Generates User class from database data
+        Modifies certain variables to be in python data type
+        Abdur Raqeeb/Jason Yu
+        """
+        data['user_id']         = data.pop('_id')
+        data['saved_routes']    = [SavedRoute.from_data(route) for route in data['saved_routes']]
+        data['recent_routes']   = [RecentRoute.from_data(route) for route in data['recent_routes']]
+        data['groups']          = [Group(app, g) for g in data.get('groups', [])]
+        data['credentials']     = Credentials(**(data['credentials']))
+        data['stats']           = UserStats(**(data['stats']))
+        data['real_time_route'] = RealTimeRoute.from_data(**(data['real_time_route']))
+        user = cls(app, **data)
+        return user
+
+    def __hash__(self):
+        return self.user_id
+
+    def check_password(self, password):
+        """
+        Checks encrypted password
+        Abdur Raqeeb
+        """
+        return bcrypt.checkpw(password, self.credentials.password)
+
+    async def update(self):
+        """
+        Updates user with current data
+        Abdur Raqeeb
+        """
+        document = self.to_dict()
+        await self.app.db.users.update_one({'user_id': self.user_id}, document)
+    
+    async def delete(self):
+        """
+        Deletes user from database
+        Abdur Raqeeb
+        """
+        await self.app.db.users.delete_one({'user_id': self.user_id})
+    
+    async def create_group(self, name):
+        
+        group_id = snowflake()
+
+        await self.app.db.groups.insert_one({   
+            '_id': group_id,
+            'name': name,
+            'owner_id': self.user_id,
+            'members': [ self.user_id ],
+            'messages': []
+            })
+        await self.app.db.users.update_one(
+            {'_id':self.user_id},
+            {'$addToSet': {'groups': group_id}}
+        )
+
+    async def add_to_group(self,group_id):
+        """
+        Adds the user to a group
+        """
+        await self.app.db.groups.update_one(
+            {'_id':group_id},
+            {'$addToSet': {'members':self.user_id}}
+        )
+        await self.app.db.users.update_one(
+            {'_id':self.user_id},
+            {'$addToSet': {'groups': group_id}}
+        )
+    
+    async def remove_from_group(self, group_id):
+        """
+        Removes the user from the group
+        """
+        await self.app.db.groups.update_one(
+            {'_id':group_id},
+            {'$pull': {'members':self.user_id}}
+        )
+        await self.app.db.users.update_one(
+            {'_id':self.user_id},
+            {'$pull': {'groups': group_id}}
+        )
+    
+    def to_dict(self):
+        """
+        Returns user data as a dict
+        Abdur Raqeeb/ Jason Yu
+        """
+        return {
+            "_id": self.user_id,
+            "full_name": self.full_name,
+            "username": self.username,
+            "avatar": self.avatar,
+            "dob": self.dob,
+            "recent_routes": [recent_route.to_dict() for recent_route in self.recent_routes],
+            "saved_routes": {saved_route.name:saved_route.to_dict() for saved_route in self.saved_routes},
+            "stats": self.stats.to_dict(),
+            "credentials": self.credentials.to_dict(),
+            "real_time_route" : self.real_time_route.to_dict(),
+            "groups": self.groups,
+        }
 
 @dataclass
 class Credentials:
@@ -24,10 +148,17 @@ class Credentials:
     password: str
     token: str = None
 
+    def to_dict(self):
+        return {
+            "email": self.email,
+            "password": self.password,
+            "token": self.token,
+        }
+
 class Group:
     """
     A class that holds messages and information of members in a group
-    Jason Yu/Sunny Yan (DB methods)
+    Jason Yu/Sunny Yan/Abdur (DB methods)
     """
     def __init__(self, app, data):
         self.app = app
@@ -38,7 +169,7 @@ class Group:
         self.messages = data['messages']
 	
     @classmethod
-    def from_db(self, app, group_id):
+    def from_db(cls, app, group_id):
         document = app.db.groups.find_one({'_id':group_id})
         return cls(app,document)
 
@@ -57,151 +188,9 @@ class Group:
 
     def update_db(self):
         self.app.db.groups.update_one(
-            {'id':group_id},
+            {'_id': self.id},
             {'$set': self.__dict__}
         )
-
-class User:
-    """
-    User class for database that holds all information
-    Abdur Raqeeb/Jason Yu
-    """
-    fields = ('id', 'credentials', 'routes')
-
-    def __init__(self, app, user_id, credentials, full_name, dob, username, avatar, recent_routes, groups, stats, real_time_route, saved_routes):
-        self.app = app
-        self.id = user_id
-        self.credentials = credentials
-        self.dob = dob
-        self.username = username
-        self.avatar = avatar
-        self.full_name = full_name
-        self.recent_routes = recent_routes
-        self.groups = groups
-        self.stats = stats
-        self.saved_routes = saved_routes
-        self.real_time_route = real_time_route
-
-    def __hash__(self):
-        return self.id
-
-    @classmethod
-    def from_data(cls, app, data):
-        """
-        Generates User class from database data
-        Abdur Raqeeb
-        """
-        data['saved_routes'] = [SavedRoute.from_data(route) for route in data['saved_routes']]
-        data['recent_routes'] = [RecentRoute.from_data(route) for route in data['recent_routes']]
-        data['user_id'] = str(data['user_id'])
-        data['groups'] = [Group(app, g) for g in data.get('groups', [])]
-        data['credentials'] = Credentials(**(data['credentials']))
-        data['stats'] = UserStats(**(data['stats']))
-        data['real_time_route'] = RealTimeRoute.from_data(**(data['real_time_route']))
-        data['avatar'] = BytesIO(data['avatar'])
-        user = cls(app, **data)
-        return user
-
-    def check_password(self, password):
-        """
-        Checks encrypted password
-        Abdur Raqeeb
-        """
-        return bcrypt.checkpw(password, self.credentials.password)
-
-    async def update(self):
-        """
-        Updates user with current data
-        Abdur Raqeeb
-        """
-        document = self.to_dict()
-        await self.app.db.users.update_one({'user_id': self.id}, document)
-    
-    async def delete(self):
-        """
-        Deletes user from database
-        Abdur Raqeeb
-        """
-        await self.app.db.users.delete_one({'user_id': self.id})
-    
-    async def create_group(self, name):
-        
-        group_id = snowflake()
-
-        await self.app.db.groups.insert_one({   
-            '_id': group_id,
-            'name': name,
-            'owner_id': self.id,
-            'members': [ self.id ],
-            'messages': []
-            })
-        await self.app.db.users.update_one(
-            {'_id':self.id},
-            {'$addToSet': {'groups': group_id}}
-        )
-
-    async def add_to_group(self,group_id):
-        """
-        Adds the user to a group
-        """
-        await self.app.db.groups.update_one(
-            {'_id':group_id},
-            {'$addToSet': {'members':self.id}}
-        )
-        await self.app.db.users.update_one(
-            {'_id':self.id},
-            {'$addToSet': {'groups': group_id}}
-        )
-    
-    async def remove_from_group(self, group_id):
-        """
-        Removes the user from the group
-        """
-        await self.app.db.groups.update_one(
-            {'_id':group_id},
-            {'$pull': {'members':self.id}}
-        )
-        await self.app.db.users.update_one(
-            {'_id':self.id},
-            {'$pull': {'groups': group_id}}
-        )
-    
-    def to_dict(self):
-        """
-        Returns user data as a dict
-        Abdur Raqeeb/ Jason Yu
-        """
-        return {
-            "user_id": self.id,
-            "full_name": self.full_name,
-            "username": self.username,
-            "avatar": self.avatar,
-            "dob": self.dob,
-            "recent_routes": [recent_route.to_dict() for recent_route in self.recent_routes],
-            "saved_routes": {saved_route.name:saved_route.to_dict() for saved_route in self.saved_routes},
-            "stats": {
-                "num_runs": self.stats.num_runs,
-                "total_distance": self.stats.total_distance,
-                "longest_distance_ran": self.stats.longest_distance_ran,
-                "fastest_km" : self.stats.fastest_km,
-                "fastest_5km": self.stats.fastest_5km,
-                "fastest_10km" : self.stats.fastest_10km,
-                "fastest_marathon": self.stats.fastest_marathon,
-                "estimated_v02_max": self.stats.estimated_v02_max,
-                "average_heart_rate": self.stats.average_heart_rate,
-                "cadence": self.stats.cadence,
-            },
-            "credentials": {
-                "email": self.credentials.email,
-                "password": self.credentials.password,
-                "token": self.credentials.token,
-            },
-            "real_time_route" : {
-                "location_history" : [{'location': location_packet.location,'time': location_packet.time} for location_packet in self.real_time_route.location_history],
-                "update_freq": self.real_time_route.update_freq
-            },
-            "groups": self.groups,
-        }
 
 class RealTimeRoute: 
     """
@@ -210,16 +199,17 @@ class RealTimeRoute:
     Real time route might be to connect multiple people running same race
     Jason Yu
     """
-    def __init__(self, update_freq, location_history):
+    def __init__(self, location_history=[]):
         self.location_history = location_history
-        self.update_freq = update_freq
+
+    @classmethod
+    def from_data(cls, location_history):
+        location_history = [LocationPacket(location_packet.location, location_packet.time) for location_packet in location_history]
+        real_time_route = cls(location_history)
+        return real_time_route
 
     def update_location_history(self, location, time):
         self.location_history.append(LocationPacket(location,time))
-
-    @staticmethod
-    def get_distance(locations):
-        return Route.get_route_distance(locations)
 
     def calculate_speed(self, period):
         """
@@ -248,6 +238,10 @@ class RealTimeRoute:
         return speed
 
     @staticmethod
+    def get_distance(locations):
+        return Route.get_route_distance(locations)
+
+    @staticmethod
     def calculate_pace(speed):
         """Speed is in m/s"""
         total_seconds = int(1000 / speed)
@@ -255,16 +249,22 @@ class RealTimeRoute:
         seconds = total_seconds - 60 * minutes
         return {"minutes": minutes, "seconds": seconds}
 
-    @classmethod
-    def from_data(cls, update_freq, location_history):
-        location_history = [LocationPacket(location_packet.location, location_packet.time) for location_packet in location_history]
-        real_time_route = cls(update_freq, location_history)
-        return real_time_route
+    def to_dict(self):
+        return {
+            "location_history" : [location_packet.to_dict() for location_packet in self.location_history],
+        }
 
 class LocationPacket:
     def __init__(self, location, time):
         self.location = location
         self.time = time
+
+    def to_dict(self):
+        return {
+            'latitude': self.location.latitude,
+            'longitude': self.location.longitue,
+            'time': self.time
+        }
 
 class RunningSession:
     """
@@ -313,42 +313,34 @@ class UserStats:
     average_heart_rate: int = None
     cadence: int = None
 
+    def to_dict(self):
+        return  {
+            "num_runs": self.num_runs,
+            "total_distance": self.total_distance,
+            "longest_distance_ran": self.longest_distance_ran,
+            "fastest_km" : self.fastest_km,
+            "fastest_5km": self.fastest_5km,
+            "fastest_10km" : self.fastest_10km,
+            "fastest_marathon": self.fastest_marathon,
+            "estimated_v02_max": self.estimated_v02_max,
+            "average_heart_rate": self.average_heart_rate,
+            "cadence": self.cadence,
+        }
+
 class SavedRoute: 
     """
     A route that has been saved by the user to be shared on feed
     Jason Yu
     """
-    def __init__(self, name, route, start_time, end_time, duration, pace_history, route_image, points=0, description=""):
+    def __init__(self, name, route, start_time, duration, real_time_route, route_image, points, description):
         self.name = name
         self.route = route
-        self.distance = route.distance
         self.start_time = start_time
-        self.end_time = end_time
         self.duration = duration
+        self.real_time_route = real_time_route 
+        self.route_image = route_image	
         self.points = points
-        self.description = description
-        self.route_image = route_image			
-        self.pace_history = pace_history # Every km, there is an average pace associated with it
-
-        self.comments = []
-        self.likes = 0
-
-
-    def to_dict(self):
-        return  {
-            "name": self.name,
-            "distance": self.distance,
-            "start_time": self.start_time,
-            "end_time": self.end_time,
-            "duration": self.duration,
-            "points": self.points,
-            "description": self.description,
-            "route_image": self.route_image.getvalue(),
-            "comments": self.comments,
-            "pace_history": self.pace_history,
-            "likes": self.likes,
-            "route": self.route.to_dict(),
-        }
+        self.description = description	
 
     @classmethod
     def from_data(cls, data):
@@ -357,33 +349,31 @@ class SavedRoute:
         Jason Yu
         """
         data['route'] = Route.from_data(**(data['route']))
-        data['route_image'] = BytesIO(data['route_image'])
         saved_route = cls(**data)
-        return saved_route
-
-
-class RecentRoute: 
-    """
-    All routes are automatically stored
-    Jason Yu
-    """
-    def __init__(self, route, start_time, end_time, duration, distance_history, pace_history):
-        self.route = route
-        self.distance = route.distance
-        self.start_time = start_time
-        self.end_time = end_time
-        self.duration = duration
-        self.pace_history = pace_history
+        return saved_route	
 
     def to_dict(self):
         return  {
-            "distance": self.distance,
-            "start_time": self.start_time,
-            "end_time": self.end_time,
-            "duration": self.duration,
+            "name": self.name,
             "route": self.route.to_dict(),
-            "pace_history": self.pace_history,
+            "start_time": self.start_time,
+            "duration": self.duration,
+            "real_time_route": self.real_time_route.to_dict(),
+            "points": self.points,
+            "description": self.description,
+            "route_image": self.route_image,
         }
+
+class RecentRoute: 
+    """
+    All recent routes that user has finish are automatically stored
+    Jason Yu
+    """
+    def __init__(self, route, start_time, duration, real_time_route):
+        self.route = route
+        self.start_time = start_time
+        self.duration = duration
+        self.real_time_route = real_time_route
 
     @classmethod
     def from_data(cls, data):
@@ -394,6 +384,14 @@ class RecentRoute:
         data['route'] = Route.from_data(**(data['route']))
         recent_route = cls(**data)
         return recent_route
+    
+    def to_dict(self):
+        return  {
+            "start_time": self.start_time,
+            "duration": self.duration,
+            "route": self.route.to_dict(),
+            "real_time_route": self.real_time_route.to_dict(),
+        }
 
 class UserBase:
     def __init__(self, app):
@@ -406,19 +404,16 @@ class UserBase:
         Returns a user object based on the query
         Abdur Raqeeb
         """
-
+        # Checks if user can be retrieved from cache
         if len(query) == 1 and 'user_id' in query:
             user =  self.user_cache.get(query['user_id'])
             if user:
                 return user
-
         data = await self.app.db.users.find_one(query)
-
         if not data: 
             return None
-        
         user = User.from_data(self.app, data)
-        self.user_cache[user.id] = user
+        self.user_cache[user.user_id] = user
         return user
 
     async def register(self, request):
@@ -427,58 +422,52 @@ class UserBase:
         Abdur Raqeeb
         """
         data = request.json
-
+        # Extracting fields
         email = data.get('email')
         password = data.get('password')
         full_name = data.get('full_name')
         dob = data.get('dob')
         username = data.get('username')
-
-        avatar_png = Image.open('avatar.png')
-        avatar = BytesIO()
-        avatar_png.save(avatar, 'PNG')
-
+        # Creating intial user stat template
+        initial_stats = UserStats()
+        #Reading Default Avatar Image
+        with open('server/core/resources/avatar.png','rb') as img:
+            avatar = img.read()
+        # Verifying Valid Account
         query = {'credentials.email': email}
         exists = await self.find_account(**query)
         if exists: abort(403, 'Email already in use.') 
-
+        # Unique User Id
         salt = bcrypt.gensalt()
         hashed = bcrypt.hashpw(password, salt)
-
+        user_id = str(snowflake())
+        # Adding Avatar to images
+        await self.app.db.images.insert_one({
+            'user_id': user_id,
+            'avatar': avatar
+            })
+        # Generates document for DB
         document = {
-            "_id": snowflake(),
+            "_id": user_id,
             "recent_routes": [],
             "saved_routes": {},
             "full_name": full_name,
             "username": username,
-            "avatar": avatar.getvalue(),
+            "avatar": avatar,
             "dob": dob,
-            "stats":  {               
-                "num_runs": 0,
-                "total_distance": 0,
-                "longest_distance_ran": 0,
-                "fastest_km" : None,
-                "fastest_5km": None,
-                "fastest_10km" : None,
-                "fastest_marathon": None,
-                "estimated_v02_max": None,
-                "average_heart_rate": None,
-                "cadence": None,
-            },
+            "stats": initial_stats.to_dict(),
             "credentials": {
                 "email": email,
                 "password": hashed,
                 "token": None
             },
-            "real_time_route" : {
+            "real_time_route" : { 
                 "location_history" : [],
-                "update_freq": None,
             },
             "groups": [],
         }
-
-        result = await self.app.db.users.insert_one(document)
-        document['user_id'] = str(result.inserted_id)
+        # Adds user to DB
+        await self.app.db.users.insert_one(document)
         user = User.from_data(self.app, document)
         return user
 
@@ -489,16 +478,15 @@ class UserBase:
         '''
         if user.credentials.token:
             return user.credentials.token
-
+        #Generates info for token
         payload = {
-            'sub': user.id,
+            'sub': user.user_id,
             'iat': datetime.datetime.utcnow()
         }
-
         user.credentials.token = token = jwt.encode(payload, self.app.secret)
-
+        # Adds token to credentials
         await self.app.db.users.update_one(
-            {'user_id': user.id}, 
+            {'user_id': user.user_id}, 
             {'$set': {'credentials.token': token}}
         )
         
@@ -506,7 +494,6 @@ class UserBase:
 
 class Overpass:
     """Sunny"""
-    
     BASE = 'http://overpass-api.de/api/interpreter?data='
     REQ = BASE + '''
 [out:json];

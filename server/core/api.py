@@ -26,39 +26,33 @@ async def multiple_route(request):
     Jason Yu/Abdur Raqueeb/Sunny Yan
     """
     data = request.args
-
+    # Generate Locations and Bounding Box
     location_points = [Point.from_string(waypoint) for waypoint in data['waypoints']]
-
     min_euclidean_distance = Route.get_route_distance(location_points)
+    # Check Valid Distance
     if min_euclidean_distance > 50000: #50km
         return response.json({'success': False, 'error_message': "Route too long."})
-
     bounding_box = Route.bounding_points_to_string(Route.convex_hull(location_points))
-
     endpoint = Overpass.REQ.format(bounding_box) #Generate url to query api
+    # Fetch Node Data and Way Data
     task = request.app.fetch(endpoint)
-
     print('Fetching map data')
     data = await asyncio.gather(task) #Data is array with response as first element
     elements = data[0]['elements'] #Nodes and Ways are together in array in json
     print('Successfuly got map data')
-
-    #Seperate response into nodes and ways
     node_data, way_data = [], []
     for element in elements:
         if element["type"] == "node": node_data.append(element)
         elif element["type"] == "way": way_data.append(element)
         else: raise Exception("Unidentified element type")
-
+    # Generate Route
     nodes, ways = Route.transform_json_nodes_and_ways(node_data,way_data)
     waypoint_nodes = [point.closest_node(nodes) for point in location_points]
     waypoint_ids = [node.id for node in waypoint_nodes]
-
     print("Generating route")
     partial = functools.partial(Route.generate_multi_route, nodes, ways, waypoint_ids)
     route = await request.app.loop.run_in_executor(None, partial)
     print("Route successfully generated")
-
     return response.json(route.json)
 
 # @authrequired
@@ -70,40 +64,34 @@ async def route(request):
     Jason Yu/Abdur Raqueeb/Sunny Yan
     """
     data = request.args
-    
+    # Generate Bounding Box
     start = Point.from_string(data.get('start'))
     end = Point.from_string(data.get('end'))
-
+    # Check Valid Distance
     min_euclidean_distance = start - end
     if min_euclidean_distance > 50000: #50km
         return response.json({'success': False, 'error_message': "Route too long."})
-
     bounding_box = Route.bounding_points_to_string(Route.two_point_bounding_box(start, end))
-
     endpoint = Overpass.REQ.format(bounding_box) #Generate url to query api
+    # Fetch Node Data and Way Data
     task = request.app.fetch(endpoint)
-
     print('Fetching map data')
     data = await asyncio.gather(task) #Data is array with response as first element
     elements = data[0]['elements'] #Nodes and Ways are together in array in json
     print('Successfuly got map data')
-
-    #Seperate response into nodes and ways
     node_data, way_data = [], []
     for element in elements:
         if element["type"] == "node": node_data.append(element)
         elif element["type"] == "way": way_data.append(element)
         else: raise Exception("Unidentified element type")
-
+    #Generate Route
     nodes, ways = Route.transform_json_nodes_and_ways(node_data,way_data)
     start_node = start.closest_node(nodes)
     end_node = end.closest_node(nodes)
-    
     print("Generating route")
     partial = functools.partial(Route.generate_route, nodes, ways, start_node.id, end_node.id)
     route = await request.app.loop.run_in_executor(None, partial)
     print("Route successfully generated")
-
     return response.json(route.json)
 
 
@@ -141,9 +129,11 @@ async def register(request):
     """
     user = await request.app.users.register(request)
     token = await request.app.users.issue_token(user)
-    return response.json({'success': True,
-	'token': token.decode("utf-8"),
-	'user_id': user.id})
+    return response.json({
+        'success': True,
+	    'token': token.decode("utf-8"),
+	    'user_id': user.user_id}
+    )
 
 @api.post('/login')
 @jsonrequired
@@ -156,33 +146,32 @@ async def login(request):
     email = data.get('email')
     password = data.get('password')
     query = {'credentials.email': email}
-    account = await request.app.users.find_account(**query)
-    if account is None:
+    user = await request.app.users.find_account(**query)
+    if user is None:
         abort(403, 'Credentials invalid.')
-    elif account.check_password(password) == False:
+    elif user.check_password(password) == False:
         abort(403, 'Credentials invalid.')
-    token = await request.app.users.issue_token(account)
+    token = await request.app.users.issue_token(user)
     resp = {
         'success': True,
         'token': token.decode("utf-8"),
-        'user_id': account.id
+        'user_id': user.user_id
     }
     return response.json(resp)
 
 
 @api.post('/get_info')
 @jsonrequired
-async def getinfo(request):
+async def get_info(request):
     """
     Get user info
     Jason Yu/Sunny Yan
     """
     data = request.json
     user_id = data.get('user_id')
-    query = {'_id': bson.objectid.ObjectId(user_id)}
+    query = {'_id': user_id}
     account = await request.app.users.find_account(**query)
     info = account.to_dict()
-
     if account is None:
         abort(403, 'User ID invalid.')
     resp = {
@@ -190,7 +179,6 @@ async def getinfo(request):
         'info' : {
             'full_name': info['full_name'],
             'username': info['username'],
-            'dob': info['dob'],
         }
     }
     return response.json(resp)
@@ -203,12 +191,10 @@ async def update_runner_location(request, user):
     Sends current location of user
     Jason Yu
     """
-    print('request',request)
-    
     data = request.json
     location = data.get('location')
     time = data.get('time')
-	
+	# Update User Location
     user.updateOne({'$push': {'real_time_route.location_history': {"location": location, "time": time}}})
     locationCache[user] = (location,time)
     resp = {
@@ -216,26 +202,42 @@ async def update_runner_location(request, user):
 	}
     return response.json(resp)
 
+@api.post('/get_locations')
+async def get_locations(request):
+	group_id = request.json.group_id
+	group = await request.app.group.from_db(group_id,request.app)
+	
+	groupLocations = {}
+	for user, locationPacket in locationCache.items():
+		if user.user_id in group.members:
+			groupLocations[user.full_name] = locationPacket
+	
+	return response.json(groupLocations)
+
 @api.post('/save_route')
 @jsonrequired
 @authrequired
 async def save_route(request, user):
     """
-    Sends current location of user
+    Sends current Route of user
     Jason Yu
     """
-    print('request',request)
-
     data = request.json
     name = data.get('name')
     start_time = data.get('start_time')
-    end_time = data.get('end_time')
     duration = data.get('duration')
+    points = data.get('points')
     description = data.get('description')
     route = Route.from_data(**data.get('route'))
+    # Saving Route Image
     route_image = route.generateStaticMap()
-    saved_route = SavedRoute(name, route, start_time, end_time, duration, route_image, points, description)
-
+    await request.app.db.images.insert_one({
+        'user_id': user.user_id,
+        'route_name': name,
+        'route_image': route_image
+    })
+    saved_route = SavedRoute(name, route, start_time, duration, None, route_image, points, description)
+    # Adding Saved Route to DB
     user.saved_routes[name] = saved_route.to_dict()
     user.update()
     resp = {
@@ -251,22 +253,20 @@ async def save_recent_route(request, user):
     Sends current location of user
     Jason Yu
     """
-    print('request',request)
-
     data = request.json
     start_time = data.get('start_time')
-    end_time = data.get('end_time')
     duration = data.get('duration')
     route = Route.from_data(**data.get('route'))
-    recent_route = RecentRoute(route, start_time, end_time, duration)
+    recent_route = RecentRoute(route, start_time, duration)
     curr_num_recent_routes = len(user.recent_routes)
-
-    #Makes sure that only the 10 most recent routes are saved
-    if (curr_num_recent_routes < 10):
+    #Makes sure that only the most recent routes are saved
+    max_recent_routes = 10
+    if (curr_num_recent_routes < max_recent_routes):
         user.recent_routes.append(recent_route.to_dict())
     else:
-        user.recent_routes = user.recent_routes[curr_num_recent_routes-9:]
+        user.recent_routes = user.recent_routes[curr_num_recent_routes+1-max_recent_routes:]
         user.recent_routes.append(recent_route.to_dict())
+    #Updating DB
     user.update()
     resp = {
         'success': True,
@@ -278,11 +278,9 @@ async def save_recent_route(request, user):
 @jsonrequired
 async def get_saved_routes(request, user):
     """
-    Sends current location of user
+    Gets saved routes of user
     Jason Yu
     """
-    print('request',request)
-
     data = request.json
     saved_routes_json = [saved_route.to_dict() for saved_route in user.saved_routes]
     resp = {
@@ -291,8 +289,25 @@ async def get_saved_routes(request, user):
     }
     return response.json(resp)
 
+@api.post('/get_recent_routes')
+@authrequired
+@jsonrequired
+async def get_recent_routes(request, user):
+    """
+    Gets recent routes of user
+    Jason Yu
+    """
+    data = request.json
+    recent_routes = [recent_route.to_dict() for recent_route in user.recent_routes]
+    resp = {
+        'success': True,
+        'recent_routes': recent_routes,
+    }
+    return response.json(resp)
+
 @api.post('/groups/create')
 @authrequired
+@jsonrequired
 async def create_group(request, user):
     info = request.json
     await user.create_group(info)
@@ -300,6 +315,7 @@ async def create_group(request, user):
 
 @api.patch('/groups/<group_id>/edit')
 @authrequired
+@jsonrequired
 async def edit_group(request, user, group_id):
     pass
 
@@ -307,36 +323,20 @@ async def edit_group(request, user, group_id):
 @authrequired
 async def delete_group(request, user, group_id):
     pass
-	
-@api.post('/get_locations')
-async def get_locations(request):
-	group_id = request.json.group_id
-	group = await request.app.group.from_db(group_id,request.app)
-	
-	groupLocations = {}
-	for user, locationPacket in locationCache.items():
-		if user.id in group.members:
-			groupLocations[user.full_name] = locationPacket
-	
-	return response.json(groupLocations)
 
-@api.get('/images/get_route_image/<user_id>/<route_name>')
-@jsonrequired
+@api.get('/route_images/<user_id>/<route_name>')
 async def get_route_image(request,user_id,route_name):
-    query = {'_id': user_id}
-    user = await request.app.users.find_account(**query)
-    image = user.saved_routes[route_name].route_image
-    image_file = BytesIO(image)
-    return response.stream(image_file)
+    doc = await request.app.db.images.find_one({'user_id': user_id, 'route_name':route_name})
+    if not doc:
+        abort(404)
+    return response.raw(doc['route_image'], content_type='image/png')
 
-@api.get('/images/get_user_image/<user_id>')
-@jsonrequired
+@api.get('/avatars/<user_id>.png')
 async def get_user_image(request,user_id):
-    query = {'_id': user_id}
-    user = await request.app.users.find_account(**query)
-    image = user.avatar
-    image_file = BytesIO(image)
-    return response.stream(image_file)
+    doc = await request.app.db.images.find_one({'user_id': user_id})
+    if not doc:
+        abort(404)
+    return response.raw(doc['avatar'], content_type='image/png')
 
 @api.post('/find_friends')
 @authrequired
@@ -344,7 +344,7 @@ async def get_user_image(request,user_id):
 async def find_friends(request,user):
     name = request.json.name
     results = request.app.db.users.find({"full_name":{"$regex":name}})
-    results = [{user_id:user.id,name:user.name,bio:user.bio} for user in results]
+    results = [{"user_id":user.user_id,"name":user.name,"bio":user.bio} for user in results]
     return response.json(results)
         
     
