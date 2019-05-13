@@ -262,6 +262,10 @@ class Route:
 
     @classmethod
     def from_data(cls, route, distance):
+        """
+        Jason Yu
+        Class method that takes array of location objects and distance
+        """
         route = [Point(node_json.latitude, node_json.longitude) for node_json in route]
         return cls(route, distance)
 
@@ -371,51 +375,54 @@ class Route:
         Jason Yu
         """
         #Set up constants, sets and distance units
-        unvisited = set(node_id for node_id in nodes)
-        visited = set()
-        path_dict = dict((node,(inf,[node])) for node in nodes)
+        unvisited, visited = set(node_id for node_id in nodes), set()
+        path_dict = dict((node,{'cost':inf, 'path':[node]}) for node in nodes)
         neighbours = cls.find_neighbours(ways)
-        path_dict[start_id] = (0,[start_id])
+        path_dict[start_id] = {'cost':0, 'path':[start_id]}
         vert_unit,hor_unit = cls.get_coordinate_units(nodes[start_id])
         end_point = nodes[end_id]
+
         #Verify whether route can be completed
-        if end_id not in nodes:     raise Exception('End node not in node space. Specify a valid node.')
-        elif start_id not in nodes: raise Exception('Start node not in node space. Specify a valid node.')
-        elif end_id not in neighbours or start_id not in neighbours: raise Exception('No connecting neighbour')
+        if end_id not in nodes: 
+            raise Exception('End node not in node space. Specify a valid node.')
+        elif start_id not in nodes: 
+            raise Exception('Start node not in node space. Specify a valid node.')
+        elif end_id not in neighbours or start_id not in neighbours: 
+            raise Exception('No connecting neighbour')
         else: current = start_id
-        #Loop through nodes and find all best sub-routes to then determine best route
-        while True:
+
+        while current != end_id:
+            # Gets next node, if initial node has been visited
+            if start_id in visited:
+                unvisited_node_costs = dict()
+                for node_id in unvisited:
+                    current_cost = path_dict[node_id]['cost']
+                    heuristic_cost = current_cost + end_point.heuristic_distance(nodes[node_id],vert_unit,hor_unit)
+                    unvisited_node_costs[node_id] = heuristic_cost
+                next_node,cost = min(unvisited_node_costs.items(),key=lambda item:item[1])
+                if cost == inf: 
+                    raise Exception("End node cannot be reached")
+                else: 
+                    current = next_node
+            
+            # Update Neighbours and then mark current as visited
             current_point = nodes[current]
-            current_cost,current_path = path_dict[current]
-            current_neighbours = neighbours[current]
-            #Loop neighbours and determine lowest heuristic value for sub-route
-            for neighbour in (current_neighbours & unvisited): #Intersection of neighbours and unvisited
-                neighbour_cost,neighbour_path = path_dict[neighbour]
+            current_cost,current_path = path_dict[current].values()
+            for neighbour in (neighbours[current] & unvisited):
+                neighbour_cost = path_dict[neighbour]['cost']
                 neighbour_node = nodes[neighbour]
-                # Determine heuristic distance which is modified by tag multiplier
                 heuristic_cost = neighbour_node.tag_multiplier * current_point.heuristic_distance(neighbour_node,vert_unit,hor_unit)
                 new_cost = heuristic_cost + current_cost
                 if new_cost < neighbour_cost:
-                    path_dict[neighbour] = (new_cost,current_path + [neighbour])
-            #Update visited and unvisited to stop backtracking
+                    path_dict[neighbour]['cost'] = new_cost 
+                    path_dict[neighbour]['path'] = current_path + [neighbour]
             unvisited.remove(current)
             visited.add(current)
-            #Find next node which is cheapest accounting for distance to end
-            if end_id == current: break
-            else:
-                unvisited_node_costs = dict()
-                for node_id in unvisited:
-                    current_distance,path = path_dict[node_id]
-                    current_cost = current_distance + end_point.heuristic_distance(nodes[node_id],vert_unit,hor_unit)
-                    unvisited_node_costs[node_id] = current_cost
-                next_node,cost = min(unvisited_node_costs.items(),key=lambda item:item[1])
-                if cost == inf:
-                    raise Exception("End node cannot be reached")
-                else: current = next_node
+
         #Retrieve route, calculate actual distance
-        heuristic_cost, fastest_route = path_dict[end_id]
+        heuristic_cost, fastest_route = path_dict[end_id].values()
         route = [nodes[node_id] for node_id in fastest_route]
-        actual_distance = cls.get_route_distance([nodes[node_id] for node_id in fastest_route])
+        actual_distance = cls.get_route_distance(route)
         return cls(route, actual_distance)
 
     @classmethod
@@ -425,15 +432,15 @@ class Route:
         Jason Yu
         """
         start = node_waypoint_ids[0]
+        start_point = nodes[start]
         multi_distance = 0
-        multi_route = [start]
+        multi_route = [start_point]
         pairs = zip(node_waypoint_ids[:-1], node_waypoint_ids[1:])
         for current_node, next_node in pairs:
             route = cls.generate_route(nodes,ways,current_node,next_node)
             multi_distance += route.distance
             multi_route += route.route[1:]
-        route = [nodes[node_id] for node_id in multi_route]
-        return cls(route,multi_distance)
+        return cls(multi_route,multi_distance)
 
     @staticmethod
     def get_route_distance(fastest_route_nodes:list)-> float:
