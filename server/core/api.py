@@ -263,17 +263,16 @@ async def save_recent_route(request, user):
 
     data = request.json
     start_time = data.get('start_time')
-    end_time = data.get('end_time')
     duration = data.get('duration')
     route = Route.from_data(**data.get('route'))
-    recent_route = RecentRoute(route, start_time, end_time, duration)
+    recent_route = RecentRoute(route, start_time, duration)
     curr_num_recent_routes = len(user.recent_routes)
-
-    #Makes sure that only the 10 most recent routes are saved
-    if (curr_num_recent_routes < 10):
+    #Makes sure that only the most recent routes are saved
+    max_recent_routes = 10
+    if (curr_num_recent_routes < max_recent_routes):
         user.recent_routes.append(recent_route.to_dict())
     else:
-        user.recent_routes = user.recent_routes[curr_num_recent_routes-9:]
+        user.recent_routes = user.recent_routes[curr_num_recent_routes+1-max_recent_routes:]
         user.recent_routes.append(recent_route.to_dict())
     user.update()
     resp = {
@@ -333,6 +332,8 @@ async def get_locations(request):
 @api.get('/route_images/<user_id>/<route_name>')
 async def get_route_image(request,user_id,route_name):
     doc = await request.app.db.images.find_one({'user_id': user_id, 'route_name':route_name})
+    if not doc:
+        abort(404)
     return response.raw(doc['route_image'], content_type='image/png')
 
 @api.get('/avatars/<user_id>.png')
