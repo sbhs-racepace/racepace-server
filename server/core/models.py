@@ -459,9 +459,8 @@ class UserBase:
                 "password": hashed,
                 "token": None
             },
-            "real_time_route" : {
-                "location_history" : None,
-                "update_freq": None,
+            "real_time_route" : { 
+                "location_history" : [],
             },
             "groups": [],
         }
