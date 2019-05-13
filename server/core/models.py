@@ -30,6 +30,7 @@ class Group:
     A class that holds messages and information of members in a group
     Jason Yu/Sunny Yan (DB methods)
     """
+
     def __init__(self, app, data):
         self.app = app
         self.id = data['group_id']
@@ -70,7 +71,7 @@ class User:
 
     def __init__(self, app, user_id, credentials, full_name, dob, username, avatar, recent_routes, groups, stats, real_time_route, saved_routes):
         self.app = app
-        self.user_id = user_id
+        self.id = user_id
         self.credentials = credentials
         self.dob = dob
         self.username = username
@@ -83,7 +84,7 @@ class User:
         self.real_time_route = real_time_route
 
     def __hash__(self):
-        return self.user_id
+        return self.id
 
     @classmethod
     def from_data(cls, app, data):
@@ -100,6 +101,7 @@ class User:
         data['stats'] = UserStats(**(data['stats']))
         data['real_time_route'] = RealTimeRoute.from_data(**(data['real_time_route']))
         data['avatar'] = BytesIO(data['avatar'])
+        
         user = cls(app, **data)
         return user
 
@@ -116,14 +118,14 @@ class User:
         Abdur Raqeeb
         """
         document = self.to_dict()
-        await self.app.db.users.update_one({'user_id': self.user_id}, document)
+        await self.app.db.users.update_one({'user_id': self.id}, document)
     
     async def delete(self):
         """
         Deletes user from database
         Abdur Raqeeb
         """
-        await self.app.db.users.delete_one({'user_id': self.user_id})
+        await self.app.db.users.delete_one({'user_id': self.id})
     
     async def create_group(self, name):
         
@@ -132,12 +134,12 @@ class User:
         await self.app.db.groups.insert_one({   
             '_id': group_id,
             'name': name,
-            'owner_id': self.user_id,
-            'members': [ self.user_id ],
+            'owner_id': self.id,
+            'members': [ self.id ],
             'messages': []
             })
         await self.app.db.users.update_one(
-            {'_id':self.user_id},
+            {'_id':self.id},
             {'$addToSet': {'groups': group_id}}
         )
 
@@ -147,10 +149,10 @@ class User:
         """
         await self.app.db.groups.update_one(
             {'_id':group_id},
-            {'$addToSet': {'members':self.user_id}}
+            {'$addToSet': {'members':self.id}}
         )
         await self.app.db.users.update_one(
-            {'_id':self.user_id},
+            {'_id':self.id},
             {'$addToSet': {'groups': group_id}}
         )
     
@@ -160,10 +162,10 @@ class User:
         """
         await self.app.db.groups.update_one(
             {'_id':group_id},
-            {'$pull': {'members':self.user_id}}
+            {'$pull': {'members':self.id}}
         )
         await self.app.db.users.update_one(
-            {'_id':self.user_id},
+            {'_id':self.id},
             {'$pull': {'groups': group_id}}
         )
     
@@ -173,7 +175,7 @@ class User:
         Abdur Raqeeb/ Jason Yu
         """
         return {
-            "_id": self.user_id,
+            "_id": self.id,
             "full_name": self.full_name,
             "username": self.username,
             "avatar": self.avatar,
@@ -419,7 +421,7 @@ class UserBase:
             return None
         
         user = User.from_data(self.app, data)
-        self.user_cache[user.user_id] = user
+        self.user_cache[user.id] = user
         return user
 
     async def register(self, request):
@@ -497,14 +499,14 @@ class UserBase:
             return user.credentials.token
 
         payload = {
-            'sub': user.user_id,
+            'sub': user.id,
             'iat': datetime.datetime.utcnow()
         }
 
         user.credentials.token = token = jwt.encode(payload, self.app.secret)
 
         await self.app.db.users.update_one(
-            {'user_id': user.user_id}, 
+            {'user_id': user.id}, 
             {'$set': {'credentials.token': token}}
         )
         

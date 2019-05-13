@@ -22,7 +22,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 
 from core.api import api
 from core.route import Route
-from core.models import Overpass, Color, User, UserBase
+from core.models import Overpass, Color, User, UserBase, RealTimeRoute
 from core.decorators import jsonrequired, memoized, authrequired, validate_token
 from core.utils import run_with_ngrok, snowflake
 from core import config
@@ -127,21 +127,18 @@ async def index(request):
 
 @sio.on('connect')
 async def on_connect(sid, environ):
-    try:
-        qs = environ['QUERY_STRING']
-        token = parse_qs(qs)['token'][0]
-        user_id = jwt.decode(token, app.secret)['sub']
-        user = await app.users.find_account(user_id=user_id)
+    qs = environ['QUERY_STRING']
+    token = parse_qs(qs)['token'][0]
+    user_id = jwt.decode(token, app.secret)['sub']
+    user = await app.users.find_account(_id=str(user_id))
 
-        for group in user.groups:
-            sio.enter_room(sid, group.id)
-
-        await sio.save_session(sid, {'user': user})
-        print('Connected', user_id)
-    except:
+    if not user:
         print('Connection refused')
         return False
 
+    await sio.save_session(sid, {'user': user})
+    print('Connected', user.id, user.username)
+    
 
 class Message:
     def __init__(self, id, author, group, content=None, image=None):
@@ -189,12 +186,27 @@ async def on_message(sid, data):
 
 @sio.on('location_update')
 async def on_location_update(sid, data):
-    user = (await sio.get_session(sid))
-    print(data)
+    user = (await sio.get_session(sid))['user']
+    print('location_update', user.id, data)
+
+
+def socketauth(func):
+    async def wrapper(sid, data):
+        user = (await sio.get_session(sid))['user']
+        return await func(sid, user, data)
+    return wrapper
+    
+
+@sio.on('group_run_start')
+@socketauth
+async def on_group_run_start(sid, user, data):
+    user.real_time_route = 
+
 
 @sio.on('disconnect')
 async def on_disconnect(sid):
-    print(sid)
+    user = (await sio.get_session(sid))['user']
+    print('Disconnected', user.id, user.username)
 
 if __name__ == '__main__':
     if os.getenv('dev'):
