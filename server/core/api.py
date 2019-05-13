@@ -141,9 +141,11 @@ async def register(request):
     """
     user = await request.app.users.register(request)
     token = await request.app.users.issue_token(user)
-    return response.json({'success': True,
-	'token': token.decode("utf-8"),
-	'user_id': user.id})
+    return response.json({
+        'success': True,
+	    'token': token.decode("utf-8"),
+	    'user_id': user.user_id}
+    )
 
 @api.post('/login')
 @jsonrequired
@@ -156,30 +158,31 @@ async def login(request):
     email = data.get('email')
     password = data.get('password')
     query = {'credentials.email': email}
-    account = await request.app.users.find_account(**query)
-    if account is None:
+    user = await request.app.users.find_account(**query)
+    if user is None:
         abort(403, 'Credentials invalid.')
-    elif account.check_password(password) == False:
+    elif user.check_password(password) == False:
         abort(403, 'Credentials invalid.')
-    token = await request.app.users.issue_token(account)
+    token = await request.app.users.issue_token(user)
+    print("User id",user.user_id)
     resp = {
         'success': True,
         'token': token.decode("utf-8"),
-        'user_id': account.id
+        'user_id': user.user_id
     }
     return response.json(resp)
 
 
 @api.post('/get_info')
 @jsonrequired
-async def getinfo(request):
+async def get_info(request):
     """
     Get user info
     Jason Yu/Sunny Yan
     """
     data = request.json
     user_id = data.get('user_id')
-    query = {'_id': bson.objectid.ObjectId(user_id)}
+    query = {'_id': user_id}
     account = await request.app.users.find_account(**query)
     info = account.to_dict()
 
@@ -190,7 +193,6 @@ async def getinfo(request):
         'info' : {
             'full_name': info['full_name'],
             'username': info['username'],
-            'dob': info['dob'],
         }
     }
     return response.json(resp)
@@ -231,9 +233,15 @@ async def save_route(request, user):
     start_time = data.get('start_time')
     end_time = data.get('end_time')
     duration = data.get('duration')
+    points =data.get('points')
     description = data.get('description')
     route = Route.from_data(**data.get('route'))
     route_image = route.generateStaticMap()
+    await request.app.db.images.insert_one({
+        'user_id': user.user_id,
+        'route_name': name,
+        'route_image': route_image
+    })
     saved_route = SavedRoute(name, route, start_time, end_time, duration, route_image, points, description)
 
     user.saved_routes[name] = saved_route.to_dict()
@@ -293,6 +301,7 @@ async def get_saved_routes(request, user):
 
 @api.post('/groups/create')
 @authrequired
+@jsonrequired
 async def create_group(request, user):
     info = request.json
     await user.create_group(info)
@@ -300,6 +309,7 @@ async def create_group(request, user):
 
 @api.patch('/groups/<group_id>/edit')
 @authrequired
+@jsonrequired
 async def edit_group(request, user, group_id):
     pass
 
@@ -315,28 +325,22 @@ async def get_locations(request):
 	
 	groupLocations = {}
 	for user, locationPacket in locationCache.items():
-		if user.id in group.members:
+		if user.user_id in group.members:
 			groupLocations[user.full_name] = locationPacket
 	
 	return response.json(groupLocations)
 
-@api.get('/images/get_route_image/<user_id>/<route_name>')
-@jsonrequired
+@api.get('/route_images/<user_id>/<route_name>')
 async def get_route_image(request,user_id,route_name):
-    query = {'_id': user_id}
-    user = await request.app.users.find_account(**query)
-    image = user.saved_routes[route_name].route_image
-    image_file = BytesIO(image)
-    return response.stream(image_file)
+    doc = await request.app.db.images.find_one({'user_id': user_id, 'route_name':route_name})
+    return response.raw(doc['route_image'], content_type='image/png')
 
-@api.get('/images/get_user_image/<user_id>')
-@jsonrequired
+@api.get('/avatars/<user_id>.png')
 async def get_user_image(request,user_id):
-    query = {'_id': user_id}
-    user = await request.app.users.find_account(**query)
-    image = user.avatar
-    image_file = BytesIO(image)
-    return response.stream(image_file)
+    doc = await request.app.db.images.find_one({'user_id': user_id})
+    if not doc:
+        abort(404)
+    return response.raw(doc['avatar'], content_type='image/png')
 
 @api.post('/find_friends')
 @authrequired
@@ -344,7 +348,7 @@ async def get_user_image(request,user_id):
 async def find_friends(request,user):
     name = request.json.name
     results = request.app.db.users.find({"full_name":{"$regex":name}})
-    results = [{user_id:user.id,name:user.name,bio:user.bio} for user in results]
+    results = [{"user_id":user.user_id,"name":user.name,"bio":user.bio} for user in results]
     return response.json(results)
         
     

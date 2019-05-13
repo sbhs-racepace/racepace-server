@@ -6,6 +6,7 @@ import jwt
 
 from PIL import Image
 
+import os
 from io import BytesIO
 from sanic import Sanic
 from sanic.exceptions import abort
@@ -57,7 +58,7 @@ class Group:
 
     def update_db(self):
         self.app.db.groups.update_one(
-            {'id':group_id},
+            {'_id':group_id},
             {'$set': self.__dict__}
         )
 
@@ -66,11 +67,10 @@ class User:
     User class for database that holds all information
     Abdur Raqeeb/Jason Yu
     """
-    fields = ('id', 'credentials', 'routes')
 
     def __init__(self, app, user_id, credentials, full_name, dob, username, avatar, recent_routes, groups, stats, real_time_route, saved_routes):
         self.app = app
-        self.id = user_id
+        self.user_id = user_id
         self.credentials = credentials
         self.dob = dob
         self.username = username
@@ -83,7 +83,7 @@ class User:
         self.real_time_route = real_time_route
 
     def __hash__(self):
-        return self.id
+        return self.user_id
 
     @classmethod
     def from_data(cls, app, data):
@@ -91,9 +91,10 @@ class User:
         Generates User class from database data
         Abdur Raqeeb
         """
+
         data['saved_routes'] = [SavedRoute.from_data(route) for route in data['saved_routes']]
         data['recent_routes'] = [RecentRoute.from_data(route) for route in data['recent_routes']]
-        data['user_id'] = str(data['user_id'])
+        data['user_id'] = data.pop('_id') # Replcement of _id to user_id for class use
         data['groups'] = [Group(app, g) for g in data.get('groups', [])]
         data['credentials'] = Credentials(**(data['credentials']))
         data['stats'] = UserStats(**(data['stats']))
@@ -115,14 +116,14 @@ class User:
         Abdur Raqeeb
         """
         document = self.to_dict()
-        await self.app.db.users.update_one({'user_id': self.id}, document)
+        await self.app.db.users.update_one({'user_id': self.user_id}, document)
     
     async def delete(self):
         """
         Deletes user from database
         Abdur Raqeeb
         """
-        await self.app.db.users.delete_one({'user_id': self.id})
+        await self.app.db.users.delete_one({'user_id': self.user_id})
     
     async def create_group(self, name):
         
@@ -131,12 +132,12 @@ class User:
         await self.app.db.groups.insert_one({   
             '_id': group_id,
             'name': name,
-            'owner_id': self.id,
-            'members': [ self.id ],
+            'owner_id': self.user_id,
+            'members': [ self.user_id ],
             'messages': []
             })
         await self.app.db.users.update_one(
-            {'_id':self.id},
+            {'_id':self.user_id},
             {'$addToSet': {'groups': group_id}}
         )
 
@@ -146,10 +147,10 @@ class User:
         """
         await self.app.db.groups.update_one(
             {'_id':group_id},
-            {'$addToSet': {'members':self.id}}
+            {'$addToSet': {'members':self.user_id}}
         )
         await self.app.db.users.update_one(
-            {'_id':self.id},
+            {'_id':self.user_id},
             {'$addToSet': {'groups': group_id}}
         )
     
@@ -159,10 +160,10 @@ class User:
         """
         await self.app.db.groups.update_one(
             {'_id':group_id},
-            {'$pull': {'members':self.id}}
+            {'$pull': {'members':self.user_id}}
         )
         await self.app.db.users.update_one(
-            {'_id':self.id},
+            {'_id':self.user_id},
             {'$pull': {'groups': group_id}}
         )
     
@@ -172,7 +173,7 @@ class User:
         Abdur Raqeeb/ Jason Yu
         """
         return {
-            "user_id": self.id,
+            "_id": self.user_id,
             "full_name": self.full_name,
             "username": self.username,
             "avatar": self.avatar,
@@ -210,7 +211,7 @@ class RealTimeRoute:
     Real time route might be to connect multiple people running same race
     Jason Yu
     """
-    def __init__(self, update_freq, location_history):
+    def __init__(self, update_freq=5, location_history):
         self.location_history = location_history
         self.update_freq = update_freq
 
@@ -418,7 +419,7 @@ class UserBase:
             return None
         
         user = User.from_data(self.app, data)
-        self.user_cache[user.id] = user
+        self.user_cache[user.user_id] = user
         return user
 
     async def register(self, request):
@@ -433,10 +434,8 @@ class UserBase:
         full_name = data.get('full_name')
         dob = data.get('dob')
         username = data.get('username')
-
-        avatar_png = Image.open('avatar.png')
-        avatar = BytesIO()
-        avatar_png.save(avatar, 'PNG')
+        with open('server/core/avatar.png','rb') as f:
+            avatar = f.read()
 
         query = {'credentials.email': email}
         exists = await self.find_account(**query)
@@ -444,14 +443,22 @@ class UserBase:
 
         salt = bcrypt.gensalt()
         hashed = bcrypt.hashpw(password, salt)
+        user_id = str(snowflake())
+
+        with open('server/core/avatar.png', 'rb') as img:
+            avatar = img.read()
+        
+        await self.app.db.images.insert_one({
+            'user_id': user_id,
+            'avatar': avatar
+            })
 
         document = {
-            "_id": snowflake(),
+            "_id": user_id,
             "recent_routes": [],
             "saved_routes": {},
             "full_name": full_name,
             "username": username,
-            "avatar": avatar.getvalue(),
             "dob": dob,
             "stats":  {               
                 "num_runs": 0,
@@ -477,8 +484,7 @@ class UserBase:
             "groups": [],
         }
 
-        result = await self.app.db.users.insert_one(document)
-        document['user_id'] = str(result.inserted_id)
+        await self.app.db.users.insert_one(document)
         user = User.from_data(self.app, document)
         return user
 
@@ -491,14 +497,14 @@ class UserBase:
             return user.credentials.token
 
         payload = {
-            'sub': user.id,
+            'sub': user.user_id,
             'iat': datetime.datetime.utcnow()
         }
 
         user.credentials.token = token = jwt.encode(payload, self.app.secret)
 
         await self.app.db.users.update_one(
-            {'user_id': user.id}, 
+            {'user_id': user.user_id}, 
             {'$set': {'credentials.token': token}}
         )
         

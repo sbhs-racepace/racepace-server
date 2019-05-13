@@ -254,7 +254,7 @@ class Route:
         """
         Jason Yu/Abdur Raqueeb
         """
-        route = [{'latitude': node.latitude, 'longitude': node.longitude} for node in route_nodes]
+        route = [{'latitude': node.latitude, 'longitude': node.longitude} for node in self.route]
         return {
             "route": route,
             "dist": self.distance
@@ -515,7 +515,7 @@ class Route:
         image = m.render()
         buffer = BytesIO()
         image.save(buffer, format="PNG")
-        return buffer
+        return buffer.read() #Converting bytes io to bytes
 
 if __name__ == '__main__':
     pass
