@@ -132,11 +132,7 @@ class User:
             "recent_routes": [recent_route.to_dict() for recent_route in self.recent_routes],
             "saved_routes": {saved_route.name:saved_route.to_dict() for saved_route in self.saved_routes},
             "stats": self.stats.to_dict(),
-            "credentials": {
-                "email": self.credentials.email,
-                "password": self.credentials.password,
-                "token": self.credentials.token,
-            },
+            "credentials": self.credentials.to_dict(),
             "real_time_route" : self.real_time_route.to_dict(),
             "groups": self.groups,
         }
@@ -150,6 +146,13 @@ class Credentials:
     email: str
     password: str
     token: str = None
+
+    def to_dict(self):
+        return {
+            "email": self.email,
+            "password": self.password,
+            "token": self.token,
+        }
 
 class Group:
     """
@@ -336,7 +339,17 @@ class SavedRoute:
         self.real_time_route = real_time_route 
         self.route_image = route_image	
         self.points = points
-        self.description = description		
+        self.description = description	
+
+    @classmethod
+    def from_data(cls, data):
+        """
+        Generates Saved Route class from database data
+        Jason Yu
+        """
+        data['route'] = Route.from_data(**(data['route']))
+        saved_route = cls(**data)
+        return saved_route	
 
     def to_dict(self):
         return  {
@@ -350,16 +363,6 @@ class SavedRoute:
             "route_image": self.route_image,
         }
 
-    @classmethod
-    def from_data(cls, data):
-        """
-        Generates Saved Route class from database data
-        Jason Yu
-        """
-        data['route'] = Route.from_data(**(data['route']))
-        saved_route = cls(**data)
-        return saved_route
-
 class RecentRoute: 
     """
     All recent routes that user has finish are automatically stored
@@ -371,14 +374,6 @@ class RecentRoute:
         self.duration = duration
         self.real_time_route = real_time_route
 
-    def to_dict(self):
-        return  {
-            "start_time": self.start_time,
-            "duration": self.duration,
-            "route": self.route.to_dict(),
-            "real_time_route": self.real_time_route.to_dict(),
-        }
-
     @classmethod
     def from_data(cls, data):
         """
@@ -388,6 +383,14 @@ class RecentRoute:
         data['route'] = Route.from_data(**(data['route']))
         recent_route = cls(**data)
         return recent_route
+    
+    def to_dict(self):
+        return  {
+            "start_time": self.start_time,
+            "duration": self.duration,
+            "route": self.route.to_dict(),
+            "real_time_route": self.real_time_route.to_dict(),
+        }
 
 class UserBase:
     def __init__(self, app):
@@ -400,17 +403,14 @@ class UserBase:
         Returns a user object based on the query
         Abdur Raqeeb
         """
-
+        # Checks if user can be retrieved from cache
         if len(query) == 1 and 'user_id' in query:
             user =  self.user_cache.get(query['user_id'])
             if user:
                 return user
-
         data = await self.app.db.users.find_one(query)
-
         if not data: 
             return None
-        
         user = User.from_data(self.app, data)
         self.user_cache[user.user_id] = user
         return user
@@ -445,7 +445,7 @@ class UserBase:
             'user_id': user_id,
             'avatar': avatar
             })
-
+        # Generates document for DB
         document = {
             "_id": user_id,
             "recent_routes": [],
@@ -465,7 +465,7 @@ class UserBase:
             },
             "groups": [],
         }
-
+        # Adds user to DB
         await self.app.db.users.insert_one(document)
         user = User.from_data(self.app, document)
         return user
@@ -477,14 +477,13 @@ class UserBase:
         '''
         if user.credentials.token:
             return user.credentials.token
-
+        #Generates info for token
         payload = {
             'sub': user.user_id,
             'iat': datetime.datetime.utcnow()
         }
-
         user.credentials.token = token = jwt.encode(payload, self.app.secret)
-
+        # Adds token to credentials
         await self.app.db.users.update_one(
             {'user_id': user.user_id}, 
             {'$set': {'credentials.token': token}}
