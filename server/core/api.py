@@ -179,6 +179,7 @@ async def get_info(request):
         'info' : {
             'full_name': info['full_name'],
             'username': info['username'],
+            'points': info['stats']['points'],
         }
     }
     return response.json(resp)
