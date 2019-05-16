@@ -21,7 +21,7 @@ class User:
     Abdur Raqeeb/Jason Yu
     """
 
-    def __init__(self, app, user_id, credentials, full_name, dob, username, avatar, recent_routes, groups, stats, real_time_route, saved_routes):
+    def __init__(self, app, user_id, credentials, full_name, dob, username, avatar, recent_routes, groups, stats, real_time_route, saved_routes, followers, following):
         self.app = app
         self.user_id = user_id
         self.credentials = credentials
@@ -34,6 +34,8 @@ class User:
         self.stats = stats
         self.saved_routes = saved_routes
         self.real_time_route = real_time_route
+        self.followers = followers # Holds user id
+        self.following = following # Holds user id
 
     @classmethod
     def from_data(cls, app, data):
@@ -136,6 +138,8 @@ class User:
             "credentials": self.credentials.to_dict(),
             "real_time_route" : self.real_time_route.to_dict(),
             "groups": self.groups,
+            "followers": self.followers,
+            "following": self.following,
         }
 
 @dataclass
@@ -302,6 +306,7 @@ class UserStats:
     Class to hold user running stats
     Jason Yu
     """
+    points: int = 0
     num_runs: int = 0
     total_distance: int = 0
     longest_distance_ran: int = None
@@ -315,6 +320,7 @@ class UserStats:
 
     def to_dict(self):
         return  {
+            "points": self.points,
             "num_runs": self.num_runs,
             "total_distance": self.total_distance,
             "longest_distance_ran": self.longest_distance_ran,
@@ -465,6 +471,8 @@ class UserBase:
                 "location_history" : [],
             },
             "groups": [],
+            "followers": [],
+            "following": [],
         }
         # Adds user to DB
         await self.app.db.users.insert_one(document)
