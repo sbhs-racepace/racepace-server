@@ -182,7 +182,7 @@ async def on_message(sid, data):
     message = await Message.create(app, user, data)
 
 @sio.on('run_start')
-async def on_run_start(sid, data):
+async def on_run_start(sid):
     user = (await sio.get_session(sid))
     user.real_time_route = RealTimeRoute([])
     user.update()
@@ -196,7 +196,7 @@ async def on_location_update(sid, data):
     user.update()
 
 @sio.on('disconnect')
-async def on_disconnect(sid, data):
+async def on_disconnect(sid):
     print(sid)
 
 if __name__ == '__main__':
