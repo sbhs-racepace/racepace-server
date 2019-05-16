@@ -132,7 +132,7 @@ async def register(request):
     return response.json({
         'success': True,
 	    'token': token.decode("utf-8"),
-	    'user_id': user.user_id}
+	    'user_id': user.id}
     )
 
 @api.post('/login')
@@ -155,7 +155,7 @@ async def login(request):
     resp = {
         'success': True,
         'token': token.decode("utf-8"),
-        'user_id': user.user_id
+        'user_id': user.id
     }
     return response.json(resp)
 
@@ -213,7 +213,7 @@ async def get_locations(request):
 	
 	groupLocations = {}
 	for user, locationPacket in locationCache.items():
-		if user.user_id in group.members:
+		if user.id in group.members:
 			groupLocations[user.full_name] = locationPacket
 	
 	return response.json(groupLocations)
@@ -236,7 +236,7 @@ async def save_route(request, user):
     # Saving Route Image
     route_image = route.generateStaticMap()
     await request.app.db.images.insert_one({
-        'user_id': user.user_id,
+        'user_id': user.id,
         'route_name': name,
         'route_image': route_image
     })
@@ -348,7 +348,7 @@ async def get_user_image(request,user_id):
 async def find_friends(request,user):
     name = request.json.name
     results = request.app.db.users.find({"full_name":{"$regex":name}})
-    results = [{"user_id":user.user_id,"name":user.name,"bio":user.bio} for user in results]
+    results = [{"user_id":user.id,"name":user.name,"bio":user.bio} for user in results]
     return response.json(results)
         
     
