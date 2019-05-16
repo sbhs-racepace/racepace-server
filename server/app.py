@@ -22,13 +22,12 @@ from motor.motor_asyncio import AsyncIOMotorClient
 
 from core.api import api
 from core.route import Route
-from core.models import Overpass, Color, User, UserBase
+from core.models import Overpass, Color, User, UserBase, RealTimeRoute
 from core.decorators import jsonrequired, memoized, authrequired, validate_token
 from core.utils import run_with_ngrok, snowflake
 from core import config
 
 sio = socketio.AsyncServer(async_mode='sanic')
-
 app = Sanic('majorproject')
 app.blueprint(api)
 sio.attach(app)
@@ -124,25 +123,6 @@ async def index(request):
 
     return response.json(data)
 
-
-@sio.on('connect')
-async def on_connect(sid, environ):
-    try:
-        qs = environ['QUERY_STRING']
-        token = parse_qs(qs)['token'][0]
-        user_id = jwt.decode(token, app.secret)['sub']
-        user = await app.users.find_account(user_id=user_id)
-
-        for group in user.groups:
-            sio.enter_room(sid, group.id)
-
-        await sio.save_session(sid, {'user': user})
-        print('Connected', user_id)
-    except:
-        print('Connection refused')
-        return False
-
-
 class Message:
     def __init__(self, id, author, group, content=None, image=None):
         self.id = id
@@ -177,20 +157,43 @@ class Message:
             {'$push': {'messages': msg.to_dict()}}
             )
 
+@sio.on('connect')
+async def on_connect(sid, environ):
+    try:
+        qs = environ['QUERY_STRING']
+        token = parse_qs(qs)['token'][0]
+        user_id = jwt.decode(token, app.secret)['sub']
+        user = await app.users.find_account(user_id=user_id)
+
+        for group in user.groups:
+            sio.enter_room(sid, group.id)
+
+        await sio.save_session(sid, {'user': user})
+        print('Connected', user_id)
+    except:
+        print('Connection refused')
+        return False
+
 @sio.on('message')
 async def on_message(sid, data):
     user = (await sio.get_session(sid))['user']
     group = user.groups.get(data['group_id'])
-
-    if not group:
-        return
-
+    if not group: return
     message = await Message.create(app, user, data)
+
+@sio.on('run_start')
+async def on_run_start(sid, data):
+    user = (await sio.get_session(sid))
+    user.real_time_route = RealTimeRoute([])
+    user.update()
 
 @sio.on('location_update')
 async def on_location_update(sid, data):
     user = (await sio.get_session(sid))
-    print(data)
+    location = data.get('location', None)
+    time = data.get('time', None)
+    user.real_time_route.update_location_history(location, time)
+    user.update()
 
 @sio.on('disconnect')
 async def on_disconnect(sid):
