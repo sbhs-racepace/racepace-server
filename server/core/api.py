@@ -180,6 +180,8 @@ async def get_info(request):
             'full_name': info['full_name'],
             'username': info['username'],
             'points': info['stats']['points'],
+            'followers': info['followers'],
+            'following': info['following'],
         }
     }
     return response.json(resp)
