@@ -187,12 +187,6 @@ async def on_run_start(sid):
     user.real_time_route = RealTimeRoute()
     user.update()
 
-@sio.on('complete_run')
-async def on_complete_run(sid):
-
-    user = (await sio.get_session(sid))['user']
-    user.update()
-
 @sio.on('location_update')
 async def on_location_update(sid, data):
     user = (await sio.get_session(sid))['user']

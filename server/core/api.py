@@ -182,6 +182,7 @@ async def get_info(request):
             'points': info['stats']['points'],
             'followers': info['followers'],
             'following': info['following'],
+            'stats': info['stats']
         }
     }
     return response.json(resp)
