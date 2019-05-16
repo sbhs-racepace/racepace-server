@@ -196,7 +196,7 @@ async def on_location_update(sid, data):
     user.update()
 
 @sio.on('disconnect')
-async def on_disconnect(sid):
+async def on_disconnect(sid, data):
     print(sid)
 
 if __name__ == '__main__':
