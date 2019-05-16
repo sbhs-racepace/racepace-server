@@ -6,6 +6,7 @@ import traceback
 import os
 import sys
 from urllib.parse import parse_qs
+from datetime import datetime
 
 import socketio
 import aiohttp
@@ -156,8 +157,11 @@ class Message:
         content = data.get('content')
         image = data.get('image')
         msg = cls(message_id, user, data['group_id'], content, image)
+        
 
-        await app.db.messages.insert_one(msg.to_dict())
+        data = msg.to_dict()
+        data['created_at'] = datetime.utcfromtimestamp(data['created_at'])
+        await app.db.messages.insert_one(data)
         return msg
 
 @sio.on('connect')

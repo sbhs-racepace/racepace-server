@@ -1,6 +1,7 @@
 import asyncio
 import functools
 import bson
+import dateutil.parser
 
 from io import BytesIO
 
@@ -327,6 +328,33 @@ async def edit_group(request, user, group_id):
 @authrequired
 async def delete_group(request, user, group_id):
     pass
+
+@api.get('/groups/<group_id>/messages')
+@authrequired
+async def get_previous_messages(request, user, group_id):
+    if not group_id == 'global':
+        abort(404) # groups not implemented yet
+    
+    before = dateutil.parser.parse(request.args.get('before'))
+    limit = 50
+
+    query = {
+        'group_id': group_id, 
+        'created_at': {
+            '$lte': before
+            }
+        }
+
+    cursor = request.app.db.messages.find(query).sort('created_at', -1)
+    cursor.limit(limit)
+
+    messages = []
+
+    async for msg in cursor:
+        msg['created_at'] = msg['created_at'].timestamp()
+        messages.append(msg)
+
+    return response.json(messages)
 
 @api.get('/route_images/<user_id>/<route_name>')
 async def get_route_image(request,user_id,route_name):
