@@ -104,11 +104,12 @@ async def update_user(request, user, user_id):
     Abdur Raqueeb
     """
     data = request.json
-    token = request.token
     password = data.get('password')
-    salt = bcrypt.gensalt()
-    user.credentials.password = bcrypt.hashpw(password, salt)
-    await user.update()
+    if password:
+        salt = bcrypt.gensalt()
+        user.credentials.password = bcrypt.hashpw(password, salt)
+        await user.update()
+    
     return response.json({'success': True})
 
 @api.delete('/users/<user_id:int>')
@@ -369,6 +370,13 @@ async def get_user_image(request,user_id):
     if not doc:
         abort(404)
     return response.raw(doc['avatar'], content_type='image/png')
+
+@api.patch('/avatars/update')
+@authrequired
+async def update_user_image(request, user):
+    avatar = request.body 
+    await request.app.db.images.update_one({'user_id': user.id}, {'$set': {'avatar': avatar}})
+    return response.json({'success': True})
 
 @api.post('/find_friends')
 @authrequired
