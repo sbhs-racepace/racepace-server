@@ -8,7 +8,7 @@ from sanic import Sanic
 from sanic.exceptions import abort
 
 from .utils import snowflake
-from .route import SavedRoute, RecentRoute, RealTimeRoute
+from .route import SavedRoute, RecentRoute, RealTimeRoute, Time
 from .group import Group
 
 class User:
@@ -266,6 +266,7 @@ class UserBase:
             },
             "real_time_route" : { 
                 "location_history" : [],
+                "start_time": Time(None,None,None,None,None,None)
             },
             "groups": [],
             "followers": [],
