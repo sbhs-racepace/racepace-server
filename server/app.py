@@ -181,11 +181,15 @@ async def on_message(sid, data):
     if not group: return
     message = await Message.create(app, user, data)
 
-@sio.on('run_start')
-async def on_run_start(sid):
+@sio.on('start_run')
+async def on_start_run(sid):
     user = (await sio.get_session(sid))['user']
     user.real_time_route = RealTimeRoute()
     user.update()
+
+@sio.on('end_run')
+async def on_run_start(sid):
+    user = (await sio.get_session(sid))['user']
 
 @sio.on('location_update')
 async def on_location_update(sid, data):
