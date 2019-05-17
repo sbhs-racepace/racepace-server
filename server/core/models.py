@@ -206,6 +206,22 @@ class RealTimeRoute:
     def __init__(self, location_history=[]):
         self.location_history = location_history
 
+    @property
+    def duration(self):
+        if len(self.location_history) == 0:
+            return 0
+        else:
+            return self.location_history[-1].time - self.location_history[0].time
+
+    @property 
+    def start_time(self):
+        return self.location_history[0].time
+
+    @property 
+    def distance(self):
+        locations = [location_packet.location for location_packet in self.location_history]
+        return self.get_distance(locations)
+
     @classmethod
     def from_data(cls, location_history):
         location_history = [LocationPacket(location_packet.location, location_packet.time) for location_packet in location_history]
@@ -230,31 +246,22 @@ class RealTimeRoute:
             speed = total_distance / period
             return speed
 
-    def calculate_average_speed(self):
-        """
-        Speed for the whole duration of time
-        Jason Yu
-        """
-        current_duration = (len(self.location_history) - 1) * self.update_freq #Total elapsed time
-        locations = [location_packet.location for location_packet in self.location_history]
-        total_distance = RealTimeRoute.get_distance(locations)
-        speed = total_distance / current_duration
-        return speed
-
     @staticmethod
     def get_distance(locations):
         return Route.get_route_distance(locations)
 
     @staticmethod
     def calculate_pace(speed):
-        """Speed is in m/s"""
+        """
+        With Speed in m/s, returns a json pace
+        """
         total_seconds = int(1000 / speed)
         minutes = int(total_seconds / 60)
         seconds = total_seconds - 60 * minutes
         return {"minutes": minutes, "seconds": seconds}
 
     def to_dict(self):
-        return {
+        return { 
             "location_history" : [location_packet.to_dict() for location_packet in self.location_history],
         }
 
@@ -338,15 +345,15 @@ class SavedRoute:
     A route that has been saved by the user to be shared on feed
     Jason Yu
     """
-    def __init__(self, name, route, start_time, duration, real_time_route, route_image, points, description):
+    def __init__(self, name, description, route, real_time_route,route_image,start_time, duration, points):
         self.name = name
-        self.route = route
-        self.start_time = start_time
-        self.duration = duration
-        self.real_time_route = real_time_route 
-        self.route_image = route_image	
-        self.points = points
         self.description = description	
+        self.route = route
+        self.real_time_route = real_time_route 
+        self.route_image = route_image
+        self.start_time = start_time	
+        self.duration = duration
+        self.points = points
 
     @classmethod
     def from_data(cls, data):
@@ -358,16 +365,28 @@ class SavedRoute:
         saved_route = cls(**data)
         return saved_route	
 
+    @classmethod
+    def from_real_time_route(cls, name, description, route_image, real_time_route, route):
+        """
+        Generates Saved Route class from real time data
+        Jason Yu
+        """
+        start_time = real_time_route.start_time
+        duration = real_time_route.duration
+        points = real_time_route.get_points()
+        saved_route = cls(name, description, route, real_time_route,route_image,start_time, duration, points)
+        return saved_route	
+
     def to_dict(self):
         return  {
             "name": self.name,
+            "description": self.description,
             "route": self.route.to_dict(),
+            "real_time_route": self.real_time_route.to_dict(),
+            "route_image": self.route_image,
             "start_time": self.start_time,
             "duration": self.duration,
-            "real_time_route": self.real_time_route.to_dict(),
             "points": self.points,
-            "description": self.description,
-            "route_image": self.route_image,
         }
 
 class RecentRoute: 
