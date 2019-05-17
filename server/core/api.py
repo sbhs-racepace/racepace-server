@@ -1,6 +1,7 @@
 import asyncio
 import functools
 import bson
+import dateutil.parser
 
 from io import BytesIO
 
@@ -103,11 +104,12 @@ async def update_user(request, user, user_id):
     Abdur Raqueeb
     """
     data = request.json
-    token = request.token
     password = data.get('password')
-    salt = bcrypt.gensalt()
-    user.credentials.password = bcrypt.hashpw(password, salt)
-    await user.update()
+    if password:
+        salt = bcrypt.gensalt()
+        user.credentials.password = bcrypt.hashpw(password, salt)
+        await user.update()
+    
     return response.json({'success': True})
 
 @api.delete('/users/<user_id:int>')
@@ -132,7 +134,7 @@ async def register(request):
     return response.json({
         'success': True,
 	    'token': token.decode("utf-8"),
-	    'user_id': user.user_id}
+	    'user_id': user.id}
     )
 
 @api.post('/login')
@@ -155,7 +157,7 @@ async def login(request):
     resp = {
         'success': True,
         'token': token.decode("utf-8"),
-        'user_id': user.user_id
+        'user_id': user.id
     }
     return response.json(resp)
 
@@ -213,7 +215,7 @@ async def get_locations(request):
 	
 	groupLocations = {}
 	for user, locationPacket in locationCache.items():
-		if user.user_id in group.members:
+		if user.id in group.members:
 			groupLocations[user.full_name] = locationPacket
 	
 	return response.json(groupLocations)
@@ -234,7 +236,7 @@ async def save_route(request, user):
     # Saving Route Image
     route_image = route.generateStaticMap()
     await request.app.db.images.insert_one({
-        'user_id': user.user_id,
+        'user_id': user.id,
         'route_name': name,
         'route_image': route_image
     })
@@ -327,6 +329,33 @@ async def edit_group(request, user, group_id):
 async def delete_group(request, user, group_id):
     pass
 
+@api.get('/groups/<group_id>/messages')
+@authrequired
+async def get_previous_messages(request, user, group_id):
+    if not group_id == 'global':
+        abort(404) # groups not implemented yet
+    
+    before = dateutil.parser.parse(request.args.get('before'))
+    limit = 50
+
+    query = {
+        'group_id': group_id, 
+        'created_at': {
+            '$lte': before
+            }
+        }
+
+    cursor = request.app.db.messages.find(query).sort('created_at', -1)
+    cursor.limit(limit)
+
+    messages = []
+
+    async for msg in cursor:
+        msg['created_at'] = msg['created_at'].timestamp()
+        messages.append(msg)
+
+    return response.json(messages)
+
 @api.get('/route_images/<user_id>/<route_name>')
 async def get_route_image(request,user_id,route_name):
     doc = await request.app.db.images.find_one({'user_id': user_id, 'route_name':route_name})
@@ -341,13 +370,20 @@ async def get_user_image(request,user_id):
         abort(404)
     return response.raw(doc['avatar'], content_type='image/png')
 
+@api.patch('/avatars/update')
+@authrequired
+async def update_user_image(request, user):
+    avatar = request.body 
+    await request.app.db.images.update_one({'user_id': user.id}, {'$set': {'avatar': avatar}})
+    return response.json({'success': True})
+
 @api.post('/find_friends')
 @authrequired
 @jsonrequired
 async def find_friends(request,user):
     name = request.json.name
     results = request.app.db.users.find({"full_name":{"$regex":name}})
-    results = [{"user_id":user.user_id,"name":user.name,"bio":user.bio} for user in results]
+    results = [{"user_id":user.id,"name":user.name,"bio":user.bio} for user in results]
     return response.json(results)
         
     

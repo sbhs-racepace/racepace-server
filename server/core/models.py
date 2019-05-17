@@ -21,21 +21,27 @@ class User:
     Abdur Raqeeb/Jason Yu
     """
 
-    def __init__(self, app, user_id, credentials, full_name, dob, username, avatar, recent_routes, groups, stats, real_time_route, saved_routes, followers, following):
+    def __init__(self, app, user_id, **kwargs):
         self.app = app
-        self.user_id = user_id
-        self.credentials = credentials
-        self.dob = dob
-        self.username = username
-        self.avatar = avatar
-        self.full_name = full_name
-        self.recent_routes = recent_routes
-        self.groups = groups
-        self.stats = stats
-        self.saved_routes = saved_routes
-        self.real_time_route = real_time_route
-        self.followers = followers # Holds user id
-        self.following = following # Holds user id
+        self.id = user_id
+        self.credentials = kwargs.get('credentials')
+        self.dob = kwargs.get('dob')
+        self.username = kwargs.get('username')
+        self.full_name = kwargs.get('full_name')
+        self.recent_routes = kwargs.get('recent_routes')
+        self.groups = kwargs.get('groups')
+        self.stats = kwargs.get('stats')
+        self.saved_routes = kwargs.get('saved_routes')
+        self.real_time_route = kwargs.get('real_time_route')
+        self.followers = kwargs.get('followers') # Holds user id
+        self.following = kwargs.get('following') # Holds user id
+
+    def __str__(self):
+        return self.username
+
+    @property
+    def avatar_url(self):
+        return f'https://racepace-sbhs.herokuapp.com/api/avatars/{self.id}.png'
 
     @classmethod
     def from_data(cls, app, data):
@@ -44,18 +50,21 @@ class User:
         Modifies certain variables to be in python data type
         Abdur Raqeeb/Jason Yu
         """
-        data['user_id']         = data.pop('_id')
+
+        user_id = data.pop('_id')
+
         data['saved_routes']    = [SavedRoute.from_data(route) for route in data['saved_routes']]
         data['recent_routes']   = [RecentRoute.from_data(route) for route in data['recent_routes']]
-        data['groups']          = [Group(app, g) for g in data.get('groups', [])]
+        data['groups']          = {g['_id'] : Group(app, g) for g in data.get('groups', [])}
         data['credentials']     = Credentials(**(data['credentials']))
         data['stats']           = UserStats(**(data['stats']))
-        data['real_time_route'] = RealTimeRoute.from_data(**(data['real_time_route']))
-        user = cls(app, **data)
+        data['real_time_route'] = RealTimeRoute.from_data(data['real_time_route'])
+
+        user = cls(app, user_id, **data)
         return user
 
     def __hash__(self):
-        return self.user_id
+        return self.id
 
     def check_password(self, password):
         """
@@ -70,14 +79,14 @@ class User:
         Abdur Raqeeb
         """
         document = self.to_dict()
-        await self.app.db.users.update_one({'user_id': self.user_id}, document)
+        await self.app.db.users.update_one({'user_id': self.id}, document)
     
     async def delete(self):
         """
         Deletes user from database
         Abdur Raqeeb
         """
-        await self.app.db.users.delete_one({'user_id': self.user_id})
+        await self.app.db.users.delete_one({'user_id': self.id})
     
     async def create_group(self, name):
         
@@ -86,12 +95,12 @@ class User:
         await self.app.db.groups.insert_one({   
             '_id': group_id,
             'name': name,
-            'owner_id': self.user_id,
-            'members': [ self.user_id ],
+            'owner_id': self.id,
+            'members': [ self.id ],
             'messages': []
             })
         await self.app.db.users.update_one(
-            {'_id':self.user_id},
+            {'_id':self.id},
             {'$addToSet': {'groups': group_id}}
         )
 
@@ -101,10 +110,10 @@ class User:
         """
         await self.app.db.groups.update_one(
             {'_id':group_id},
-            {'$addToSet': {'members':self.user_id}}
+            {'$addToSet': {'members':self.id}}
         )
         await self.app.db.users.update_one(
-            {'_id':self.user_id},
+            {'_id':self.id},
             {'$addToSet': {'groups': group_id}}
         )
     
@@ -114,10 +123,10 @@ class User:
         """
         await self.app.db.groups.update_one(
             {'_id':group_id},
-            {'$pull': {'members':self.user_id}}
+            {'$pull': {'members':self.id}}
         )
         await self.app.db.users.update_one(
-            {'_id':self.user_id},
+            {'_id':self.id},
             {'$pull': {'groups': group_id}}
         )
     
@@ -127,10 +136,10 @@ class User:
         Abdur Raqeeb/ Jason Yu
         """
         return {
-            "_id": self.user_id,
+            "_id": self.id,
             "full_name": self.full_name,
             "username": self.username,
-            "avatar": self.avatar,
+            "avatar_url": self.avatar_url,
             "dob": self.dob,
             "recent_routes": [recent_route.to_dict() for recent_route in self.recent_routes],
             "saved_routes": {saved_route.name:saved_route.to_dict() for saved_route in self.saved_routes},
@@ -227,7 +236,8 @@ class RealTimeRoute:
         return self.get_distance(locations)
 
     @classmethod
-    def from_data(cls, location_history):
+    def from_data(cls, data):
+        location_history = data.get('location_history', [])
         location_history = [LocationPacket(location_packet.location, location_packet.time) for location_packet in location_history]
         real_time_route = cls(location_history)
         return real_time_route
@@ -455,7 +465,7 @@ class UserBase:
         if not data: 
             return None
         user = User.from_data(self.app, data)
-        self.user_cache[user.user_id] = user
+        self.user_cache[user.id] = user
         return user
 
     async def register(self, request):
@@ -495,7 +505,6 @@ class UserBase:
             "saved_routes": {},
             "full_name": full_name,
             "username": username,
-            "avatar": avatar,
             "dob": dob,
             "stats": initial_stats.to_dict(),
             "credentials": {
@@ -524,13 +533,13 @@ class UserBase:
             return user.credentials.token
         #Generates info for token
         payload = {
-            'sub': user.user_id,
+            'sub': user.id,
             'iat': datetime.datetime.utcnow()
         }
         user.credentials.token = token = jwt.encode(payload, self.app.secret)
         # Adds token to credentials
         await self.app.db.users.update_one(
-            {'user_id': user.user_id}, 
+            {'user_id': user.id}, 
             {'$set': {'credentials.token': token}}
         )
         

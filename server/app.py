@@ -6,6 +6,7 @@ import traceback
 import os
 import sys
 from urllib.parse import parse_qs
+from datetime import datetime
 
 import socketio
 import aiohttp
@@ -24,7 +25,7 @@ from core.api import api
 from core.route import Route
 from core.models import Overpass, Color, User, UserBase, RealTimeRoute
 from core.decorators import jsonrequired, memoized, authrequired, validate_token
-from core.utils import run_with_ngrok, snowflake
+from core.utils import run_with_ngrok, snowflake, parse_snowflake
 from core import config
 
 sio = socketio.AsyncServer(async_mode='sanic')
@@ -124,21 +125,26 @@ async def index(request):
     return response.json(data)
 
 class Message:
-    def __init__(self, id, author, group, content=None, image=None):
+    def __init__(self, id, author, group_id, content=None, image=None):
         self.id = id
         self.author = author
-        self.group = group
+        self.group_id = group_id
         self.content = content
         self.image = image
+    
+    @property
+    def created_at(self):
+        return parse_snowflake(int(self.id))[0]
 
     def to_dict(self):
         return {
+            '_id': self.id,
             'content': self.content,
             'image': self.image,
-            'group': self.group.id,
-            'message_id': self.id,
+            'group_id': self.group_id,
+            'created_at': self.created_at,
             'author': {
-                "user_id": self.author.id,
+                "_id": self.author.id,
                 "full_name": self.author.full_name,
                 "username": self.author.username,
                 "avatar_url": self.author.avatar_url
@@ -146,40 +152,44 @@ class Message:
         }
 
     @classmethod
-    async def create(self, app, user, data):
+    async def create(cls, app, user, data):
         message_id = snowflake()
-        group = user.groups.get(data['group_id'])
         content = data.get('content')
         image = data.get('image')
-        msg = cls(message_id, user, group, content, image)
-        await self.app.db.groups.update_one(
-            {'group_id': self.group.id},
-            {'$push': {'messages': msg.to_dict()}}
-            )
+        msg = cls(message_id, user, data['group_id'], content, image)
+        
+
+        data = msg.to_dict()
+        data['created_at'] = datetime.utcfromtimestamp(data['created_at'])
+        await app.db.messages.insert_one(data)
+        return msg
 
 @sio.on('connect')
 async def on_connect(sid, environ):
-    try:
-        qs = environ['QUERY_STRING']
-        token = parse_qs(qs)['token'][0]
-        user_id = jwt.decode(token, app.secret)['sub']
-        user = await app.users.find_account(user_id=user_id)
 
-        for group in user.groups:
-            sio.enter_room(sid, group.id)
+    qs = environ['QUERY_STRING']
+    token = parse_qs(qs)['token'][0]
+    user_id = jwt.decode(token, app.secret)['sub']
+    user = await app.users.find_account(_id=user_id)
 
-        await sio.save_session(sid, {'user': user})
-        print('Connected', user_id)
-    except:
-        print('Connection refused')
+    if not user:
+        print('Unknown user, Connection rejected')
         return False
 
-@sio.on('message')
+    for group in user.groups.values():
+        sio.enter_room(sid, group.id)
+    
+    sio.enter_room(sid, 'global')
+
+    await sio.save_session(sid, {'user': user})
+    print('Connected', user.username, user_id)
+
+@sio.on('global_message')
 async def on_message(sid, data):
     user = (await sio.get_session(sid))['user']
-    group = user.groups.get(data['group_id'])
-    if not group: return
     message = await Message.create(app, user, data)
+    print(message.author, message.content)
+    await sio.emit('global_message', data=message.to_dict(), room='global', skip_sid=sid)
 
 @sio.on('start_run')
 async def on_start_run(sid):

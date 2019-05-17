@@ -15,6 +15,7 @@ python-decouple = "*"
 pillow = "*"
 staticmap = "*"
 python-socketio = "*"
+python-dateutil = "*"
 
 [dev-packages]
 requests = "*"

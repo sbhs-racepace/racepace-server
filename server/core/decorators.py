@@ -3,6 +3,7 @@ import functools
 from functools import wraps
 from sanic.exceptions import abort
 import time
+import jwt
 
 def jsonrequired(func):
     """
@@ -32,9 +33,8 @@ def authrequired(func):
     """    
     @wraps(func)
     async def wrapper(request, *args, **kwargs):
-        user = await request.app.users.find_account(
-            **{'credentials.token': str(request.token).encode('ascii')}
-            )
+        user_id = jwt.decode(request.token, request.app.secret)['sub']
+        user = await request.app.users.find_account(_id=user_id)
         if user:
             return await func(request, user, *args, **kwargs)
         else:
