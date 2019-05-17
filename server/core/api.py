@@ -259,10 +259,8 @@ async def save_recent_route(request, user):
     Jason Yu
     """
     data = request.json
-    start_time = data.get('start_time')
-    duration = data.get('duration')
     route = Route.from_data(**data.get('route'))
-    recent_route = RecentRoute(route, start_time, duration)
+    recent_route = RecentRoute.from_real_time_route(route, user.real_time_route)
     curr_num_recent_routes = len(user.recent_routes)
     #Makes sure that only the most recent routes are saved
     max_recent_routes = 10
