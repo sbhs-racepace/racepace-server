@@ -223,7 +223,7 @@ class UserBase:
     async def register(self, request):
         """
         Registers user to database
-        Abdur Raqeeb
+        Abdur Raqeeb/ Jason Yu
         """
         data = request.json
         # Extracting fields
