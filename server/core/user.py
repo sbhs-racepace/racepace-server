@@ -241,6 +241,8 @@ class UserBase:
         query = {'credentials.email': email}
         exists = await self.find_account(**query)
         if exists: abort(403, 'Email already in use.') 
+        # Time
+        time = Time(None,None,None,None,None,None)
         # Unique User Id
         salt = bcrypt.gensalt()
         hashed = bcrypt.hashpw(password, salt)
@@ -266,7 +268,7 @@ class UserBase:
             },
             "real_time_route" : { 
                 "location_history" : [],
-                "start_time": Time(None,None,None,None,None,None)
+                "start_time": time.to_dict()
             },
             "groups": [],
             "followers": [],
