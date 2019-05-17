@@ -259,7 +259,6 @@ class RealTimeRoute:
             raise Exception('Period exceeds duration')
 
         location_packets = self.location_history[len(self).location_history-1-index:]
-        locations = 
         total_distance = RealTimeRoute.get_distance(locations)
 
         location_count = int(period / self.update_freq)
