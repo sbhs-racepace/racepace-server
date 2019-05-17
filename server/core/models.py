@@ -14,6 +14,7 @@ from sanic.exceptions import abort
 from .utils import snowflake
 
 from .route import Route 
+from .points import *
 
 class User:
     """
@@ -212,22 +213,20 @@ class RealTimeRoute:
     Real time route might be to connect multiple people running same race
     Jason Yu
     """
-    def __init__(self, location_history=[]):
+    def __init__(self, start_time, location_history=[]):
         self.location_history = location_history
+        self.start_time = start_time
 
     @property
     def duration(self):
-        if len(self.location_history) == 0:
-            return 0
-        else:
-            return self.start_time - self.end_time
+        return 0 if len(self.location_history) == 0 else int(self.end - self.start)
 
     @property 
-    def start_time(self):
+    def start(self):
         return self.location_history[0].time
 
     @property 
-    def end_time(self):
+    def end(self):
         return self.location_history[0].time
 
     @property 
@@ -235,11 +234,19 @@ class RealTimeRoute:
         locations = [location_packet.location for location_packet in self.location_history]
         return self.get_distance(locations)
 
+    @property 
+    def average_speed(self):
+        if self.duration == 0:
+            raise Exception('Not enough location points logged')
+        else:
+            return self.distance / self.duration
+
     @classmethod
     def from_data(cls, data):
-        location_history = data.get('location_history', [])
-        location_history = [LocationPacket(location_packet.location, location_packet.time) for location_packet in location_history]
-        real_time_route = cls(location_history)
+        json_location_history = data.get('location_history', [])
+        start_time = Time(**data.get('start_time'))
+        location_history = [LocationPacket(location_packet.location, location_packet.time) for location_packet in json_location_history]
+        real_time_route = cls(start_time, location_history)
         return real_time_route
 
     def update_location_history(self, location, time):
@@ -247,36 +254,29 @@ class RealTimeRoute:
 
     def calculate_speed(self, period):
         """
-        Speed for the last period of time
+        Speed for the approximately last period of time
         Jason Yu
         """
-        most_current_time = self.end_time
-        for index in reversed(self.location_history):
-            if most_current_time - self.location_history[index].time >= time:
-                time = most_current_time - self.location_history[index].time
-                break
+        if self.duration < period:
+            return self.average_speed
         else:
-            raise Exception('Period exceeds duration')
-
-        location_packets = self.location_history[len(self).location_history-1-index:]
-        total_distance = RealTimeRoute.get_distance(locations)
-
-        location_count = int(period / self.update_freq)
-        if location_count < 2: 
-            raise Exception("Period not long enough")
-        else:
-            history_length = len(self.location_history)
-            locations = [location_packet.location for location_packet in self.location_history[(history_length-1)-location_count:]]
-            total_distance = RealTimeRoute.get_distance(locations)
-            speed = total_distance / period
-            return speed
+            for index,location_packet in reversed(list(enumerate(self.location_history))):
+                if (self.end - location_packet.time) >= period:
+                    time = self.end - location_packet.time
+                    # Location packets within period of time
+                    location_packets = self.location_history[index:]
+                    locations = [location_packet.location for location_packet in location_packets]
+                    total_distance = RealTimeRoute.get_distance(locations)
+                    return total_distance / time
+            else:
+                raise Exception('No Valid Period of time')
 
     @staticmethod
     def get_distance(locations):
         return Route.get_route_distance(locations)
 
     @staticmethod
-    def calculate_pace(speed):
+    def speed_to_pace(speed):
         """
         With Speed in m/s, returns a json pace
         """
@@ -288,9 +288,15 @@ class RealTimeRoute:
     def to_dict(self):
         return { 
             "location_history" : [location_packet.to_dict() for location_packet in self.location_history],
+            "start_time": self.start_time.to_dict()
         }
 
 class LocationPacket:
+    """
+    Class that holds location in point form
+    and time in float form which is seconds from inception
+    Jason Yu
+    """
     def __init__(self, location, time):
         self.location = location
         self.time = time
@@ -302,35 +308,36 @@ class LocationPacket:
             'time': self.time
         }
 
+class Time:
+    """
+    Using custom time due to python time not have to dict
+    Jason Yu
+    """
+    def __init__(self, year, month, day, hour, minute, second):
+        self.year = year
+        self.month = month
+        self.day = day
+        self.hour = hour
+        self.minute = minute
+        self.second = second
+    
+    def to_dict(self):
+        return {
+            'year': self.year,
+            'month': self.month,
+            'day': self.day,
+            'hour': self.hour,
+            'minute': self.minute,
+            'second': self.second,
+        }
+
 class RunningSession:
     """
     Running Session holds multiple people running the same race
     Coaches can view runners realtime data
     """
-    def __init__(self, users):
-        self.runners = dict((user.fullname, user) for user in users)
-
-    def get_speeds(self, period):
-        information = {}
-        for user_name,user in self.runners.items(): 
-            speed = user.running_session.calculate_speed(period)
-            information[user_name] = speed
-        return information
-
-    def get_average_speeds(self):
-        information = {}
-        for user_name,user in self.runners.items(): 
-            speed = user.running_session.calculate_average_speed()
-            information[user_name] = speed
-        return information
-
-    def get_distances(self):
-        information = {}
-        for user_name,user in self.runners.items(): 
-            locations = user.running_session.location_history
-            distance = RealTimeRoute.get_distance(locations)
-            information[user_name] = distance
-        return information
+    def __init__(self, runners):
+        self.runners = runners
 
 @dataclass
 class UserStats:
@@ -365,20 +372,16 @@ class UserStats:
             "cadence": self.cadence,
         }
 
-class SavedRoute: 
+class SavedRoute(RecentRoute): 
     """
     A route that has been saved by the user to be shared on feed
     Jason Yu
     """
-    def __init__(self, name, description, route, real_time_route,route_image,start_time, duration, points):
+    def __init__(self, name, description, route, real_time_route,route_image, points):
+        super.__init__(route,real_time_route,points)
         self.name = name
         self.description = description	
-        self.route = route
-        self.real_time_route = real_time_route 
         self.route_image = route_image
-        self.start_time = start_time	
-        self.duration = duration
-        self.points = points
 
     @classmethod
     def from_data(cls, data):
@@ -397,10 +400,8 @@ class SavedRoute:
         Jason Yu
         """
         route = Route.from_data(**(route))
-        start_time = real_time_route.start_time
-        duration = real_time_route.duration
-        points = real_time_route.get_points()
-        saved_route = cls(name, description, route, real_time_route,route_image,start_time, duration, points)
+        points = run_stats(route.distance, real_time_route.duration)
+        saved_route = cls(name, description, route, real_time_route,route_image, points)
         return saved_route	
 
     def to_dict(self):
@@ -410,8 +411,6 @@ class SavedRoute:
             "route": self.route.to_dict(),
             "real_time_route": self.real_time_route.to_dict(),
             "route_image": self.route_image,
-            "start_time": self.start_time,
-            "duration": self.duration,
             "points": self.points,
         }
 
@@ -420,11 +419,21 @@ class RecentRoute:
     All recent routes that user has finish are automatically stored
     Jason Yu
     """
-    def __init__(self, route, start_time, duration, real_time_route):
+    def __init__(self, route, real_time_route, points):
         self.route = route
-        self.start_time = start_time
-        self.duration = duration
         self.real_time_route = real_time_route
+        self.points = points
+
+    @classmethod
+    def from_real_time_route(cls, real_time_route, route):
+        """
+        Generates Saved Route class from real time data
+        Jason Yu
+        """
+        route = Route.from_data(**(route))
+        points = run_stats(route.distance, real_time_route.duration)
+        saved_route = cls(route, real_time_route, points)
+        return saved_route	
 
     @classmethod
     def from_data(cls, data):
@@ -438,10 +447,9 @@ class RecentRoute:
     
     def to_dict(self):
         return  {
-            "start_time": self.start_time,
-            "duration": self.duration,
             "route": self.route.to_dict(),
             "real_time_route": self.real_time_route.to_dict(),
+            "points": points,
         }
 
 class UserBase:
