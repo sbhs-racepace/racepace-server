@@ -23,7 +23,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 
 from core.api import api
 from core.route_generation import Route
-from core.routes import RealTimeRoute
+from core.route import RealTimeRoute
 from core.misc import Overpass, Color
 from core.user import User, UserBase
 from core.decorators import jsonrequired, memoized, authrequired, validate_token
