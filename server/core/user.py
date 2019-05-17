@@ -9,7 +9,7 @@ from sanic.exceptions import abort
 
 from .utils import snowflake
 from .route import SavedRoute, RecentRoute, RealTimeRoute
-from .groups import Group
+from .group import Group
 
 class User:
     """
