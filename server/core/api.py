@@ -9,8 +9,10 @@ from sanic import Blueprint, response
 from sanic.exceptions import abort
 from sanic.log import logger
 
-from core.route import Route, Point, Node, Way
-from core.models import Overpass, Color, User, RealTimeRoute, RunningSession, SavedRoute, RecentRoute
+from core.route_generation import Route, Point, Node, Way
+from core.models import RealTimeRoute, RunningSession, SavedRoute, RecentRoute
+from core.misc import Overpass, Color
+from core.user import User
 from core.decorators import jsonrequired, memoized, authrequired
 
 
@@ -383,14 +385,3 @@ async def find_friends(request,user):
     results = request.app.db.users.find({"full_name":{"$regex":name}})
     results = [{"user_id":user.id,"name":user.name,"bio":user.bio} for user in results]
     return response.json(results)
-        
-    
-
-
-
-
-
-
-
-
-
