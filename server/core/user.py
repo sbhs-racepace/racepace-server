@@ -8,7 +8,8 @@ from sanic import Sanic
 from sanic.exceptions import abort
 
 from .utils import snowflake
-from .models import SavedRoute, RecentRoute
+from .routes import SavedRoute, RecentRoute, RealTimeRoute
+from .groups import Group
 
 class User:
     """

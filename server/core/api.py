@@ -10,7 +10,7 @@ from sanic.exceptions import abort
 from sanic.log import logger
 
 from core.route_generation import Route, Point, Node, Way
-from core.models import RealTimeRoute, RunningSession, SavedRoute, RecentRoute
+from core.routes import RealTimeRoute, RunningSession, SavedRoute, RecentRoute
 from core.misc import Overpass, Color
 from core.user import User
 from core.decorators import jsonrequired, memoized, authrequired
