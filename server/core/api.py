@@ -229,6 +229,7 @@ async def save_route(request, user):
     data = request.json
     name = data.get('name')
     description = data.get('description')
+    route = data.get('route')
     real_time_route = user.real_time_route 
     # Saving Route Image
     route_image = route.generateStaticMap()
@@ -237,7 +238,8 @@ async def save_route(request, user):
         'route_name': name,
         'route_image': route_image
     })
-    saved_route = SavedRoute.from_real_time_route(name, description, route_image, real_time_route)
+    # From data func which specifically parses real time route
+    saved_route = SavedRoute.from_real_time_route(name, description, route_image, real_time_route, route)
     # Adding Saved Route to DB
     user.saved_routes[name] = saved_route.to_dict()
     user.update()

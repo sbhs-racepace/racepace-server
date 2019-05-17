@@ -211,10 +211,14 @@ class RealTimeRoute:
         if len(self.location_history) == 0:
             return 0
         else:
-            return self.location_history[-1].time - self.location_history[0].time
+            return self.start_time - self.end_time
 
     @property 
     def start_time(self):
+        return self.location_history[0].time
+
+    @property 
+    def end_time(self):
         return self.location_history[0].time
 
     @property 
@@ -236,6 +240,18 @@ class RealTimeRoute:
         Speed for the last period of time
         Jason Yu
         """
+        most_current_time = self.end_time
+        for index in reversed(self.location_history):
+            if most_current_time - self.location_history[index].time >= time:
+                time = most_current_time - self.location_history[index].time
+                break
+        else:
+            raise Exception('Period exceeds duration')
+
+        location_packets = self.location_history[len(self).location_history-1-index:]
+        locations = 
+        total_distance = RealTimeRoute.get_distance(locations)
+
         location_count = int(period / self.update_freq)
         if location_count < 2: 
             raise Exception("Period not long enough")
@@ -371,6 +387,7 @@ class SavedRoute:
         Generates Saved Route class from real time data
         Jason Yu
         """
+        route = Route.from_data(**(route))
         start_time = real_time_route.start_time
         duration = real_time_route.duration
         points = real_time_route.get_points()
