@@ -139,3 +139,5 @@ Thumbs.db
 UserInterfaceState.xcuserstate
 
 *.DS_Store
+.expo/packager-info.json
+.expo/settings.json
