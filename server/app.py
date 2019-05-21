@@ -197,12 +197,9 @@ async def on_message(sid, data):
 async def on_start_run(sid, data):
     user = (await sio.get_session(sid))['user']
     start_time = data['start_time']
-    user.real_time_route = RealTimeRoute(start_time,location_history=[])
+    route = data['route']
+    user.real_time_route = RealTimeRoute(start_time,location_history=[],route=route)
     user.update()
-
-@sio.on('end_run')
-async def on_run_start(sid):
-    user = (await sio.get_session(sid))['user']
 
 @sio.on('location_update')
 async def on_location_update(sid, data):
