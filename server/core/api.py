@@ -233,17 +233,19 @@ async def save_route(request, user):
     data = request.json
     name = data.get('name')
     description = data.get('description')
-    route = data.get('route')
+    # Retrieving user real time route 
     real_time_route = user.real_time_route 
     # Saving Route Image
-    route_image = route.generateStaticMap()
+    route_image = real_time_route.route.generateStaticMap()
     await request.app.db.images.insert_one({
         'user_id': user.id,
         'route_name': name,
         'route_image': route_image
     })
     # From data func which specifically parses real time route
-    saved_route = SavedRoute.from_real_time_route(name, description, route_image, real_time_route, route)
+    saved_route = SavedRoute.from_real_time_route(name, description, route_image, real_time_route)
+    # Update user points
+    user.stats.points += saved_route.points
     # Adding Saved Route to DB
     user.saved_routes[name] = saved_route.to_dict()
     user.update()
@@ -260,9 +262,7 @@ async def save_recent_route(request, user):
     Sends current location of user
     Jason Yu
     """
-    data = request.json
-    route = Route.from_data(**data.get('route'))
-    recent_route = RecentRoute.from_real_time_route(route, user.real_time_route)
+    recent_route = RecentRoute.from_real_time_route(user.real_time_route)
     curr_num_recent_routes = len(user.recent_routes)
     #Makes sure that only the most recent routes are saved
     max_recent_routes = 10
@@ -271,6 +271,8 @@ async def save_recent_route(request, user):
     else:
         user.recent_routes = user.recent_routes[curr_num_recent_routes+1-max_recent_routes:]
         user.recent_routes.append(recent_route.to_dict())
+    #Update Points
+    user.stats.points += recent_route.points
     #Updating DB
     user.update()
     resp = {
@@ -309,6 +311,27 @@ async def get_recent_routes(request, user):
         'recent_routes': recent_routes,
     }
     return response.json(resp)
+
+@api.post('/get_run_info')
+@authrequired
+@jsonrequired
+async def get_run_info(request, user):
+    """
+    Gets pace of user
+    Jason Yu
+    """
+    data = request.json
+    period = data.get('period')
+    speed = user.real_time_route.calculate_speed(period)
+    pace = RealTimeRoute.speed_to_pace(speed)
+    distance = user.real_time_route.distance
+    resp = {
+        'success': True,
+        'pace': pace,
+        'distance': distance,
+    }
+    return response.json(resp)
+
 
 @api.post('/groups/create')
 @authrequired
