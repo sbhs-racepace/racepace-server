@@ -321,7 +321,7 @@ async def get_run_info(request, user):
     Jason Yu
     """
     data = request.json
-    period = data.get('period')
+    period = data.get('period',5)
     speed = user.real_time_route.calculate_speed(period)
     pace = RealTimeRoute.speed_to_pace(speed)
     distance = user.real_time_route.distance
