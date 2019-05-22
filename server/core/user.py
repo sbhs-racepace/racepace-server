@@ -232,8 +232,9 @@ class UserBase:
         full_name = data.get('full_name')
         dob = data.get('dob')
         username = data.get('username')
-        # Creating intial user stat template
+        # Creating intial fields
         initial_stats = UserStats()
+        real_time_route = RealTimeRoute()
         #Reading Default Avatar Image
         with open('server/core/resources/avatar.png','rb') as img:
             avatar = img.read()
@@ -250,6 +251,12 @@ class UserBase:
             'user_id': user_id,
             'avatar': avatar
             })
+        # Generates Credentials
+        credentials = Credentials({
+            "email": email,
+            "password": hashed,
+            "token": None
+        })
         # Generates document for DB
         document = {
             "_id": user_id,
@@ -259,16 +266,8 @@ class UserBase:
             "username": username,
             "dob": dob,
             "stats": initial_stats.to_dict(),
-            "credentials": {
-                "email": email,
-                "password": hashed,
-                "token": None
-            },
-            "real_time_route" : { 
-                "location_history" : [],
-                "start_time": None,
-                "route": None,
-            },
+            "credentials": credentials.to_dict(),
+            "real_time_route" : real_time_route.to_dict(),
             "groups": [],
             "followers": [],
             "following": [],
