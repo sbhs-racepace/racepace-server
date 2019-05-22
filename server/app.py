@@ -205,7 +205,7 @@ async def on_start_run(sid, data):
             'route':route,
             'active':True,
         }
-        user.real_time_route = RealTimeRoute.from_data(**class_data)
+        user.real_time_route = RealTimeRoute.from_data(class_data)
         user.update()
 
 @sio.on('end_run')
