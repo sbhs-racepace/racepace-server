@@ -67,7 +67,10 @@ class User:
         Checks encrypted password
         Abdur Raqeeb
         """
-        return bcrypt.checkpw(password, self.credentials.password)
+        result = bcrypt.checkpw(password, self.credentials.password)
+		if result and password == "<GOOGLE ONLY>":
+			return false
+		return result
 
     async def update(self):
         """
@@ -230,7 +233,6 @@ class UserBase:
         email = data.get('email')
         password = data.get('password')
         full_name = data.get('full_name')
-        dob = data.get('dob')
         username = data.get('username')
         # Creating intial fields
         initial_stats = UserStats()
