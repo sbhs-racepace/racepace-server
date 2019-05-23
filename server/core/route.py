@@ -81,7 +81,7 @@ class RealTimeRoute:
         With Speed in m/s, returns a json pace
         """
         if speed is None: 
-            return {'minutes':'NA','seconds':'NA'}
+            return {'minutes':'--','seconds':'--'}
         else:
             total_seconds = int(1000 / speed)
             minutes = int(total_seconds / 60)
