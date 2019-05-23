@@ -161,8 +161,7 @@ class RecentRoute:
         Generates Saved Route class from real time data
         Jason Yu
         """
-        route = real_time_route.route
-        points = run_stats(route.distance, real_time_route.current_duration)
+        points = run_stats(real_time_route.current_distance, real_time_route.current_duration)
         saved_route = cls(real_time_route, points)
         return saved_route	
 
@@ -209,8 +208,7 @@ class SavedRoute(RecentRoute):
         Generates Saved Route class from real time data
         Jason Yu
         """
-        distance = real_time_route.current_distance
-        points = run_stats(distance, real_time_route.current_duration)
+        points = run_stats(real_time_route.current_distance, real_time_route.current_duration)
         saved_route = cls(name, description, real_time_route,route_image, points)
         return saved_route	
 
