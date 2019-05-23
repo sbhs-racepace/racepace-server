@@ -232,6 +232,7 @@ class UserBase:
         # Extracting fields
         email = data.get('email')
         password = data.get('password')
+        dob = data.get('dob')
         full_name = data.get('full_name')
         username = data.get('username')
         # Creating intial fields
