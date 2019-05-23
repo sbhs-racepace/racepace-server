@@ -253,7 +253,6 @@ async def save_route(request, user):
 
 @api.post('/save_recent_route')
 @authrequired
-@jsonrequired
 async def save_recent_route(request, user):
     """
     Sends current location of user
