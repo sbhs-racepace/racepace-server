@@ -244,7 +244,7 @@ async def save_route(request, user):
     # Update user points
     user.stats.points += saved_route.points
     # Adding Saved Route to DB
-    user.saved_routes[name] = saved_route.to_dict()
+    user.saved_routes[name] = saved_route
     await user.replace()
     resp = {
         'success': True,
@@ -262,11 +262,9 @@ async def save_recent_route(request, user):
     curr_num_recent_routes = len(user.recent_routes)
     #Makes sure that only the most recent routes are saved
     max_recent_routes = 10
-    if (curr_num_recent_routes < max_recent_routes):
-        user.recent_routes.append(recent_route.to_dict())
-    else:
+    if (curr_num_recent_routes > max_recent_routes):
         user.recent_routes = user.recent_routes[curr_num_recent_routes+1-max_recent_routes:]
-        user.recent_routes.append(recent_route.to_dict())
+    user.recent_routes.append(recent_route)
     #Update Points
     user.stats.points += recent_route.points
     #Updating DB
