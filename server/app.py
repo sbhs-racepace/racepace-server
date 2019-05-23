@@ -190,7 +190,6 @@ async def on_connect(sid, environ):
 async def on_message(sid, data):
     user = (await sio.get_session(sid))['user']
     message = await Message.create(app, user, data)
-    print(message.author, message.content)
     await sio.emit('global_message', data=message.to_dict(), room='global', skip_sid=sid)
 
 @sio.on('start_run')

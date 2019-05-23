@@ -258,6 +258,8 @@ async def save_recent_route(request, user):
     Sends current location of user
     Jason Yu
     """
+    print('Saving route')
+    print(user.real_time_route.to_dict())
     recent_route = RecentRoute.from_real_time_route(user.real_time_route)
     curr_num_recent_routes = len(user.recent_routes)
     #Makes sure that only the most recent routes are saved
