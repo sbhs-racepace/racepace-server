@@ -1,4 +1,4 @@
-from .route_generation import Route 
+from .route_generation import Route, Point
 from .points import run_stats
 
 class RealTimeRoute: 
@@ -105,13 +105,13 @@ class LocationPacket:
     Jason Yu
     """
     def __init__(self, location, time):
-        self.location = location
+        self.location = Point(location.latitude,location.longitude)
         self.time = time
 
     def to_dict(self):
         return {
             'latitude': self.location.latitude,
-            'longitude': self.location.longitue,
+            'longitude': self.location.longitude,
             'time': self.time
         }
 
