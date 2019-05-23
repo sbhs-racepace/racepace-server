@@ -204,6 +204,8 @@ async def on_start_run(sid, data):
             'location_history': [],
             'route':route,
             'active':True,
+            'current_distance': 0,
+            'current_duration': 0,
         }
         user.real_time_route = RealTimeRoute.from_data(class_data)
         user.update()
