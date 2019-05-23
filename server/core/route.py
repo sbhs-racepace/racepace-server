@@ -105,7 +105,7 @@ class LocationPacket:
     Jason Yu
     """
     def __init__(self, location, time):
-        self.location = Point(location.latitude,location.longitude)
+        self.location = Point(location['latitude'],location['latitude'])
         self.time = time
 
     def to_dict(self):
