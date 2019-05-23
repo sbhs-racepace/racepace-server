@@ -72,13 +72,13 @@ class User:
             return false
         return result
 
-    async def update(self):
+    async def replace(self):
         """
         Updates user with current data
         Abdur Raqeeb
         """
         document = self.to_dict()
-        await self.app.db.users.update_one({'user_id': self.id}, document)
+        await self.app.db.users.replace_one({'user_id': self.id}, document)
     
     async def delete(self):
         """

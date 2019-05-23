@@ -110,7 +110,7 @@ async def update_user(request, user, user_id):
     if password:
         salt = bcrypt.gensalt()
         user.credentials.password = bcrypt.hashpw(password, salt)
-        await user.update()
+        await user.replace()
     
     return response.json({'success': True})
 
@@ -245,7 +245,7 @@ async def save_route(request, user):
     user.stats.points += saved_route.points
     # Adding Saved Route to DB
     user.saved_routes[name] = saved_route.to_dict()
-    await user.update()
+    await user.replace()
     resp = {
         'success': True,
     }
@@ -270,7 +270,7 @@ async def save_recent_route(request, user):
     #Update Points
     user.stats.points += recent_route.points
     #Updating DB
-    await user.update()
+    await user.replace()
     resp = {
         'success': True,
     }
