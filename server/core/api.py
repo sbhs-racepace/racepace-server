@@ -245,7 +245,7 @@ async def save_route(request, user):
     user.stats.points += saved_route.points
     # Adding Saved Route to DB
     user.saved_routes[name] = saved_route.to_dict()
-    user.update()
+    await user.update()
     resp = {
         'success': True,
     }
@@ -270,7 +270,7 @@ async def save_recent_route(request, user):
     #Update Points
     user.stats.points += recent_route.points
     #Updating DB
-    user.update()
+    await user.update()
     resp = {
         'success': True,
     }

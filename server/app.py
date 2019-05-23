@@ -208,12 +208,13 @@ async def on_start_run(sid, data):
             'current_duration': 0,
         }
         user.real_time_route = RealTimeRoute.from_data(class_data)
-        user.update()
+        await user.update()
 
 @sio.on('end_run')
 async def on_end_run(sid):
     user = (await sio.get_session(sid))['user']
     user.real_time_route.active = False
+    await user.update()
 
 @sio.on('location_update')
 async def on_location_update(sid, data):
@@ -225,7 +226,7 @@ async def on_location_update(sid, data):
     user.real_time_route.update_location_history(latitude, longitude, time)
     print('Updating User Location', latitude, longitude)
     print('Distance',user.real_time_route.current_distance)
-    user.update()
+    await user.update()
 
 @sio.on('disconnect')
 async def on_disconnect(sid):
