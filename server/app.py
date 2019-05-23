@@ -223,6 +223,8 @@ async def on_location_update(sid, data):
     longitude = location['longitude']
     time = data.get('time', None)
     user.real_time_route.update_location_history(latitude, longitude, time)
+    print('Updating User Location', latitude, longitude)
+    print('Distance',user.real_time_route.current_distance)
     user.update()
 
 @sio.on('disconnect')
