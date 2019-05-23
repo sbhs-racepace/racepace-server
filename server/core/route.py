@@ -46,7 +46,7 @@ class RealTimeRoute:
 
     def update_location_history(self, latitude, longitude, time):
         current_location_packet = LocationPacket(latitude, longitude, time)
-        if len(self.location_history) == 1:
+        if len(self.location_history) >= 1:
             previous_location_packet = self.location_history[-1]
             self.current_distance += current_location_packet.location - previous_location_packet.location
             self.current_duration += current_location_packet.time - previous_location_packet.time
