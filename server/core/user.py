@@ -68,9 +68,9 @@ class User:
         Abdur Raqeeb
         """
         result = bcrypt.checkpw(password, self.credentials.password)
-		if result and password == "<GOOGLE ONLY>":
-			return false
-		return result
+        if result and password == "<GOOGLE ONLY>":
+            return false
+        return result
 
     async def update(self):
         """

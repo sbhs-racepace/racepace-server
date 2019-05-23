@@ -166,25 +166,25 @@ async def login(request):
 @api.post('/google_login')
 @jsonrequired
 async def google_login(request):
-	"""
-	Registers or logs in with Google
-	"""
-	data = request.json
-	idToken = request.idToken
-	request = request.app.fetch("https://oauth2.googleapis.com/tokeninfo?id_token="+idToken)
-	resp = await asyncio.gather(request)
-	if resp.get("error"):
-		abort(403,"Google token invalid")
-	query = {'credentials.email': resp['email']}
-	user = await request.app.users.find_account(**query)
-	if user is None:
-		user = request.app.users.register({json: {
-			email: resp['email'],
-			password: "<GOOGLE ONLY>",
-			full_name: resp['name'],
-			username: resp['email']
-		}})
-	token = await request.app.users.issue_token(user)
+    """
+    Registers or logs in with Google
+    """
+    data = request.json
+    idToken = request.idToken
+    request = request.app.fetch("https://oauth2.googleapis.com/tokeninfo?id_token="+idToken)
+    resp = await asyncio.gather(request)
+    if resp.get("error"):
+        abort(403,"Google token invalid")
+    query = {'credentials.email': resp['email']}
+    user = await request.app.users.find_account(**query)
+    if user is None:
+        user = request.app.users.register({'json': {
+            'email': resp['email'],
+            'password': "<GOOGLE ONLY>",
+            'full_name': resp['name'],
+            'username': resp['email']
+        }})
+    token = await request.app.users.issue_token(user)
     resp = {
         'success': True,
         'token': token.decode("utf-8"),
