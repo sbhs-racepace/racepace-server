@@ -40,12 +40,12 @@ class RealTimeRoute:
         #Getting Location history from data
         current_distance = data.get('current_distance')
         current_duration = data.get('current_duration')
-        location_history = [LocationPacket(location_packet.location, location_packet.time) for location_packet in json_location_history]
+        location_history = [LocationPacket(location_packet.latitude, location_packet.longitude, location_packet.time) for location_packet in json_location_history]
         real_time_route = cls(start_time, location_history, route, active, current_distance, current_duration)
         return real_time_route
 
-    def update_location_history(self, location, time):
-        current_location_packet = LocationPacket(location,time)
+    def update_location_history(self, latitude, longitude, time):
+        current_location_packet = LocationPacket(latitude, longitude, time)
         if len(self.location_history) == 1:
             previous_location_packet = self.location_history[-1]
             self.current_distance += current_location_packet.location - previous_location_packet.location
@@ -104,8 +104,8 @@ class LocationPacket:
     and time in float form which is seconds from inception
     Jason Yu
     """
-    def __init__(self, location, time):
-        self.location = Point(location['latitude'],location['latitude'])
+    def __init__(self, latitude, longitude, time):
+        self.location = Point(latitude, longitude)
         self.time = time
 
     def to_dict(self):

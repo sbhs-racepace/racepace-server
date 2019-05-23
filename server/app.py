@@ -218,9 +218,11 @@ async def on_end_run(sid):
 @sio.on('location_update')
 async def on_location_update(sid, data):
     user = (await sio.get_session(sid))['user']
-    location = data.get('location', None)
+    location = data.get('location')
+    latitude = location['latitude']
+    longitude = location['longitude']
     time = data.get('time', None)
-    user.real_time_route.update_location_history(location, time)
+    user.real_time_route.update_location_history(latitude, longitude, time)
     user.update()
 
 @sio.on('disconnect')
