@@ -219,37 +219,6 @@ async def get_info(request):
     }
     return response.json(resp)
 
-@api.post('/send_real_time_location')
-@jsonrequired
-@authrequired
-async def update_runner_location(request, user):
-    """
-    Sends current location of user
-    Jason Yu
-    """
-    data = request.json
-    location = data.get('location')
-    time = data.get('time')
-	# Update User Location
-    user.updateOne({'$push': {'real_time_route.location_history': {"location": location, "time": time}}})
-    locationCache[user] = (location,time)
-    resp = {
-        'success': True,
-	}
-    return response.json(resp)
-
-@api.post('/get_locations')
-async def get_locations(request):
-	group_id = request.json.group_id
-	group = await request.app.group.from_db(group_id,request.app)
-	
-	groupLocations = {}
-	for user, locationPacket in locationCache.items():
-		if user.id in group.members:
-			groupLocations[user.full_name] = locationPacket
-	
-	return response.json(groupLocations)
-
 @api.post('/save_route')
 @jsonrequired
 @authrequired

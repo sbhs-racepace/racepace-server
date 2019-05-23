@@ -254,11 +254,11 @@ class UserBase:
             'avatar': avatar
             })
         # Generates Credentials
-        credentials = Credentials({
+        credentials = Credentials(**({
             "email": email,
             "password": hashed,
             "token": None
-        })
+        }))
         # Generates document for DB
         document = {
             "_id": user_id,

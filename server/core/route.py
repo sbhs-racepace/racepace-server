@@ -1,4 +1,4 @@
-from .route_generation import Route 
+from .route_generation import Route, Point
 from .points import run_stats
 
 class RealTimeRoute: 
@@ -8,31 +8,24 @@ class RealTimeRoute:
     Real time route might be to connect multiple people running same race
     Jason Yu
     """
-    def __init__(self, start_time=None, location_history=[], route=None, active=False):
+    def __init__(self, start_time=None, location_history=[], route=None, active=False, current_distance=0,current_duration=0):
         self.location_history = location_history
         self.start_time = start_time
         self.route = route
         self.active = active
-        self.current_distance = 0
-
-    @property
-    def duration(self):
-        return 0 if len(self.location_history) == 0 else self.end - self.start
-
-    @property 
-    def start(self):
-        return self.location_history[0].time
-
-    @property 
-    def end(self):
-        return self.location_history[0].time
+        self.current_distance = current_distance
+        self.current_duration = current_duration
 
     @property 
     def average_speed(self):
-        if self.duration == 0:
+        if self.current_duration == 0:
             return None 
         else:
-            return self.current_distance / self.duration
+            return self.current_distance / self.current_duration
+
+    @property 
+    def most_recent_time(self):
+        return self.location_history[-1].time
 
     @classmethod
     def from_data(cls, data):
@@ -45,28 +38,32 @@ class RealTimeRoute:
         data_route = data.get('route', None)
         route = None if data_route is None else Route.from_data(**data_route)
         #Getting Location history from data
+        current_distance = data.get('current_distance')
+        current_duration = data.get('current_duration')
         location_history = [LocationPacket(location_packet.location, location_packet.time) for location_packet in json_location_history]
-        real_time_route = cls(start_time, location_history, route, active)
+        real_time_route = cls(start_time, location_history, route, active, current_distance, current_duration)
         return real_time_route
 
     def update_location_history(self, location, time):
-        previous_location_packet = self.location_history[-1]
         current_location_packet = LocationPacket(location,time)
+        if len(self.location_history) == 1:
+            previous_location_packet = self.location_history[-1]
+            self.current_distance += current_location_packet.location - previous_location_packet.location
+            self.current_duration += current_location_packet.time - previous_location_packet.time
         self.location_history.append(current_location_packet)
-        self.current_distance += current_location_packet.location - previous_location_packet.location
 
     def calculate_speed(self, period):
         """
         Speed for the approximately last period of time
         Jason Yu
         """
-        if self.duration < period:
+        if self.current_duration < period:
             return self.average_speed
         else:
             for index in reversed(range(len(self.location_history))):
                 location_packet = self.location_history[index]
-                if (self.end - location_packet.time) >= period:
-                    time = self.end - location_packet.time
+                if (self.most_recent_time - location_packet.time) >= period:
+                    time = self.most_recent_time - location_packet.time
                     location_packets = self.location_history[index:]
                     locations = [location_packet.location for location_packet in location_packets]
                     total_distance = RealTimeRoute.get_distance(locations)
@@ -84,7 +81,7 @@ class RealTimeRoute:
         With Speed in m/s, returns a json pace
         """
         if speed is None: 
-            return {'minutes':'NA','seconds':'NA'}
+            return {'minutes':'--','seconds':'--'}
         else:
             total_seconds = int(1000 / speed)
             minutes = int(total_seconds / 60)
@@ -96,7 +93,9 @@ class RealTimeRoute:
             "location_history" : [location_packet.to_dict() for location_packet in self.location_history],
             "start_time": None if self.start_time is None else self.start_time.to_dict(),
             "route": None if self.route is None else self.route.to_dict(),
-            "active": self.active
+            "active": self.active,
+            "current_distance": self.current_distance,
+            "current_duration": self.current_duration,
         }
 
 class LocationPacket:
@@ -106,13 +105,13 @@ class LocationPacket:
     Jason Yu
     """
     def __init__(self, location, time):
-        self.location = location
+        self.location = Point(location['latitude'],location['latitude'])
         self.time = time
 
     def to_dict(self):
         return {
             'latitude': self.location.latitude,
-            'longitude': self.location.longitue,
+            'longitude': self.location.longitude,
             'time': self.time
         }
 
@@ -163,7 +162,7 @@ class RecentRoute:
         Jason Yu
         """
         route = real_time_route.route
-        points = run_stats(route.distance, real_time_route.duration)
+        points = run_stats(route.distance, real_time_route.current_duration)
         saved_route = cls(real_time_route, points)
         return saved_route	
 
@@ -211,7 +210,7 @@ class SavedRoute(RecentRoute):
         Jason Yu
         """
         distance = real_time_route.current_distance
-        points = run_stats(distance, real_time_route.duration)
+        points = run_stats(distance, real_time_route.current_duration)
         saved_route = cls(name, description, real_time_route,route_image, points)
         return saved_route	
 
