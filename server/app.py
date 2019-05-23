@@ -225,6 +225,7 @@ async def on_location_update(sid, data):
     user.real_time_route.update_location_history(latitude, longitude, time)
     print('Updating User Location', latitude, longitude)
     print('Distance',user.real_time_route.current_distance)
+    print(user.real_time_route.location_history) # Checking if location history is updated
     await user.replace()
 
 @sio.on('disconnect')
