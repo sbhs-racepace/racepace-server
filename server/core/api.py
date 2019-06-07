@@ -100,11 +100,9 @@ async def multiple_route(request):
     print("Route successfully generated")
     return response.json(route.json)
 
-
 """
 Account API Calls
 """
-
 
 @api.patch('/users/<user_id:int>')
 @authrequired
@@ -261,6 +259,48 @@ async def save_recent_route(request, user):
     }
     return response.json(resp)
 
+@api.post('/follow')
+@authrequired
+@jsonrequired
+async def follow(request, user):
+    """
+    Follows user
+    Jason Yu
+    """
+    data = request.json
+    other_user_id = data.get("other_user_id")
+    query = {'_id': other_user_id}
+    other_user = await request.app.db.users.find_account(**query)
+    other_user.followers.append(user.id)
+    user.following.append(other_user_id)
+    await other_user.replace()
+    await user.replace()
+    resp = {
+        'success': True,
+    }
+    return response.json(resp)
+
+@api.post('/unfollow')
+@authrequired
+@jsonrequired
+async def unfollow(request, user):
+    """
+    Unfollows user
+    Jason Yu
+    """
+    data = request.json
+    other_user_id = data.get("other_user_id")
+    query = {'_id': other_user_id}
+    other_user = await request.app.db.users.find_account(**query)
+    other_user.followers.remove(user.id)
+    user.following.remove(other_user_id)
+    await other_user.replace()
+    await user.replace()
+    resp = {
+        'success': True,
+    }
+    return response.json(resp)
+
 """
 Account Info API Calls
 """
@@ -350,6 +390,42 @@ async def get_run_info(request, user):
         'success': True,
         'pace': pace,
         'distance': distance,
+    }
+    return response.json(resp)
+
+@api.post('/get_followers')
+@authrequired
+@jsonrequired
+async def get_followers(request, user):
+    """
+    Gets list of users who follow user
+    Jason Yu
+    """
+    data = request.json
+    followers = []
+    for follower_id in user.followers:
+        followers.append(follower_id)
+    resp = {
+        'success': True,
+        'followers': followers
+    }
+    return response.json(resp)
+
+@api.post('/get_following')
+@authrequired
+@jsonrequired
+async def get_following(request, user):
+    """
+    Gets list of other users that user follows
+    Jason Yu
+    """
+    data = request.json
+    following = []
+    for other_user_id in user.following:
+        following.append(other_user_id)
+    resp = {
+        'success': True,
+        'following': following
     }
     return response.json(resp)
 
