@@ -1,8 +1,11 @@
 class Feed:
+  MAX_FEED_LENGTH = 50
+
   def __init__(self, items):
     """
     Feed that grows from the back
     [] -> [1] -> [1,2] -> [1,3,5]
+    Jason Yu
     """
     self.items = items
 
@@ -18,6 +21,9 @@ class Feed:
     return other_items
 
   def add_item(self,user_id,saved_route_id):
+    if (len(self.items) + 1) - self.MAX_FEED_LENGTH > 0:
+      for i in range((len(self.items) + 1) - self.MAX_FEED_LENGTH):
+        self.items.pop(0) # Popping first element of list, ie the latest element
     self.items.append(FeedItem(user_id,saved_route_id))
 
   def to_dict(self):
