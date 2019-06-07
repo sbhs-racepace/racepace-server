@@ -429,6 +429,23 @@ async def get_following(request, user):
     }
     return response.json(resp)
 
+@api.post('/get_feed')
+@authrequired
+@jsonrequired
+async def get_feed(request, user):
+    """
+    Gets feed for user
+    Returns 10 feed items
+    Jason Yu
+    """
+    data = request.json
+    feed_items = [feed_item.to_dict() for feed_item in user.feed.get_latest_ten()]
+    resp = {
+        'success': True,
+        'feed_items': feed_items
+    }
+    return response.json(resp)
+
 """
 Group API Calls
 """
