@@ -21,44 +21,10 @@ api = Blueprint('api', url_prefix='/api')
 
 locationCache = {}
 
-@api.get('/route/multiple')
-@memoized
-async def multiple_route(request):
-    """
-    Api Endpoint that returns a multiple waypoint route
-    Jason Yu/Abdur Raqueeb/Sunny Yan
-    """
-    data = request.args
-    # Generate Locations and Bounding Box
-    location_points = [Point.from_string(waypoint) for waypoint in data['waypoints']]
-    min_euclidean_distance = Route.get_route_distance(location_points)
-    # Check Valid Distance
-    if min_euclidean_distance > 50000: #50km
-        return response.json({'success': False, 'error_message': "Route too long."})
-    bounding_box = Route.bounding_points_to_string(Route.convex_hull(location_points))
-    endpoint = Overpass.REQ.format(bounding_box) #Generate url to query api
-    # Fetch Node Data and Way Data
-    task = request.app.fetch(endpoint)
-    print('Fetching map data')
-    data = await asyncio.gather(task) #Data is array with response as first element
-    elements = data[0]['elements'] #Nodes and Ways are together in array in json
-    print('Successfuly got map data')
-    node_data, way_data = [], []
-    for element in elements:
-        if element["type"] == "node": node_data.append(element)
-        elif element["type"] == "way": way_data.append(element)
-        else: raise Exception("Unidentified element type")
-    # Generate Route
-    nodes, ways = Route.transform_json_nodes_and_ways(node_data,way_data)
-    waypoint_nodes = [point.closest_node(nodes) for point in location_points]
-    waypoint_ids = [node.id for node in waypoint_nodes]
-    print("Generating route")
-    partial = functools.partial(Route.generate_multi_route, nodes, ways, waypoint_ids)
-    route = await request.app.loop.run_in_executor(None, partial)
-    print("Route successfully generated")
-    return response.json(route.json)
+"""
+Route API Calls (Single, Multiple)
+"""
 
-# @authrequired
 @api.get('/route')
 @memoized
 async def route(request):
@@ -96,6 +62,48 @@ async def route(request):
     route = await request.app.loop.run_in_executor(None, partial)
     print("Route successfully generated")
     return response.json(route.json)
+
+@api.get('/route/multiple')
+@memoized
+async def multiple_route(request):
+    """
+    Api Endpoint that returns a multiple waypoint route
+    Jason Yu/Abdur Raqueeb/Sunny Yan
+    """
+    data = request.args
+    # Generate Locations and Bounding Box
+    location_points = [Point.from_string(waypoint) for waypoint in data['waypoints']]
+    min_euclidean_distance = Route.get_route_distance(location_points)
+    # Check Valid Distance
+    if min_euclidean_distance > 50000: #50km
+        return response.json({'success': False, 'error_message': "Route too long."})
+    bounding_box = Route.bounding_points_to_string(Route.convex_hull(location_points))
+    endpoint = Overpass.REQ.format(bounding_box) #Generate url to query api
+    # Fetch Node Data and Way Data
+    task = request.app.fetch(endpoint)
+    print('Fetching map data')
+    data = await asyncio.gather(task) #Data is array with response as first element
+    elements = data[0]['elements'] #Nodes and Ways are together in array in json
+    print('Successfuly got map data')
+    node_data, way_data = [], []
+    for element in elements:
+        if element["type"] == "node": node_data.append(element)
+        elif element["type"] == "way": way_data.append(element)
+        else: raise Exception("Unidentified element type")
+    # Generate Route
+    nodes, ways = Route.transform_json_nodes_and_ways(node_data,way_data)
+    waypoint_nodes = [point.closest_node(nodes) for point in location_points]
+    waypoint_ids = [node.id for node in waypoint_nodes]
+    print("Generating route")
+    partial = functools.partial(Route.generate_multi_route, nodes, ways, waypoint_ids)
+    route = await request.app.loop.run_in_executor(None, partial)
+    print("Route successfully generated")
+    return response.json(route.json)
+
+
+"""
+Account API Calls
+"""
 
 
 @api.patch('/users/<user_id:int>')
@@ -192,32 +200,9 @@ async def google_login(request):
     }
     return response.json(resp)
 
-@api.post('/get_info')
-@jsonrequired
-async def get_info(request):
-    """
-    Get user info
-    Jason Yu/Sunny Yan
-    """
-    data = request.json
-    user_id = data.get('user_id')
-    query = {'_id': user_id}
-    account = await request.app.users.find_account(**query)
-    info = account.to_dict()
-    if account is None:
-        abort(403, 'User ID invalid.')
-    resp = {
-        'success': True,
-        'info' : {
-            'full_name': info['full_name'],
-            'username': info['username'],
-            'points': info['stats']['points'],
-            'followers': info['followers'],
-            'following': info['following'],
-            'stats': info['stats']
-        }
-    }
-    return response.json(resp)
+"""
+Update Info API Calls
+"""
 
 @api.post('/save_route')
 @jsonrequired
@@ -276,6 +261,46 @@ async def save_recent_route(request, user):
     }
     return response.json(resp)
 
+"""
+Account Info API Calls
+"""
+
+@api.post('/get_info')
+@jsonrequired
+async def get_info(request):
+    """
+    Get user info
+    Jason Yu/Sunny Yan
+    """
+    data = request.json
+    user_id = data.get('user_id')
+    query = {'_id': user_id}
+    account = await request.app.users.find_account(**query)
+    info = account.to_dict()
+    if account is None:
+        abort(403, 'User ID invalid.')
+    resp = {
+        'success': True,
+        'info' : {
+            'full_name': info['full_name'],
+            'username': info['username'],
+            'points': info['stats']['points'],
+            'followers': info['followers'],
+            'following': info['following'],
+            'stats': info['stats']
+        }
+    }
+    return response.json(resp)
+
+@api.post('/find_friends')
+@authrequired
+@jsonrequired
+async def find_friends(request,user):
+    name = request.json.name
+    results = request.app.db.users.find({"full_name":{"$regex":name}})
+    results = [{"user_id":user.id,"name":user.name,"bio":user.bio} for user in results]
+    return response.json(results)
+
 @api.post('/get_saved_routes')
 @authrequired
 @jsonrequired
@@ -328,6 +353,9 @@ async def get_run_info(request, user):
     }
     return response.json(resp)
 
+"""
+Group API Calls
+"""
 
 @api.post('/groups/create')
 @authrequired
@@ -375,6 +403,10 @@ async def get_previous_messages(request, user, group_id):
 
     return response.json(messages)
 
+"""
+Image API Calls
+"""
+
 @api.get('/route_images/<user_id>/<route_name>')
 async def get_route_image(request,user_id,route_name):
     doc = await request.app.db.images.find_one({'user_id': user_id, 'route_name':route_name})
@@ -395,12 +427,3 @@ async def update_user_image(request, user):
     avatar = request.body 
     await request.app.db.images.update_one({'user_id': user.id}, {'$set': {'avatar': avatar}})
     return response.json({'success': True})
-
-@api.post('/find_friends')
-@authrequired
-@jsonrequired
-async def find_friends(request,user):
-    name = request.json.name
-    results = request.app.db.users.find({"full_name":{"$regex":name}})
-    results = [{"user_id":user.id,"name":user.name,"bio":user.bio} for user in results]
-    return response.json(results)
