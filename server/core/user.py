@@ -10,6 +10,7 @@ from sanic.exceptions import abort
 from .utils import snowflake
 from .route import SavedRoute, RecentRoute, RealTimeRoute, Time
 from .group import Group
+from .feed import Feed
 
 class User:
     """
@@ -29,8 +30,9 @@ class User:
         self.stats = kwargs.get('stats')
         self.saved_routes = kwargs.get('saved_routes')
         self.real_time_route = kwargs.get('real_time_route')
-        self.followers = kwargs.get('followers') # Holds user id
-        self.following = kwargs.get('following') # Holds user id
+        self.followers = kwargs.get('followers') # list of ids
+        self.following = kwargs.get('following') # list of ids
+        self.feed = kwargs.get('feed') # list of saved route names/id with corresponding user id
 
     def __str__(self):
         return self.username
@@ -55,6 +57,7 @@ class User:
         data['credentials']     = Credentials(**(data['credentials']))
         data['stats']           = UserStats(**(data['stats']))
         data['real_time_route'] = RealTimeRoute.from_data(data['real_time_route'])
+        data['feed']            = Feed.from_data(data['feed'])
 
         user = cls(app, user_id, **data)
         return user
@@ -148,6 +151,7 @@ class User:
             "groups": self.groups,
             "followers": self.followers,
             "following": self.following,
+            "feed": self.feed,
         }
 
 @dataclass
@@ -238,6 +242,7 @@ class UserBase:
         # Creating intial fields
         initial_stats = UserStats()
         real_time_route = RealTimeRoute()
+        feed = Feed([])
         #Reading Default Avatar Image
         with open('server/core/resources/avatar.png','rb') as img:
             avatar = img.read()
@@ -274,6 +279,7 @@ class UserBase:
             "groups": [],
             "followers": [],
             "following": [],
+            "feed": feed.to_dict(),
         }
         # Adds user to DB
         await self.app.db.users.insert_one(document)

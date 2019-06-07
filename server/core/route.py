@@ -1,5 +1,6 @@
 from .route_generation import Route, Point
 from .points import run_stats
+from .utils import snowflake
 
 class RealTimeRoute: 
     """
@@ -188,6 +189,7 @@ class SavedRoute(RecentRoute):
     """
     def __init__(self, name, description, real_time_route,route_image, points):
         super.__init__(real_time_route,points)
+        self.id = str(snowflake())
         self.name = name
         self.description = description	
         self.route_image = route_image
@@ -214,6 +216,7 @@ class SavedRoute(RecentRoute):
 
     def to_dict(self):
         return  {
+            "id": self.id,
             "name": self.name,
             "description": self.description,
             "real_time_route": self.real_time_route.to_dict(),
