@@ -7,18 +7,6 @@ from math import *
 
 EARTH_RADIUS = 6371000
 
-class Heuristic:
-    """
-    Heuristic used to generate routes to the users preference's
-    Jason Yu
-    """
-    def __init__(self, file_name):
-        pass
-        
-    def open_file(self, file_name):
-        json_file = open(file_name)
-        json_data = json.loads(json_file)
-
 class Point:
     """
     Represents a geodetic point with latitude and longitude
