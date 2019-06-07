@@ -187,9 +187,9 @@ class SavedRoute(RecentRoute):
     A route that has been saved by the user to be shared on feed
     Jason Yu
     """
-    def __init__(self, name, description, real_time_route,route_image, points):
+    def __init__(self, route_id, name, description, real_time_route,route_image, points):
         super.__init__(real_time_route,points)
-        self.id = str(snowflake())
+        self.id = route_id
         self.name = name
         self.description = description	
         self.route_image = route_image
@@ -200,18 +200,21 @@ class SavedRoute(RecentRoute):
         Generates Saved Route class from database data
         Jason Yu
         """
+        route_id = data.pop('id')
         data['real_time_route'] = RealTimeRoute.from_data(**(data['real_time_route']))
-        saved_route = cls(**data)
+        saved_route = cls(route_id,**data)
         return saved_route	
 
     @classmethod
     def from_real_time_route(cls, name, description, route_image, real_time_route):
         """
         Generates Saved Route class from real time data
+        This is generally the first initialization, therefore route id is generated here
         Jason Yu
         """
         points = run_stats(real_time_route.current_distance, real_time_route.current_duration)
-        saved_route = cls(name, description, real_time_route,route_image, points)
+        route_id = str(snowflake())
+        saved_route = cls(route_id, name, description, real_time_route, route_image, points)
         return saved_route	
 
     def to_dict(self):
