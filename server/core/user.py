@@ -50,9 +50,8 @@ class User:
         """
 
         user_id = data.pop('_id')
-
-        data['saved_routes']    = [SavedRoute.from_data(route) for route in data['saved_routes']]
-        data['recent_routes']   = [RecentRoute.from_data(route) for route in data['recent_routes']]
+        data['saved_routes']    = [SavedRoute.from_data(saved_route_data) for saved_route_data in data['saved_routes'].values()]
+        data['recent_routes']   = [RecentRoute.from_data(recent_route_data) for recent_route_data in data['recent_routes']]
         data['groups']          = {g['_id'] : Group(app, g) for g in data.get('groups', [])}
         data['credentials']     = Credentials(**(data['credentials']))
         data['stats']           = UserStats(**(data['stats']))
@@ -144,7 +143,7 @@ class User:
             "avatar_url": self.avatar_url,
             "dob": self.dob,
             "recent_routes": [recent_route.to_dict() for recent_route in self.recent_routes],
-            "saved_routes": {(saved_route.name:saved_route.to_dict()) for saved_route in self.saved_routes},
+            "saved_routes": {(saved_route.id,saved_route.to_dict()) for saved_route in self.saved_routes},
             "stats": self.stats.to_dict(),
             "credentials": self.credentials.to_dict(),
             "real_time_route" : self.real_time_route.to_dict(),
