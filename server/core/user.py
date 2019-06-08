@@ -150,7 +150,7 @@ class User:
             "groups": self.groups,
             "followers": self.followers,
             "following": self.following,
-            "feed": self.feed,
+            "feed": self.feed.to_dict(),
         }
 
 @dataclass
