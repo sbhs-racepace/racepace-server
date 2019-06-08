@@ -143,7 +143,7 @@ class User:
             "avatar_url": self.avatar_url,
             "dob": self.dob,
             "recent_routes": [recent_route.to_dict() for recent_route in self.recent_routes],
-            "saved_routes": {(saved_route.id,saved_route.to_dict()) for saved_route in self.saved_routes},
+            "saved_routes": {(saved_route.id:saved_route.to_dict()) for saved_route in self.saved_routes},
             "stats": self.stats.to_dict(),
             "credentials": self.credentials.to_dict(),
             "real_time_route" : self.real_time_route.to_dict(),
@@ -268,7 +268,7 @@ class UserBase:
         document = {
             "_id": user_id,
             "recent_routes": [],
-            "saved_routes": {},
+            "saved_routes": dict(),
             "full_name": full_name,
             "username": username,
             "dob": dob,
