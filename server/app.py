@@ -172,7 +172,7 @@ async def on_connect(sid, environ):
     qs = environ['QUERY_STRING']
     token = parse_qs(qs)['token'][0]
     user_id = jwt.decode(token, app.secret)['sub']
-    user = await request.app.users.find_account(_id=user_id)
+    user = await app.users.find_account(_id=user_id)
 
     if not user:
         print('Unknown user, Connection rejected')
