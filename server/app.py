@@ -80,10 +80,6 @@ async def sanic_exception(request, exception):
     }
 
     print(exception)
-    # try:
-    #     raise(exception)
-    # except:
-    #     print(exception)
 
     return response.json(resp, status=exception.status_code)
 

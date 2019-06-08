@@ -44,10 +44,8 @@ async def route(request):
     endpoint = Overpass.REQ.format(bounding_box) #Generate url to query api
     # Fetch Node Data and Way Data
     task = request.app.fetch(endpoint)
-    print('Fetching map data')
     data = await asyncio.gather(task) #Data is array with response as first element
     elements = data[0]['elements'] #Nodes and Ways are together in array in json
-    print('Successfuly got map data')
     node_data, way_data = [], []
     for element in elements:
         if element["type"] == "node": node_data.append(element)
@@ -57,10 +55,8 @@ async def route(request):
     nodes, ways = Route.transform_json_nodes_and_ways(node_data,way_data)
     start_node = start.closest_node(nodes)
     end_node = end.closest_node(nodes)
-    print("Generating route")
     partial = functools.partial(Route.generate_route, nodes, ways, start_node.id, end_node.id)
     route = await request.app.loop.run_in_executor(None, partial)
-    print("Route successfully generated")
     return response.json(route.json)
 
 @api.get('/route/multiple')
@@ -81,10 +77,8 @@ async def multiple_route(request):
     endpoint = Overpass.REQ.format(bounding_box) #Generate url to query api
     # Fetch Node Data and Way Data
     task = request.app.fetch(endpoint)
-    print('Fetching map data')
     data = await asyncio.gather(task) #Data is array with response as first element
     elements = data[0]['elements'] #Nodes and Ways are together in array in json
-    print('Successfuly got map data')
     node_data, way_data = [], []
     for element in elements:
         if element["type"] == "node": node_data.append(element)
@@ -94,10 +88,8 @@ async def multiple_route(request):
     nodes, ways = Route.transform_json_nodes_and_ways(node_data,way_data)
     waypoint_nodes = [point.closest_node(nodes) for point in location_points]
     waypoint_ids = [node.id for node in waypoint_nodes]
-    print("Generating route")
     partial = functools.partial(Route.generate_multi_route, nodes, ways, waypoint_ids)
     route = await request.app.loop.run_in_executor(None, partial)
-    print("Route successfully generated")
     return response.json(route.json)
 
 """
@@ -241,8 +233,6 @@ async def save_recent_route(request, user):
     Sends current location of user
     Jason Yu
     """
-    print('Saving route')
-    print(user.real_time_route.to_dict())
     recent_route = RecentRoute.from_real_time_route(user.real_time_route)
     curr_num_recent_routes = len(user.recent_routes)
     #Makes sure that only the most recent routes are saved
