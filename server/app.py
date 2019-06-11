@@ -169,15 +169,18 @@ async def on_connect(sid, environ):
     token = parse_qs(qs)['token'][0]
     user_id = jwt.decode(token, app.secret)['sub']
     user = await app.users.find_account(_id=user_id)
+
     if not user:
         print('Unknown user, Connection rejected')
         return False
-    else:
-        for group in user.groups.values():
-            sio.enter_room(sid, group.id)
-        sio.enter_room(sid, 'global')
-        await sio.save_session(sid, {'user': user})
-        print('Connected', user.username, user_id)
+
+    for group in user.groups.values():
+        sio.enter_room(sid, group.id)
+    
+    sio.enter_room(sid, 'global')
+
+    await sio.save_session(sid, {'user': user})
+    print('Connected', user.username, user_id)
 
 @sio.on('global_message')
 async def on_message(sid, data):
@@ -216,11 +219,14 @@ async def on_location_update(sid, data):
     longitude = location['longitude']
     time = data.get('time', None)
     user.real_time_route.update_location_history(latitude, longitude, time)
+    print('Updating User Location', latitude, longitude)
+    print('Distance',user.real_time_route.current_distance)
+    print(user.real_time_route.location_history) # Checking if location history is updated
     await user.replace()
 
 @sio.on('disconnect')
 async def on_disconnect(sid):
-    print('Disconnected user', sid)
+    print(sid)
 
 if __name__ == '__main__':
     if os.getenv('dev'):

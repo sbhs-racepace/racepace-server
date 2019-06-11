@@ -33,7 +33,6 @@ class User:
         self.followers = kwargs.get('followers') # list of ids
         self.following = kwargs.get('following') # list of ids
         self.feed = kwargs.get('feed') # list of saved route names/id with corresponding user id
-        self.bio = kwargs.get('bio')
 
     def __str__(self):
         return self.username
@@ -152,7 +151,6 @@ class User:
             "followers": self.followers,
             "following": self.following,
             "feed": self.feed.to_dict(),
-            "bio": self.bio,
         }
 
 @dataclass
@@ -281,7 +279,6 @@ class UserBase:
             "followers": [],
             "following": [],
             "feed": feed.to_dict(),
-            "bio":"No Bio",
         }
         # Adds user to DB
         await self.app.db.users.insert_one(document)
