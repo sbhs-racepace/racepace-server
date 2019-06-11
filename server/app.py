@@ -17,6 +17,7 @@ import xml.etree.ElementTree as ET
 from sanic import Sanic, response
 from sanic.exceptions import SanicException, ServerError, abort
 from sanic.log import logger
+from sanic_session import Session, InMemorySessionInterface
 from dhooks import Webhook, Embed
 
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -33,8 +34,11 @@ from core import config
 
 sio = socketio.AsyncServer(async_mode='sanic')
 app = Sanic('majorproject')
+
 app.blueprint(api)
 app.blueprint(stats)
+Session(app, interface=InMemorySessionInterface())
+
 sio.attach(app)
 
 if len(sys.argv) > 1 and sys.argv[1] == '-ngrok':
