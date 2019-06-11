@@ -28,9 +28,10 @@ async def index(request):
     return response.html('welcome')
 
 
-@stats.get('/login')
-async def login(request):
+@stats.post('/login')
+async def post_login(request):
     '''Logs in a user using web sessions.'''
+    
     data = request.json
     email = data['email']
     password = data['password']
@@ -47,7 +48,11 @@ async def login(request):
     request['session']['logged_in'] = True
     request['session']['token'] = token
     
-    return response.redirect('/stats')
+    return response.json()
+
+@stats.get('/login')
+async def get_login_screen(request):
+    return response.file('./templates/login.html')
 
 @stats.get('/stats')
 @authrequired()
