@@ -81,14 +81,14 @@ class User:
         Abdur Raqeeb
         """
         document = self.to_dict()
-        await self.app.db.users.replace_one({'user_id': self.id}, document)
+        await self.app.db.users.replace_one({'_id': self.id}, document)
     
     async def delete(self):
         """
         Deletes user from database
         Abdur Raqeeb
         """
-        await self.app.db.users.delete_one({'user_id': self.id})
+        await self.app.db.users.delete_one({'_id': self.id})
     
     async def create_group(self, name):
         
