@@ -96,6 +96,9 @@ async def multiple_route(request):
 Account API Calls
 """
 
+
+"""
+Probably deprecated with replcaement func in update profile
 @api.patch('/users/<user_id:int>')
 @authrequired
 async def update_user(request, user, user_id):
@@ -111,6 +114,7 @@ async def update_user(request, user, user_id):
         await user.replace()
     
     return response.json({'success': True})
+"""
 
 @api.delete('/users/<user_id:int>')
 @authrequired
@@ -291,6 +295,31 @@ async def unfollow(request, user):
     }
     return response.json(resp)
 
+@api.post('/update_profile')
+@authrequired
+@jsonrequired
+async def update_profile(request, user):
+    """
+    Updates user profile with args
+    Jason Yu
+    """
+    data = request.json
+    password  = data.get('password', False)
+    username  = data.get('username', False)
+    full_name = data.get('full_name', False)
+    bio       = data.get('bio', False)
+    if bio is not False: user.bio = bio
+    if username is not False: user.username = username
+    if full_name is not False: user.full_name = full_name
+    if password is not False: 
+        salt = bcrypt.gensalt()
+        user.credentials.password = bcrypt.hashpw(password, salt)
+    await user.replace()
+    resp = {
+        'success': True,
+    }
+    return response.json(resp)
+
 """
 Account Info API Calls
 """
@@ -317,7 +346,8 @@ async def get_info(request):
             'points': info['stats']['points'],
             'followers': info['followers'],
             'following': info['following'],
-            'stats': info['stats']
+            'stats': info['stats'],
+            'bio': info['bio']
         }
     }
     return response.json(resp)
