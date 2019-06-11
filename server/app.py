@@ -22,6 +22,7 @@ from dhooks import Webhook, Embed
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from core.api import api
+from core.stats import stats
 from core.route_generation import Route
 from core.route import RealTimeRoute
 from core.misc import Overpass, Color
@@ -33,6 +34,7 @@ from core import config
 sio = socketio.AsyncServer(async_mode='sanic')
 app = Sanic('majorproject')
 app.blueprint(api)
+app.blueprint(stats)
 sio.attach(app)
 
 if len(sys.argv) > 1 and sys.argv[1] == '-ngrok':
