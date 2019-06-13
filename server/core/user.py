@@ -82,6 +82,57 @@ class User:
         """
         document = self.to_dict()
         await self.app.db.users.replace_one({'_id': self.id}, document)
+
+    async def push_to_field(self, field, item):
+        """
+        Pushes item to array field
+        Jason Yu
+        """
+        await self.app.db.users.update_one(
+            { '_id': self.id },
+            { '$push': { 
+                field : item
+            }
+        }
+    )
+
+    async def set_to_dict_field(self, field, key, item):
+        """
+        Set item to dict field
+        Jason Yu
+        """
+        await self.app.db.users.update_one(
+            { '_id': self.id },
+            { '$set': { 
+                field : {key: item}
+            }
+        }
+    )
+
+    async def set_field(self, field, item):
+        """
+        Set item to field
+        Jason Yu
+        """
+        await self.app.db.users.update_one(
+            { '_id': self.id },
+            { '$set': { 
+                field : item
+            }
+        }
+    )
+
+    async def remove_from_array_field(self, field, items):
+        """
+        Removes Items from array field
+        Jason Yu
+        """
+        await self.app.db.users.update_one(
+            { '_id': self.id },
+            { '$pull': { field: { '$in': [items] } } },
+            { 'multi': True }
+        })
+
     
     async def delete(self):
         """
