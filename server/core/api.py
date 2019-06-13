@@ -130,7 +130,7 @@ async def login(request):
     data = request.json
     email = data.get('email')
     password = data.get('password')
-    user = await request.app.users.find_account(query={'credentials.email': email})
+    user = await request.app.users.find_account(**{'credentials.email': email})
     if user is None:
         abort(403, 'Credentials invalid.')
     elif user.check_password(password) == False:
@@ -154,7 +154,7 @@ async def google_login(request):
     resp = await asyncio.gather(request)
     if resp.get("error"):
         abort(403,"Google token invalid")
-    user = await request.app.users.find_account(query={'credentials.email': resp['email']})
+    user = await request.app.users.find_account(**{'credentials.email': resp['email']})
     if user is None:
         user = request.app.users.register({'json': {
             'email': resp['email'],
@@ -229,7 +229,7 @@ async def follow(request, user):
     """
     data = request.json
     other_user_id = data.get("other_user_id")
-    other_user = await request.app.db.users.find_account(query={'_id': other_user_id})
+    other_user = await request.app.db.users.find_account(**{'_id': other_user_id})
     await user.push_to_field('following', other_user.id)
     await other_user.push_to_field('followers', user.id)
     resp = {
@@ -247,7 +247,7 @@ async def unfollow(request, user):
     """
     data = request.json
     other_user_id = data.get("other_user_id")
-    other_user = await request.app.db.users.find_account(query={'_id': other_user_id})
+    other_user = await request.app.db.users.find_account(**{'_id': other_user_id})
     await user.remove_from_array_field('following', other_user.id)
     await user.remove_from_array_field('followers', user.id)
     resp = {
@@ -295,7 +295,7 @@ async def get_info(request):
     """
     data = request.json
     user_id = data.get('user_id')
-    account = await request.app.users.find_account(query={'_id': user_id})
+    account = await request.app.users.find_account(**{'_id': user_id})
     info = account.to_dict()
     if account is None:
         abort(403, 'User ID invalid.')
