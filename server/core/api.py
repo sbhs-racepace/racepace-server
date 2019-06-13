@@ -130,8 +130,7 @@ async def login(request):
     data = request.json
     email = data.get('email')
     password = data.get('password')
-    query = {'credentials.email': email}
-    user = await request.app.users.find_account(**query)
+    user = await request.app.users.find_account(query={'credentials.email': email})
     if user is None:
         abort(403, 'Credentials invalid.')
     elif user.check_password(password) == False:
@@ -156,8 +155,7 @@ async def google_login(request):
     resp = await asyncio.gather(request)
     if resp.get("error"):
         abort(403,"Google token invalid")
-    query = {'credentials.email': resp['email']}
-    user = await request.app.users.find_account(**query)
+    user = await request.app.users.find_account(query={'credentials.email': resp['email']})
     if user is None:
         user = request.app.users.register({'json': {
             'email': resp['email'],
@@ -197,13 +195,10 @@ async def save_route(request, user):
         'route_name': name,
         'route_image': route_image
     })
-    # From data func which specifically parses real time route
     saved_route = SavedRoute.from_real_time_route(name, description, route_image, real_time_route)
-    # Update user points
-    user.stats.points += saved_route.points
-    # Adding Saved Route to DB
-    user.saved_routes[name] = saved_route
-    await user.replace()
+    new_point_total = user.stats.points + saved_route.points
+    await user.set_to_dict_field('stats','points', new_point_total)
+    await user.set_to_dict_field('saved_routes',saved_route.id,saved_route.to_dict())
     resp = {
         'success': True,
     }
@@ -217,12 +212,9 @@ async def save_recent_route(request, user):
     Jason Yu
     """
     recent_route = RecentRoute.from_real_time_route(user.real_time_route)
-    print(recent_route.to_dict())
-    user.recent_routes.append(recent_route)
-    #Update Points
-    user.stats.points += recent_route.points
-    #Updating DB
-    await user.replace()
+    new_point_total = user.stats.points + recent_route.points
+    await user.set_to_dict_field('stats','points', new_point_total)
+    await user.push_to_field('recent_routes',recent_route.to_dict())
     resp = {
         'success': True,
     }
@@ -238,12 +230,9 @@ async def follow(request, user):
     """
     data = request.json
     other_user_id = data.get("other_user_id")
-    query = {'_id': other_user_id}
-    other_user = await request.app.db.users.find_account(**query)
-    other_user.followers.append(user.id)
-    user.following.append(other_user_id)
-    await other_user.replace()
-    await user.replace()
+    other_user = await request.app.db.users.find_account(query={'_id': other_user_id})
+    await user.push_to_field('following', other_user.id)
+    await other_user.push_to_field('followers', user.id)
     resp = {
         'success': True,
     }
@@ -259,12 +248,9 @@ async def unfollow(request, user):
     """
     data = request.json
     other_user_id = data.get("other_user_id")
-    query = {'_id': other_user_id}
-    other_user = await request.app.db.users.find_account(**query)
-    other_user.followers.remove(user.id)
-    user.following.remove(other_user_id)
-    await other_user.replace()
-    await user.replace()
+    other_user = await request.app.db.users.find_account(query={'_id': other_user_id})
+    await user.remove_from_array_field('following', other_user.id)
+    await user.remove_from_array_field('followers', user.id)
     resp = {
         'success': True,
     }
@@ -278,18 +264,20 @@ async def update_profile(request, user):
     Updates user profile with args
     Jason Yu
     """
-    data = request.json
+    data      = request.json
     password  = data.get('password')
     username  = data.get('username')
     full_name = data.get('full_name')
     bio       = data.get('bio')
-    if bio is not None: user.bio = bio
-    if username is not None: user.username = username
-    if full_name is not None: user.full_name = full_name
+    if bio is not None: 
+        await user.set_field('bio', bio)
+    if username is not None: 
+        await user.set_field('username', username)
+    if full_name is not None: 
+        await user.set_field('full_name', full_name)
     if password is not None: 
         salt = bcrypt.gensalt()
-        user.credentials.password = bcrypt.hashpw(password, salt)
-    await user.replace()
+        await user.set_to_dict_field('credentials', 'password', salt)
     resp = {
         'success': True,
     }
@@ -308,8 +296,7 @@ async def get_info(request):
     """
     data = request.json
     user_id = data.get('user_id')
-    query = {'_id': user_id}
-    account = await request.app.users.find_account(**query)
+    account = await request.app.users.find_account(query={'_id': user_id})
     info = account.to_dict()
     if account is None:
         abort(403, 'User ID invalid.')
