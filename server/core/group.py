@@ -1,4 +1,4 @@
-from utils import run_with_ngrok, snowflake, parse_snowflake
+from .utils import run_with_ngrok, snowflake, parse_snowflake
 import datetime
 
 class Group:
