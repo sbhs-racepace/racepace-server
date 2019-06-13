@@ -29,6 +29,19 @@ class RealTimeRoute:
         return self.location_history[-1].time
 
     @classmethod
+    def setup_run(cls, start_time, route):
+        class_data = {
+            'start_time': start_time,
+            'location_history': [],
+            'route':route,
+            'active':True,
+            'current_distance': 0,
+            'current_duration': 0,
+        }
+        real_time_route = RealTimeRoute.from_data(class_data)
+        return real_time_route
+
+    @classmethod
     def from_data(cls, data):
         json_location_history = data.get('location_history', [])
         active = data.get('active', False)
