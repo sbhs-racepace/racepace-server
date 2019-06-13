@@ -279,14 +279,14 @@ async def update_profile(request, user):
     Jason Yu
     """
     data = request.json
-    password  = data.get('password', False)
-    username  = data.get('username', False)
-    full_name = data.get('full_name', False)
-    bio       = data.get('bio', False)
-    if bio is not False: user.bio = bio
-    if username is not False: user.username = username
-    if full_name is not False: user.full_name = full_name
-    if password is not False: 
+    password  = data.get('password')
+    username  = data.get('username')
+    full_name = data.get('full_name')
+    bio       = data.get('bio')
+    if bio is not None: user.bio = bio
+    if username is not None: user.username = username
+    if full_name is not None: user.full_name = full_name
+    if password is not None: 
         salt = bcrypt.gensalt()
         user.credentials.password = bcrypt.hashpw(password, salt)
     await user.replace()
@@ -322,7 +322,7 @@ async def get_info(request):
             'followers': info['followers'],
             'following': info['following'],
             'stats': info['stats'],
-            'bio': info['bio']
+            'bio': info['bio'],
         }
     }
     return response.json(resp)
@@ -344,7 +344,6 @@ async def get_saved_routes(request, user):
     Gets saved routes of user
     Jason Yu
     """
-    data = request.json
     saved_routes_json = [saved_route.to_dict() for saved_route in user.saved_routes]
     resp = {
         'success': True,
@@ -360,7 +359,6 @@ async def get_recent_routes(request, user):
     Gets recent routes of user
     Jason Yu
     """
-    data = request.json
     recent_routes = [recent_route.to_dict() for recent_route in user.recent_routes]
     resp = {
         'success': True,
@@ -388,42 +386,6 @@ async def get_run_info(request, user):
     }
     return response.json(resp)
 
-@api.post('/get_followers')
-@authrequired
-@jsonrequired
-async def get_followers(request, user):
-    """
-    Gets list of users who follow user
-    Jason Yu
-    """
-    data = request.json
-    followers = []
-    for follower_id in user.followers:
-        followers.append(follower_id)
-    resp = {
-        'success': True,
-        'followers': followers
-    }
-    return response.json(resp)
-
-@api.post('/get_following')
-@authrequired
-@jsonrequired
-async def get_following(request, user):
-    """
-    Gets list of other users that user follows
-    Jason Yu
-    """
-    data = request.json
-    following = []
-    for other_user_id in user.following:
-        following.append(other_user_id)
-    resp = {
-        'success': True,
-        'following': following
-    }
-    return response.json(resp)
-
 @api.post('/get_feed')
 @authrequired
 @jsonrequired
@@ -433,7 +395,6 @@ async def get_feed(request, user):
     Returns 10 feed items
     Jason Yu
     """
-    data = request.json
     feed_items = [feed_item.to_dict() for feed_item in user.feed.get_latest_ten()]
     resp = {
         'success': True,
