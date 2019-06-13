@@ -129,9 +129,13 @@ class User:
         """
         await self.app.db.users.update_one(
             { '_id': self.id },
-            { '$pull': { field: { '$in': [items] } } },
-            { 'multi': True }
-        })
+            { '$pull': 
+                { 
+                    field: { '$in': [items] } 
+                }
+            }, 
+            { 'multi': True },
+        )
 
     
     async def delete(self):
