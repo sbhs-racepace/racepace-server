@@ -95,23 +95,6 @@ async def multiple_route(request):
 """
 Account API Calls
 """
-
-@api.patch('/users/<user_id:int>')
-@authrequired
-async def update_user(request, user, user_id):
-    """
-    Change user information
-    Abdur Raqueeb
-    """
-    data = request.json
-    password = data.get('password')
-    if password:
-        salt = bcrypt.gensalt()
-        user.credentials.password = bcrypt.hashpw(password, salt)
-        await user.replace()
-    
-    return response.json({'success': True})
-
 @api.delete('/users/<user_id:int>')
 @authrequired
 async def delete_user(request, user, user_id):
@@ -122,7 +105,7 @@ async def delete_user(request, user, user_id):
     await user.delete()
     return response.json({'success': True})
 
-@api.post('/register')
+@api.post('/users/register')
 @jsonrequired
 async def register(request):
     """
@@ -137,7 +120,7 @@ async def register(request):
 	    'user_id': user.id}
     )
 
-@api.post('/login')
+@api.post('/users/login')
 @jsonrequired
 async def login(request):
     """
@@ -161,7 +144,7 @@ async def login(request):
     }
     return response.json(resp)
 	
-@api.post('/google_login')
+@api.post('/users/google_login')
 @jsonrequired
 async def google_login(request):
     """
