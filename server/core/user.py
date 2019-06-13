@@ -104,7 +104,7 @@ class User:
         await self.app.db.users.update_one(
             { '_id': self.id },
             { '$set': { 
-                field : {key: item}
+                f"{field}.{key}" : item
             }
         }
     )
