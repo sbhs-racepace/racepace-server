@@ -43,19 +43,12 @@ class RealTimeRoute:
 
     @classmethod
     def from_data(cls, data):
-        json_location_history = data.get('location_history', [])
-        active = data.get('active', False)
-        # Checking for None TYPE
-        data_time = data.get('start_time', None)
-        start_time = None if data_time is None else Time(**data_time)
-        # Checking for None TYPE
-        data_route = data.get('route', None)
-        route = None if data_route is None else Route.from_data(**data_route)
-        #Getting Location history from data
-        current_distance = data.get('current_distance')
-        current_duration = data.get('current_duration')
-        location_history = [LocationPacket(location_packet.latitude, location_packet.longitude, location_packet.time) for location_packet in json_location_history]
-        real_time_route = cls(start_time, location_history, route, active, current_distance, current_duration)
+        if data['start_time'] is not None:
+            data['start_time'] = Time(**data['start_time'])
+        if data['route'] is not None:
+            data['route'] = Route.from_data(**data['route'])
+        data['location_history'] = [LocationPacket(**location_packet) for location_packet in data['location_history']]
+        real_time_route = cls(**data)
         return real_time_route
 
     def update_location_history(self, latitude, longitude, time):
@@ -172,7 +165,7 @@ class RecentRoute:
     @classmethod
     def from_real_time_route(cls, real_time_route):
         """
-        Generates Saved Route class from real time data
+        Generates Recent Route class from real time data
         Jason Yu
         """
         points = run_stats(real_time_route.current_distance, real_time_route.current_duration)
@@ -182,7 +175,7 @@ class RecentRoute:
     @classmethod
     def from_data(cls, data):
         """
-        Generates Saved Route class from database data
+        Generates Recent Route class from database data
         Jason Yu
         """
         data['real_time_route'] = RealTimeRoute.from_data(**(data['real_time_route']))
