@@ -117,8 +117,8 @@ async def register(request):
     return response.json({
         'success': True,
 	    'token': token.decode("utf-8"),
-	    'user_id': user.id}
-    )
+	    'user_id': user.id
+    })
 
 @api.post('/users/login')
 @jsonrequired
@@ -136,12 +136,11 @@ async def login(request):
     elif user.check_password(password) == False:
         abort(403, 'Credentials invalid.')
     token = await request.app.users.issue_token(user)
-    resp = {
+    return response.json({
         'success': True,
         'token': token.decode("utf-8"),
         'user_id': user.id
-    }
-    return response.json(resp)
+    })
 	
 @api.post('/users/google_login')
 @jsonrequired
