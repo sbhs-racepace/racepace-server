@@ -172,7 +172,8 @@ class RecentRoute:
         Generates Saved Route class from database data
         Jason Yu
         """
-        data['route'] = Route.from_data(**(data['route']))
+        print(data)
+        data['real_time_route'] = RealTimeRoute.from_data(**(data['real_time_route']))
         recent_route = cls(**data)
         return recent_route
     
