@@ -180,7 +180,7 @@ class RecentRoute:
         Jason Yu
         """
         print(data)
-        data['real_time_route'] = RealTimeRoute.from_data(**(data['real_time_route']))
+        data['real_time_route'] = RealTimeRoute.from_data(data['real_time_route'])
         recent_route = cls(**data)
         return recent_route
     
