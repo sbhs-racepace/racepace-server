@@ -43,6 +43,7 @@ class RealTimeRoute:
 
     @classmethod
     def from_data(cls, data):
+        print(data)
         if data['start_time'] is not None:
             data['start_time'] = Time(**data['start_time'])
         if data['route'] is not None:
