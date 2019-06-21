@@ -113,14 +113,6 @@ async def index(request):
     data = {
         'message': 'Welcome to the RacePace API',
         'success': True,
-        'endpoints' : 
-            [
-                '/api/route',
-                '/api/users',
-                '/api/avatars',
-                '/route_images',
-                '/groups',
-            ]
         }
 
     return response.json(data)

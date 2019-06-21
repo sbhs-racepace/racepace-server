@@ -105,7 +105,7 @@ async def delete_user(request, user, user_id):
     await user.delete()
     return response.json({'success': True})
 
-@api.post('/users/register')
+@api.post('/register')
 @jsonrequired
 async def register(request):
     """
@@ -120,7 +120,7 @@ async def register(request):
 	    'user_id': user.id
     })
 
-@api.post('/users/login')
+@api.post('/login')
 @jsonrequired
 async def login(request):
     """
@@ -142,7 +142,7 @@ async def login(request):
         'user_id': user.id
     })
 	
-@api.post('/users/google_login')
+@api.post('/google_login')
 @jsonrequired
 async def google_login(request):
     """
