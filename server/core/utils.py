@@ -6,6 +6,7 @@ from sanic.log import logger
 import requests
 import time
 import random
+import inspect 
 
 EPOCH = 946702800
 
@@ -14,6 +15,21 @@ RANDOM_LENGTH = 23
 
 RANDOM_SHIFT = 0
 TIMESTAMP_SHIFT = 23
+
+
+def get_stack_variable(name):
+    stack = inspect.stack()
+    try:
+        for frames in stack:
+            try:
+                frame = frames[0]
+                current_locals = frame.f_locals
+                if name in current_locals:
+                    return current_locals[name]
+            finally:
+                del frame
+    finally:
+        del stack
 
 """Password hashing"""
 

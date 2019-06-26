@@ -1,6 +1,7 @@
 from functools import wraps
 
 from sanic import Blueprint, response
+from sanic.exceptions import abort
 
 
 
@@ -23,16 +24,15 @@ def authrequired(func):
 
 stats = Blueprint('stats')
 
-@stats.get('/')
-async def index(request):
-    return response.html('welcome')
-
+@stats.get('/login')
+async def login(request):
+    return request.app.render_template('login')
 
 @stats.post('/login')
 async def post_login(request):
     '''Logs in a user using web sessions.'''
     
-    data = request.json
+    data = request.form
     email = data['email']
     password = data['password']
     
@@ -50,14 +50,10 @@ async def post_login(request):
     
     return response.json()
 
-@stats.get('/login')
-async def get_login_screen(request):
-    return response.file('./templates/login.html')
-
 @stats.get('/stats')
-@authrequired()
+@authrequired
 async def show_stats(request, user):
-    return response.text(user.stats.to_dict()))
+    return response.text(user.stats.to_dict())
 
     
     

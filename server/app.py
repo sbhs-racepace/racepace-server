@@ -21,6 +21,7 @@ from sanic_session import Session, InMemorySessionInterface
 from dhooks import Webhook, Embed
 
 from motor.motor_asyncio import AsyncIOMotorClient
+from jinja2 import Environment, PackageLoader
 
 from core.api import api
 from core.stats import stats
@@ -29,11 +30,30 @@ from core.route import RealTimeRoute
 from core.misc import Overpass, Color
 from core.user import User, UserBase
 from core.decorators import jsonrequired, memoized, authrequired, validate_token
-from core.utils import run_with_ngrok, snowflake, parse_snowflake
+from core.utils import run_with_ngrok, snowflake, parse_snowflake, get_stack_variable
 from core import config
 
 sio = socketio.AsyncServer(async_mode='sanic')
 app = Sanic('majorproject')
+
+
+jinja_env = Environment(loader=PackageLoader("app", "templates"))
+
+
+def render_template(name, *args, **kwargs):
+    template = jinja_env.get_template(name + ".html")
+    request = get_stack_variable("request")
+    if request:
+        kwargs["request"] = request
+        kwargs["session"] = request["session"]
+        kwargs["user"] = request["session"].get("user")
+    kwargs.update(globals())
+    return response.html(template.render(*args, **kwargs))
+
+
+app.render_template = render_template
+app.static("/", "./server/static")
+
 
 app.blueprint(api)
 app.blueprint(stats)
