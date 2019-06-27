@@ -6,7 +6,6 @@ import traceback
 import os
 import sys
 from urllib.parse import parse_qs
-from datetime import datetime
 
 import socketio
 import aiohttp
@@ -29,6 +28,7 @@ from core.route_generation import Route
 from core.route import RealTimeRoute
 from core.misc import Overpass, Color
 from core.user import User, UserBase
+from core.group import Message
 from core.decorators import jsonrequired, memoized, authrequired, validate_token
 from core.utils import run_with_ngrok, snowflake, parse_snowflake, get_stack_variable
 from core import config
@@ -156,55 +156,13 @@ async def on_error(request, exception):
 @app.get("/")
 async def index(request):
     data = {
-        "message": "Welcome to the RacePace API",
-        "success": True,
-        "endpoints": ["/api/route", "/api/users/update", "/api/register", "/api/login"],
-    }
+        'message': 'Welcome to the RacePace API',
+        'success': True,
+        }
 
     return response.json(data)
 
-
-class Message:
-    def __init__(self, id, author, group_id, content=None, image=None):
-        self.id = id
-        self.author = author
-        self.group_id = group_id
-        self.content = content
-        self.image = image
-
-    @property
-    def created_at(self):
-        return parse_snowflake(int(self.id))[0]
-
-    def to_dict(self):
-        return {
-            "_id": self.id,
-            "content": self.content,
-            "image": self.image,
-            "group_id": self.group_id,
-            "created_at": self.created_at,
-            "author": {
-                "_id": self.author.id,
-                "full_name": self.author.full_name,
-                "username": self.author.username,
-                "avatar_url": self.author.avatar_url,
-            },
-        }
-
-    @classmethod
-    async def create(cls, app, user, data):
-        message_id = snowflake()
-        content = data.get("content")
-        image = data.get("image")
-        msg = cls(message_id, user, data["group_id"], content, image)
-
-        data = msg.to_dict()
-        data["created_at"] = datetime.utcfromtimestamp(data["created_at"])
-        await app.db.messages.insert_one(data)
-        return msg
-
-
-@sio.on("connect")
+@sio.on('connect')
 async def on_connect(sid, environ):
 
     qs = environ["QUERY_STRING"]
@@ -238,27 +196,16 @@ async def on_message(sid, data):
 async def on_start_run(sid, data):
     user = (await sio.get_session(sid))["user"]
     if user.real_time_route.active == False:
-        start_time = data.get("start_time")
-        route = data.get(
-            "route", None
-        )  # If no route is given, none is returned, None value is handled
-        class_data = {
-            "start_time": start_time,
-            "location_history": [],
-            "route": route,
-            "active": True,
-            "current_distance": 0,
-            "current_duration": 0,
-        }
-        user.real_time_route = RealTimeRoute.from_data(class_data)
-        await user.replace()
+        start_time = data.get('start_time')
+        route = data.get('route', None) # If no route is given, none is returned, None value is handled
+        real_time_route = RealTimeRoute.setup_run(start_time, route)
+        await user.set_field('real_time_route', real_time_route.to_dict())
 
 
 @sio.on("end_run")
 async def on_end_run(sid):
-    user = (await sio.get_session(sid))["user"]
-    user.real_time_route.active = False
-    await user.replace()
+    user = (await sio.get_session(sid))['user']
+    await user.set_to_dict_field('real_time_route','active', False)
 
 
 @sio.on("location_update")
@@ -269,17 +216,12 @@ async def on_location_update(sid, data):
     longitude = location["longitude"]
     time = data.get("time", None)
     user.real_time_route.update_location_history(latitude, longitude, time)
-    print("Updating User Location", latitude, longitude)
-    print("Distance", user.real_time_route.current_distance)
-    print(
-        user.real_time_route.location_history
-    )  # Checking if location history is updated
-    await user.replace()
+    await user.set_field('real_time_route', user.real_time_route.to_dict())
 
 
 @sio.on("disconnect")
 async def on_disconnect(sid):
-    print(sid)
+    print('Disconnected user', sid)
 
 
 if __name__ == "__main__":

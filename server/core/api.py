@@ -108,25 +108,7 @@ async def multiple_route(request):
 Account API Calls
 """
 
-
-@api.patch("/users/<user_id:int>")
-@authrequired
-async def update_user(request, user, user_id):
-    """
-    Change user information
-    Abdur Raqueeb
-    """
-    data = request.json
-    password = data.get("password")
-    if password:
-        salt = bcrypt.gensalt()
-        user.credentials.password = bcrypt.hashpw(password, salt)
-        await user.replace()
-
-    return response.json({"success": True})
-
-
-@api.delete("/users/<user_id:int>")
+@api.delete('/users/<user_id:int>')
 @authrequired
 async def delete_user(request, user, user_id):
     """
@@ -151,6 +133,7 @@ async def register(request):
     )
 
 
+
 @api.post("/login")
 @jsonrequired
 async def login(request):
@@ -159,35 +142,34 @@ async def login(request):
     Abdur Raqueeb
     """
     data = request.json
-    email = data.get("email")
-    password = data.get("password")
-    query = {"credentials.email": email}
-    user = await request.app.users.find_account(**query)
+    email = data.get('email')
+    password = data.get('password')
+    user = await request.app.users.find_account(**{'credentials.email': email})
     if user is None:
         abort(403, "Credentials invalid.")
     elif user.check_password(password) == False:
         abort(403, "Credentials invalid.")
     token = await request.app.users.issue_token(user)
-    resp = {"success": True, "token": token.decode("utf-8"), "user_id": user.id}
-    return response.json(resp)
-
-
-@api.post("/google_login")
+    return response.json({
+        'success': True,
+        'token': token.decode("utf-8"),
+        'user_id': user.id
+    })
+	
+@api.post('/google_login')
 @jsonrequired
 async def google_login(request):
     """
     Registers or logs in with Google
     """
-    data = request.json
     idToken = request.idToken
     request = request.app.fetch(
         "https://oauth2.googleapis.com/tokeninfo?id_token=" + idToken
     )
     resp = await asyncio.gather(request)
     if resp.get("error"):
-        abort(403, "Google token invalid")
-    query = {"credentials.email": resp["email"]}
-    user = await request.app.users.find_account(**query)
+        abort(403,"Google token invalid")
+    user = await request.app.users.find_account(**{'credentials.email': resp['email']})
     if user is None:
         user = request.app.users.register(
             {
@@ -224,19 +206,18 @@ async def save_route(request, user):
     real_time_route = user.real_time_route
     # Saving Route Image
     route_image = real_time_route.route.generateStaticMap()
-    await request.app.db.images.insert_one(
-        {"user_id": user.id, "route_name": name, "route_image": route_image}
-    )
-    # From data func which specifically parses real time route
-    saved_route = SavedRoute.from_real_time_route(
-        name, description, route_image, real_time_route
-    )
-    # Update user points
-    user.stats.points += saved_route.points
-    # Adding Saved Route to DB
-    user.saved_routes[name] = saved_route
-    await user.replace()
-    resp = {"success": True}
+    await request.app.db.images.insert_one({
+        'user_id': user.id,
+        'route_name': name,
+        'route_image': route_image
+    })
+    saved_route = SavedRoute.from_real_time_route(name, description, route_image, real_time_route)
+    new_point_total = user.stats.points + saved_route.points
+    await user.set_to_dict_field('stats','points', new_point_total)
+    await user.set_to_dict_field('saved_routes',saved_route.id,saved_route.to_dict())
+    resp = {
+        'success': True,
+    }
     return response.json(resp)
 
 
@@ -248,19 +229,12 @@ async def save_recent_route(request, user):
     Jason Yu
     """
     recent_route = RecentRoute.from_real_time_route(user.real_time_route)
-    curr_num_recent_routes = len(user.recent_routes)
-    # Makes sure that only the most recent routes are saved
-    max_recent_routes = 10
-    if curr_num_recent_routes > max_recent_routes:
-        user.recent_routes = user.recent_routes[
-            curr_num_recent_routes + 1 - max_recent_routes :
-        ]
-    user.recent_routes.append(recent_route)
-    # Update Points
-    user.stats.points += recent_route.points
-    # Updating DB
-    await user.replace()
-    resp = {"success": True}
+    new_point_total = user.stats.points + recent_route.points
+    await user.set_to_dict_field('stats','points', new_point_total)
+    await user.push_to_field('recent_routes',recent_route.to_dict())
+    resp = {
+        'success': True,
+    }
     return response.json(resp)
 
 
@@ -274,13 +248,12 @@ async def follow(request, user):
     """
     data = request.json
     other_user_id = data.get("other_user_id")
-    query = {"_id": other_user_id}
-    other_user = await request.app.db.users.find_account(**query)
-    other_user.followers.append(user.id)
-    user.following.append(other_user_id)
-    await other_user.replace()
-    await user.replace()
-    resp = {"success": True}
+    other_user = await request.app.db.users.find_account(**{'_id': other_user_id})
+    await user.push_to_field('following', other_user.id)
+    await other_user.push_to_field('followers', user.id)
+    resp = {
+        'success': True,
+    }
     return response.json(resp)
 
 
@@ -294,13 +267,39 @@ async def unfollow(request, user):
     """
     data = request.json
     other_user_id = data.get("other_user_id")
-    query = {"_id": other_user_id}
-    other_user = await request.app.db.users.find_account(**query)
-    other_user.followers.remove(user.id)
-    user.following.remove(other_user_id)
-    await other_user.replace()
-    await user.replace()
-    resp = {"success": True}
+    other_user = await request.app.db.users.find_account(**{'_id': other_user_id})
+    await user.remove_from_array_field('following', other_user.id)
+    await user.remove_from_array_field('followers', user.id)
+    resp = {
+        'success': True,
+    }
+    return response.json(resp)
+
+@api.post('/update_profile')
+@authrequired
+@jsonrequired
+async def update_profile(request, user):
+    """
+    Updates user profile with args
+    Jason Yu
+    """
+    data      = request.json
+    password  = data.get('password')
+    username  = data.get('username')
+    full_name = data.get('full_name')
+    bio       = data.get('bio')
+    if bio is not None: 
+        await user.set_field('bio', bio)
+    if username is not None: 
+        await user.set_field('username', username)
+    if full_name is not None: 
+        await user.set_field('full_name', full_name)
+    if password is not None: 
+        salt = bcrypt.gensalt()
+        await user.set_to_dict_field('credentials', 'password', salt)
+    resp = {
+        'success': True,
+    }
     return response.json(resp)
 
 
@@ -317,22 +316,22 @@ async def get_info(request):
     Jason Yu/Sunny Yan
     """
     data = request.json
-    user_id = data.get("user_id")
-    query = {"_id": user_id}
-    account = await request.app.users.find_account(**query)
+    user_id = data.get('user_id')
+    account = await request.app.users.find_account(**{'_id': user_id})
     info = account.to_dict()
     if account is None:
         abort(403, "User ID invalid.")
     resp = {
-        "success": True,
-        "info": {
-            "full_name": info["full_name"],
-            "username": info["username"],
-            "points": info["stats"]["points"],
-            "followers": info["followers"],
-            "following": info["following"],
-            "stats": info["stats"],
-        },
+        'success': True,
+        'info' : {
+            'full_name': info['full_name'],
+            'username': info['username'],
+            'points': info['stats']['points'],
+            'followers': info['followers'],
+            'following': info['following'],
+            'stats': info['stats'],
+            'bio': info['bio'],
+        }
     }
     return response.json(resp)
 
@@ -363,7 +362,6 @@ async def get_saved_routes(request, user):
     Gets saved routes of user
     Jason Yu
     """
-    data = request.json
     saved_routes_json = [saved_route.to_dict() for saved_route in user.saved_routes]
     resp = {"success": True, "saved_routes_json": saved_routes_json}
     return response.json(resp)
@@ -377,7 +375,6 @@ async def get_recent_routes(request, user):
     Gets recent routes of user
     Jason Yu
     """
-    data = request.json
     recent_routes = [recent_route.to_dict() for recent_route in user.recent_routes]
     resp = {"success": True, "recent_routes": recent_routes}
     return response.json(resp)
@@ -400,39 +397,7 @@ async def get_run_info(request, user):
     return response.json(resp)
 
 
-@api.post("/get_followers")
-@authrequired
-@jsonrequired
-async def get_followers(request, user):
-    """
-    Gets list of users who follow user
-    Jason Yu
-    """
-    data = request.json
-    followers = []
-    for follower_id in user.followers:
-        followers.append(follower_id)
-    resp = {"success": True, "followers": followers}
-    return response.json(resp)
-
-
-@api.post("/get_following")
-@authrequired
-@jsonrequired
-async def get_following(request, user):
-    """
-    Gets list of other users that user follows
-    Jason Yu
-    """
-    data = request.json
-    following = []
-    for other_user_id in user.following:
-        following.append(other_user_id)
-    resp = {"success": True, "following": following}
-    return response.json(resp)
-
-
-@api.post("/get_feed")
+@api.post('/get_feed')
 @authrequired
 @jsonrequired
 async def get_feed(request, user):
@@ -441,7 +406,6 @@ async def get_feed(request, user):
     Returns 10 feed items
     Jason Yu
     """
-    data = request.json
     feed_items = [feed_item.to_dict() for feed_item in user.feed.get_latest_ten()]
     resp = {"success": True, "feed_items": feed_items}
     return response.json(resp)

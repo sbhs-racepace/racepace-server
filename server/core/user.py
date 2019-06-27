@@ -22,20 +22,19 @@ class User:
     def __init__(self, app, user_id, **kwargs):
         self.app = app
         self.id = user_id
-        self.credentials = kwargs.get("credentials")
-        self.dob = kwargs.get("dob")
-        self.username = kwargs.get("username")
-        self.full_name = kwargs.get("full_name")
-        self.recent_routes = kwargs.get("recent_routes")
-        self.groups = kwargs.get("groups")
-        self.stats = kwargs.get("stats")
-        self.saved_routes = kwargs.get("saved_routes")
-        self.real_time_route = kwargs.get("real_time_route")
-        self.followers = kwargs.get("followers")  # list of ids
-        self.following = kwargs.get("following")  # list of ids
-        self.feed = kwargs.get(
-            "feed"
-        )  # list of saved route names/id with corresponding user id
+        self.credentials = kwargs.get('credentials')
+        self.dob = kwargs.get('dob')
+        self.username = kwargs.get('username')
+        self.full_name = kwargs.get('full_name')
+        self.recent_routes = kwargs.get('recent_routes')
+        self.groups = kwargs.get('groups')
+        self.stats = kwargs.get('stats')
+        self.saved_routes = kwargs.get('saved_routes')
+        self.real_time_route = kwargs.get('real_time_route')
+        self.followers = kwargs.get('followers') # list of ids
+        self.following = kwargs.get('following') # list of ids
+        self.feed = kwargs.get('feed') # list of saved route names/id with corresponding user id
+        self.bio = kwargs.get('bio')
 
     def __str__(self):
         return self.username
@@ -89,15 +88,70 @@ class User:
         Abdur Raqeeb
         """
         document = self.to_dict()
-        await self.app.db.users.replace_one({"user_id": self.id}, document)
+        await self.app.db.users.replace_one({'_id': self.id}, document)
 
+    async def push_to_field(self, field, item):
+        """
+        Pushes item to array field
+        Jason Yu
+        """
+        await self.app.db.users.update_one(
+            { '_id': self.id },
+            { '$push': { 
+                field : item
+            }
+        }
+    )
+
+    async def set_to_dict_field(self, field, key, item):
+        """
+        Set item to dict field
+        Jason Yu
+        """
+        await self.app.db.users.update_one(
+            { '_id': self.id },
+            { '$set': { 
+                f"{field}.{key}" : item
+            }
+        }
+    )
+
+    async def set_field(self, field, item):
+        """
+        Set item to field
+        Jason Yu
+        """
+        await self.app.db.users.update_one(
+            { '_id': self.id },
+            { '$set': { 
+                field : item
+            }
+        }
+    )
+
+    async def remove_from_array_field(self, field, items):
+        """
+        Removes Items from array field
+        Jason Yu
+        """
+        await self.app.db.users.update_one(
+            { '_id': self.id },
+            { '$pull': 
+                { 
+                    field: { '$in': [items] } 
+                }
+            }, 
+            { 'multi': True },
+        )
+
+    
     async def delete(self):
         """
         Deletes user from database
         Abdur Raqeeb
         """
-        await self.app.db.users.delete_one({"user_id": self.id})
-
+        await self.app.db.users.delete_one({'_id': self.id})
+    
     async def create_group(self, name):
 
         group_id = snowflake()
@@ -162,6 +216,7 @@ class User:
             "followers": self.followers,
             "following": self.following,
             "feed": self.feed.to_dict(),
+            "bio": self.bio,
         }
 
 
@@ -287,6 +342,7 @@ class UserBase:
             "followers": [],
             "following": [],
             "feed": feed.to_dict(),
+            "bio": "Biography :)"
         }
         # Adds user to DB
         await self.app.db.users.insert_one(document)
