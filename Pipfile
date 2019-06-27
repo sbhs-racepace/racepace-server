@@ -16,6 +16,8 @@ pillow = "*"
 staticmap = "*"
 python-socketio = "*"
 python-dateutil = "*"
+jinja2 = "*"
+sanic-session = "*"
 
 [dev-packages]
 requests = "*"
