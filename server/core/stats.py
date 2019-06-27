@@ -58,7 +58,7 @@ async def post_login(request):
 @stats.get('/stats')
 @authrequired
 async def show_stats(request, user):
-    return request.app.render_template('stats', stats=user.stats.to_dict())
+    return request.app.render_template('stats', stats=user.stats.to_dict(), user=user)
 
     
     

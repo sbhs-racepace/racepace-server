@@ -46,7 +46,6 @@ def render_template(name, *args, **kwargs):
     if request:
         kwargs["request"] = request
         kwargs["session"] = request["session"]
-        kwargs["user"] = request["session"].get("user")
     kwargs.update(globals())
     return response.html(template.render(*args, **kwargs))
 

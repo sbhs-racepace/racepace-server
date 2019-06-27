@@ -14876,9 +14876,9 @@ fieldset[disabled] .form-group.is-focused .togglebutton label {
 }
 
 .main-panel {
-  position: initial;
-  float: middle;
-  width: 100%
+  position: center;
+  float: left;
+  width: 100%;
   transition: 0.33s, cubic-bezier(0.685, 0.0473, 0.346, 1);
 }
 
