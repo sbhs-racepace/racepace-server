@@ -1,11 +1,12 @@
 from staticmap import StaticMap, Line
 import base64
 from io import BytesIO
-m = StaticMap(50,50)
-route = [[151.103812,-33.911057],[151.107460,-33.90315]]
-for pts in zip(route[:-1],route[1:]):
+
+m = StaticMap(50, 50)
+route = [[151.103812, -33.911057], [151.107460, -33.90315]]
+for pts in zip(route[:-1], route[1:]):
     print(pts)
-    line = Line(pts,"blue", 2)
+    line = Line(pts, "blue", 2)
     m.add_line(line)
 image = m.render()
 buffer = BytesIO()

@@ -12,6 +12,7 @@ from .route import SavedRoute, RecentRoute, RealTimeRoute, Time
 from .group import Group
 from .feed import Feed
 
+
 class User:
     """
     User class for database that holds all information
@@ -21,25 +22,27 @@ class User:
     def __init__(self, app, user_id, **kwargs):
         self.app = app
         self.id = user_id
-        self.credentials = kwargs.get('credentials')
-        self.dob = kwargs.get('dob')
-        self.username = kwargs.get('username')
-        self.full_name = kwargs.get('full_name')
-        self.recent_routes = kwargs.get('recent_routes')
-        self.groups = kwargs.get('groups')
-        self.stats = kwargs.get('stats')
-        self.saved_routes = kwargs.get('saved_routes')
-        self.real_time_route = kwargs.get('real_time_route')
-        self.followers = kwargs.get('followers') # list of ids
-        self.following = kwargs.get('following') # list of ids
-        self.feed = kwargs.get('feed') # list of saved route names/id with corresponding user id
+        self.credentials = kwargs.get("credentials")
+        self.dob = kwargs.get("dob")
+        self.username = kwargs.get("username")
+        self.full_name = kwargs.get("full_name")
+        self.recent_routes = kwargs.get("recent_routes")
+        self.groups = kwargs.get("groups")
+        self.stats = kwargs.get("stats")
+        self.saved_routes = kwargs.get("saved_routes")
+        self.real_time_route = kwargs.get("real_time_route")
+        self.followers = kwargs.get("followers")  # list of ids
+        self.following = kwargs.get("following")  # list of ids
+        self.feed = kwargs.get(
+            "feed"
+        )  # list of saved route names/id with corresponding user id
 
     def __str__(self):
         return self.username
 
     @property
     def avatar_url(self):
-        return f'https://racepace-sbhs.herokuapp.com/api/avatars/{self.id}.png'
+        return f"https://racepace-sbhs.herokuapp.com/api/avatars/{self.id}.png"
 
     @classmethod
     def from_data(cls, app, data):
@@ -49,14 +52,20 @@ class User:
         Abdur Raqeeb/Jason Yu
         """
 
-        user_id = data.pop('_id')
-        data['saved_routes']    = [SavedRoute.from_data(saved_route_data) for saved_route_data in data['saved_routes'].values()]
-        data['recent_routes']   = [RecentRoute.from_data(recent_route_data) for recent_route_data in data['recent_routes']]
-        data['groups']          = {g['_id'] : Group(app, g) for g in data.get('groups', [])}
-        data['credentials']     = Credentials(**(data['credentials']))
-        data['stats']           = UserStats(**(data['stats']))
-        data['real_time_route'] = RealTimeRoute.from_data(data['real_time_route'])
-        data['feed']            = Feed.from_data(data['feed'])
+        user_id = data.pop("_id")
+        data["saved_routes"] = [
+            SavedRoute.from_data(saved_route_data)
+            for saved_route_data in data["saved_routes"].values()
+        ]
+        data["recent_routes"] = [
+            RecentRoute.from_data(recent_route_data)
+            for recent_route_data in data["recent_routes"]
+        ]
+        data["groups"] = {g["_id"]: Group(app, g) for g in data.get("groups", [])}
+        data["credentials"] = Credentials(**(data["credentials"]))
+        data["stats"] = UserStats(**(data["stats"]))
+        data["real_time_route"] = RealTimeRoute.from_data(data["real_time_route"])
+        data["feed"] = Feed.from_data(data["feed"])
 
         user = cls(app, user_id, **data)
         return user
@@ -80,57 +89,54 @@ class User:
         Abdur Raqeeb
         """
         document = self.to_dict()
-        await self.app.db.users.replace_one({'user_id': self.id}, document)
-    
+        await self.app.db.users.replace_one({"user_id": self.id}, document)
+
     async def delete(self):
         """
         Deletes user from database
         Abdur Raqeeb
         """
-        await self.app.db.users.delete_one({'user_id': self.id})
-    
+        await self.app.db.users.delete_one({"user_id": self.id})
+
     async def create_group(self, name):
-        
+
         group_id = snowflake()
 
-        await self.app.db.groups.insert_one({   
-            '_id': group_id,
-            'name': name,
-            'owner_id': self.id,
-            'members': [ self.id ],
-            'messages': []
-            })
+        await self.app.db.groups.insert_one(
+            {
+                "_id": group_id,
+                "name": name,
+                "owner_id": self.id,
+                "members": [self.id],
+                "messages": [],
+            }
+        )
         await self.app.db.users.update_one(
-            {'_id':self.id},
-            {'$addToSet': {'groups': group_id}}
+            {"_id": self.id}, {"$addToSet": {"groups": group_id}}
         )
 
-    async def add_to_group(self,group_id):
+    async def add_to_group(self, group_id):
         """
         Adds the user to a group
         """
         await self.app.db.groups.update_one(
-            {'_id':group_id},
-            {'$addToSet': {'members':self.id}}
+            {"_id": group_id}, {"$addToSet": {"members": self.id}}
         )
         await self.app.db.users.update_one(
-            {'_id':self.id},
-            {'$addToSet': {'groups': group_id}}
+            {"_id": self.id}, {"$addToSet": {"groups": group_id}}
         )
-    
+
     async def remove_from_group(self, group_id):
         """
         Removes the user from the group
         """
         await self.app.db.groups.update_one(
-            {'_id':group_id},
-            {'$pull': {'members':self.id}}
+            {"_id": group_id}, {"$pull": {"members": self.id}}
         )
         await self.app.db.users.update_one(
-            {'_id':self.id},
-            {'$pull': {'groups': group_id}}
+            {"_id": self.id}, {"$pull": {"groups": group_id}}
         )
-    
+
     def to_dict(self):
         """
         Returns user data as a dict
@@ -142,16 +148,22 @@ class User:
             "username": self.username,
             "avatar_url": self.avatar_url,
             "dob": self.dob,
-            "recent_routes": [recent_route.to_dict() for recent_route in self.recent_routes],
-            "saved_routes": dict((saved_route.id,saved_route.to_dict()) for saved_route in self.saved_routes),
+            "recent_routes": [
+                recent_route.to_dict() for recent_route in self.recent_routes
+            ],
+            "saved_routes": dict(
+                (saved_route.id, saved_route.to_dict())
+                for saved_route in self.saved_routes
+            ),
             "stats": self.stats.to_dict(),
             "credentials": self.credentials.to_dict(),
-            "real_time_route" : self.real_time_route.to_dict(),
+            "real_time_route": self.real_time_route.to_dict(),
             "groups": self.groups,
             "followers": self.followers,
             "following": self.following,
             "feed": self.feed.to_dict(),
         }
+
 
 @dataclass
 class Credentials:
@@ -159,16 +171,14 @@ class Credentials:
     Class to hold important user information
     Abdur Raqeeb
     """
+
     email: str
     password: str
     token: str = None
 
     def to_dict(self):
-        return {
-            "email": self.email,
-            "password": self.password,
-            "token": self.token,
-        }
+        return {"email": self.email, "password": self.password, "token": self.token}
+
 
 @dataclass
 class UserStats:
@@ -176,51 +186,53 @@ class UserStats:
     Class to hold user running stats
     Jason Yu
     """
+
     points: int = 0
     num_runs: int = 0
     total_distance: int = 0
     longest_distance_ran: int = None
-    fastest_km : int = None
+    fastest_km: int = None
     fastest_5km: int = None
-    fastest_10km : int = None
+    fastest_10km: int = None
     fastest_marathon: int = None
     estimated_v02_max: int = None
     average_heart_rate: int = None
     cadence: int = None
 
     def to_dict(self):
-        return  {
+        return {
             "points": self.points,
             "num_runs": self.num_runs,
             "total_distance": self.total_distance,
             "longest_distance_ran": self.longest_distance_ran,
-            "fastest_km" : self.fastest_km,
+            "fastest_km": self.fastest_km,
             "fastest_5km": self.fastest_5km,
-            "fastest_10km" : self.fastest_10km,
+            "fastest_10km": self.fastest_10km,
             "fastest_marathon": self.fastest_marathon,
             "estimated_v02_max": self.estimated_v02_max,
             "average_heart_rate": self.average_heart_rate,
             "cadence": self.cadence,
         }
 
+
 class UserBase:
     def __init__(self, app):
         self.app = app
         self.user_cache = {}
         self.group_cache = {}
-    
+
     async def find_account(self, **query):
         """
         Returns a user object based on the query
         Abdur Raqeeb
         """
         # Checks if user can be retrieved from cache
-        if len(query) == 1 and 'user_id' in query:
-            user =  self.user_cache.get(query['user_id'])
+        if len(query) == 1 and "user_id" in query:
+            user = self.user_cache.get(query["user_id"])
             if user:
                 return user
         data = await self.app.db.users.find_one(query)
-        if not data: 
+        if not data:
             return None
         user = User.from_data(self.app, data)
         self.user_cache[user.id] = user
@@ -233,37 +245,33 @@ class UserBase:
         """
         data = request.json
         # Extracting fields
-        email = data.get('email')
-        password = data.get('password')
-        dob = data.get('dob')
-        full_name = data.get('full_name')
-        username = data.get('username')
+        email = data.get("email")
+        password = data.get("password")
+        dob = data.get("dob")
+        full_name = data.get("full_name")
+        username = data.get("username")
         # Creating intial fields
         initial_stats = UserStats()
         real_time_route = RealTimeRoute()
         feed = Feed([])
-        #Reading Default Avatar Image
-        with open('server/core/resources/avatar.png','rb') as img:
+        # Reading Default Avatar Image
+        with open("server/core/resources/avatar.png", "rb") as img:
             avatar = img.read()
         # Verifying Valid Account
-        query = {'credentials.email': email}
+        query = {"credentials.email": email}
         exists = await self.find_account(**query)
-        if exists: abort(403, 'Email already in use.') 
+        if exists:
+            abort(403, "Email already in use.")
         # Unique User Id
         salt = bcrypt.gensalt()
         hashed = bcrypt.hashpw(password, salt)
         user_id = str(snowflake())
         # Adding Avatar to images
-        await self.app.db.images.insert_one({
-            'user_id': user_id,
-            'avatar': avatar
-            })
+        await self.app.db.images.insert_one({"user_id": user_id, "avatar": avatar})
         # Generates Credentials
-        credentials = Credentials(**({
-            "email": email,
-            "password": hashed,
-            "token": None
-        }))
+        credentials = Credentials(
+            **({"email": email, "password": hashed, "token": None})
+        )
         # Generates document for DB
         document = {
             "_id": user_id,
@@ -274,7 +282,7 @@ class UserBase:
             "dob": dob,
             "stats": initial_stats.to_dict(),
             "credentials": credentials.to_dict(),
-            "real_time_route" : real_time_route.to_dict(),
+            "real_time_route": real_time_route.to_dict(),
             "groups": [],
             "followers": [],
             "following": [],
@@ -286,22 +294,18 @@ class UserBase:
         return user
 
     async def issue_token(self, user):
-        '''
+        """
         Creates and returns a token if not already existing
         Abdur Raqeeb
-        '''
+        """
         if user.credentials.token:
             return user.credentials.token
-        #Generates info for token
-        payload = {
-            'sub': user.id,
-            'iat': datetime.datetime.utcnow()
-        }
+        # Generates info for token
+        payload = {"sub": user.id, "iat": datetime.datetime.utcnow()}
         user.credentials.token = token = jwt.encode(payload, self.app.secret)
         # Adds token to credentials
         await self.app.db.users.update_one(
-            {'user_id': user.id}, 
-            {'$set': {'credentials.token': token}}
+            {"user_id": user.id}, {"$set": {"credentials.token": token}}
         )
-        
+
         return token
