@@ -302,6 +302,7 @@ async def get_info(request):
         'success': True,
         'info' : {
             'full_name': info['full_name'],
+            'email': info['credential']['email'],
             'username': info['username'],
             'points': info['stats']['points'],
             'followers': info['followers'],
