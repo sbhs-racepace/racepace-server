@@ -6,6 +6,7 @@ from sanic.log import logger
 import requests
 import time
 import random
+import inspect
 
 EPOCH = 946702800
 
@@ -15,10 +16,28 @@ RANDOM_LENGTH = 23
 RANDOM_SHIFT = 0
 TIMESTAMP_SHIFT = 23
 
+
+def get_stack_variable(name):
+    stack = inspect.stack()
+    try:
+        for frames in stack:
+            try:
+                frame = frames[0]
+                current_locals = frame.f_locals
+                if name in current_locals:
+                    return current_locals[name]
+            finally:
+                del frame
+    finally:
+        del stack
+
+
 """Password hashing"""
+
 
 def pad_bytes_to_64(string):
     return format(string, "064b")
+
 
 def binary(num, padding=True):
     """Show binary digits of a number, pads to 64 bits unless specified."""
@@ -31,7 +50,7 @@ def binary(num, padding=True):
 def extract_bits(data, shift, length):
     """Extract a portion of a bit string. Similar to substr()."""
     bitmask = ((1 << length) - 1) << shift
-    return ((data & bitmask) >> shift)
+    return (data & bitmask) >> shift
 
 
 def snowflake(timestamp=None, random_bits=None, epoch=EPOCH):
@@ -47,6 +66,7 @@ def snowflake(timestamp=None, random_bits=None, epoch=EPOCH):
 
     return flake
 
+
 def parse_snowflake(flake):
     """Parses a snowflake and returns a named tuple with the parts."""
     timestamp = EPOCH + extract_bits(flake, TIMESTAMP_SHIFT, TIMESTAMP_LENGTH) / 1000.0
@@ -55,25 +75,29 @@ def parse_snowflake(flake):
 
 
 def stop_ngrok(ngrok):
-    logger.info('Ngrok tunnel closed.')
+    logger.info("Ngrok tunnel closed.")
     ngrok.terminate()
 
+
 def start_ngrok():
-    '''Starts ngrok and returns the tunnel url'''
-    ngrok = subprocess.Popen(['ngrok', 'http', '8000'], stdout=subprocess.PIPE)
+    """Starts ngrok and returns the tunnel url"""
+    ngrok = subprocess.Popen(["ngrok", "http", "8000"], stdout=subprocess.PIPE)
     atexit.register(stop_ngrok, ngrok)
     time.sleep(3)
     localhost_url = "http://localhost:4040/api/tunnels"  # Url with tunnel details
     response = requests.get(localhost_url).json()
-    tunnel_url = response['tunnels'][0]['public_url']  # Do the parsing of the get
+    tunnel_url = response["tunnels"][0]["public_url"]  # Do the parsing of the get
     tunnel_url = tunnel_url.replace("https", "http")
 
     return tunnel_url
 
+
 def run_with_ngrok(app):
     old_run = app.run
+
     def new_run(*args, **kwargs):
         app.ngrok_url = start_ngrok()
-        logger.info(f'Public url @ {app.ngrok_url}')
+        logger.info(f"Public url @ {app.ngrok_url}")
         old_run(*args, **kwargs)
+
     app.run = new_run
