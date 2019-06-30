@@ -161,8 +161,9 @@ async def login(request):
 async def google_login(request):
     """
     Registers or logs in with Google
+    Sunny
     """
-    idToken = request.idToken
+    idToken = request.json.idToken
     request = request.app.fetch(
         "https://oauth2.googleapis.com/tokeninfo?id_token=" + idToken
     )
