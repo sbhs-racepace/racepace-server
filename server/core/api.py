@@ -311,7 +311,6 @@ Account Info API Calls
 
 @api.post("/get_info")
 @authrequired
-@jsonrequired
 async def get_info(request, user):
     """
     Get user info
