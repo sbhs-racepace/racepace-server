@@ -310,18 +310,14 @@ Account Info API Calls
 
 
 @api.post("/get_info")
+@authrequired
 @jsonrequired
-async def get_info(request):
+async def get_info(request, user):
     """
     Get user info
     Jason Yu/Sunny Yan
     """
-    data = request.json
-    user_id = data.get('user_id')
-    account = await request.app.users.find_account(**{'_id': user_id})
-    info = account.to_dict()
-    if account is None:
-        abort(403, "User ID invalid.")
+    info = user.to_dict()
     resp = {
         'success': True,
         'info' : {
