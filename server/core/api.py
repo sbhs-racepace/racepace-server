@@ -338,7 +338,7 @@ async def get_info(request, user):
 @jsonrequired
 async def find_friends(request, user):
     text = request.json['name']
-    query = {"$text": text}
+    query = {"$text":  {"$search": text}}
 
     projection = {"_id": 1, "username": 1, "bio": 1}
 
