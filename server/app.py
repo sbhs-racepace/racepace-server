@@ -51,7 +51,7 @@ def render_template(name, *args, **kwargs):
 
 
 app.render_template = render_template
-app.static("/", "./server/static")
+app.static("/static/", "./server/static")
 
 
 app.blueprint(api)
