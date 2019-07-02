@@ -167,8 +167,7 @@ async def google_login(request):
     request = request.app.fetch(
         "https://oauth2.googleapis.com/tokeninfo?id_token=" + idToken
     )
-    resp = await asyncio.gather(request)
-    print(resp)
+    resp = (await asyncio.gather(request))[0]
     if resp.get("error"):
         abort(403,"Google token invalid")
     user = await request.app.users.find_account(**{'credentials.email': resp['email']})
