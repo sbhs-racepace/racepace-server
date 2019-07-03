@@ -298,7 +298,12 @@ class UserBase:
         Registers user to database
         Abdur Raqeeb/ Jason Yu
         """
-        data = request.json
+
+        if type(request) == dict:
+            data = request
+        else:
+            data = request.json
+
         # Extracting fields
         email = data.get("email")
         password = data.get("password")

@@ -174,12 +174,11 @@ async def google_login(request):
     if user is None:
         user = await request.app.users.register(
             {
-                "json": {
-                    "email": resp["email"],
-                    "password": "<GOOGLE ONLY>",
-                    "full_name": resp["name"],
-                    "username": resp["email"],
-                }
+                "email": resp["email"],
+                "password": "<GOOGLE ONLY>",
+                "dob":"",
+                "full_name": resp["name"],
+                "username": resp["email"],
             }
         )
     token = await request.app.users.issue_token(user)
