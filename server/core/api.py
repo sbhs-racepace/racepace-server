@@ -172,7 +172,7 @@ async def google_login(request):
         abort(403,"Google token invalid")
     user = await request.app.users.find_account(**{'credentials.email': resp['email']})
     if user is None:
-        user = request.app.users.register(
+        user = await request.app.users.register(
             {
                 "json": {
                     "email": resp["email"],
