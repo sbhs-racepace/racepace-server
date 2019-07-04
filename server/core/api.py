@@ -202,16 +202,16 @@ async def save_route(request, user):
     data = request.json
     name = data.get("name")
     description = data.get("description")
-    # Retrieving user real time route
-    real_time_route = user.real_time_route
-    # Saving Route Image
-    route_image = real_time_route.route.generateStaticMap()
+    run_info = data.get('run_info')
+    run_info['route'] = Route.from_data(run_info['route'], run_info['estimated_distance']) # Rebuild route with estimated distance
+    location_packets = data.get('location_packets')
+    route_image = run_info.route.generateStaticMap()
     await request.app.db.images.insert_one({
         'user_id': user.id,
         'route_name': name,
         'route_image': route_image
     })
-    saved_route = SavedRoute.from_real_time_route(name, description, route_image, real_time_route)
+    saved_route = SavedRoute.from_real_time_route(name, description, route_image, run_info, location_packets)
     new_point_total = user.stats.points + saved_route.points
     await user.set_to_dict_field('stats','points', new_point_total)
     await user.set_to_dict_field('saved_routes',saved_route.id,saved_route.to_dict())
@@ -225,18 +225,20 @@ async def save_route(request, user):
 @authrequired
 async def save_recent_route(request, user):
     """
-    Sends current location of user
+    Sends current Route of user
     Jason Yu
     """
-    recent_route = RecentRoute.from_real_time_route(user.real_time_route)
+    data = request.json
+    run_info = data.get('run_info')
+    location_packets = data.get('location_packets')
+    recent_route = RecentRoute.from_real_time_route(location_packets, run_info)
     new_point_total = user.stats.points + recent_route.points
-    await user.set_to_dict_field('stats','points', new_point_total)
-    await user.push_to_field('recent_routes',recent_route.to_dict())
+    await user.set_to_dict_field('stats','points', new_point_total) # Adding new point total
+    await user.push_to_field('recent_routes',recent_route.to_dict()) # Adding recent routes
     resp = {
         'success': True,
     }
     return response.json(resp)
-
 
 @api.post("/follow")
 @authrequired
