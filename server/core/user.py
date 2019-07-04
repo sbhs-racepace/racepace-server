@@ -8,7 +8,7 @@ from sanic import Sanic
 from sanic.exceptions import abort
 
 from .utils import snowflake
-from .route import SavedRoute, RecentRoute, RealTimeRoute, Time
+from .route import SavedRoute, RecentRoute, Time
 from .group import Group
 from .feed import Feed
 
@@ -30,7 +30,6 @@ class User:
         self.groups = kwargs.get('groups')
         self.stats = kwargs.get('stats')
         self.saved_routes = kwargs.get('saved_routes')
-        self.real_time_route = kwargs.get('real_time_route')
         self.followers = kwargs.get('followers') # list of ids
         self.following = kwargs.get('following') # list of ids
         self.feed = kwargs.get('feed') # list of saved route names/id with corresponding user id
@@ -63,7 +62,6 @@ class User:
         data["groups"] = {g["_id"]: Group(app, g) for g in data.get("groups", [])}
         data["credentials"] = Credentials(**(data["credentials"]))
         data["stats"] = UserStats(**(data["stats"]))
-        data["real_time_route"] = RealTimeRoute.from_data(data["real_time_route"])
         data["feed"] = Feed.from_data(data["feed"])
 
         user = cls(app, user_id, **data)
@@ -211,7 +209,6 @@ class User:
             ),
             "stats": self.stats.to_dict(),
             "credentials": self.credentials.to_dict(),
-            "real_time_route": self.real_time_route.to_dict(),
             "groups": self.groups,
             "followers": self.followers,
             "following": self.following,
@@ -312,7 +309,6 @@ class UserBase:
         username = data.get("username")
         # Creating intial fields
         initial_stats = UserStats()
-        real_time_route = RealTimeRoute()
         feed = Feed([])
         # Reading Default Avatar Image
         with open("server/core/resources/avatar.png", "rb") as img:
@@ -342,7 +338,6 @@ class UserBase:
             "dob": dob,
             "stats": initial_stats.to_dict(),
             "credentials": credentials.to_dict(),
-            "real_time_route": real_time_route.to_dict(),
             "groups": [],
             "followers": [],
             "following": [],
