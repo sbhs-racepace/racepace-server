@@ -27,6 +27,12 @@ class Point:
         lat, long = string.split(",")
         return cls(lat, long)
 
+    def to_dict(self):
+        return {
+            'latitude': self.latitude, 
+            'longitude': self.longitude
+            }
+
     def distance(self, other: Point) -> float:
         """
         Uses spherical geometry to calculate the surface distance between two points.
