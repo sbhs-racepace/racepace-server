@@ -23,7 +23,6 @@ class User:
         self.app = app
         self.id = user_id
         self.credentials = kwargs.get('credentials')
-        self.dob = kwargs.get('dob')
         self.username = kwargs.get('username')
         self.full_name = kwargs.get('full_name')
         self.recent_routes = kwargs.get('recent_routes')
@@ -199,7 +198,6 @@ class User:
             "full_name": self.full_name,
             "username": self.username,
             "avatar_url": self.avatar_url,
-            "dob": self.dob,
             "recent_routes": [
                 recent_route.to_dict() for recent_route in self.recent_routes
             ],
@@ -304,7 +302,6 @@ class UserBase:
         # Extracting fields
         email = data.get("email")
         password = data.get("password")
-        dob = data.get("dob")
         full_name = data.get("full_name")
         username = data.get("username")
         # Creating intial fields
@@ -335,7 +332,6 @@ class UserBase:
             "saved_routes": dict(),
             "full_name": full_name,
             "username": username,
-            "dob": dob,
             "stats": initial_stats.to_dict(),
             "credentials": credentials.to_dict(),
             "groups": [],

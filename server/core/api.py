@@ -176,7 +176,6 @@ async def google_login(request):
             {
                 "email": resp["email"],
                 "password": "<GOOGLE ONLY>",
-                "dob":"",
                 "full_name": resp["name"],
                 "username": resp["email"],
             }
