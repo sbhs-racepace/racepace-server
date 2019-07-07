@@ -400,15 +400,6 @@ class Route:
         return convex_hull
 
     @classmethod
-    async def from_database(cls, db, route_id):
-        """
-        Creates a route object from a route stored in the database
-        Abdur
-        """
-        route = await db.find_one({"id_": route_id})
-        return cls(route_id, **route["route"])
-
-    @classmethod
     def generate_route(
         cls, nodes: dict, ways: dict, start_id: int, end_id: int
     ) -> Route:
