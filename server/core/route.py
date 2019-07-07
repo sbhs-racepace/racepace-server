@@ -16,11 +16,7 @@ class LocationPacket:
 
     @classmethod
     def from_data(cls, data):
-        self.location = 
-        location = data['location']
-        latitude = data['latitude']
-        longitude = data['longitude']
-        return cls(latitude, longitude, data['timestamp'], data['speed'])
+        return cls(**data)
 
     def to_dict(self):
         return {
@@ -29,9 +25,9 @@ class LocationPacket:
             "speed": self.speed
         }
 
-class RecentRoute:
+class Run:
     """
-    All recent routes that user has finish are automatically stored
+    A run that has been completed by user, but not saved to feed
     Jason Yu
     """
 
@@ -45,9 +41,9 @@ class RecentRoute:
         Generates Recent Route class from real time data
         Jason Yu
         """
-        location_packets = [Location.from_data(packet) for packet in location_packets]
-        saved_route = cls(location_packets, run_info, route)
-        return saved_route
+        location_packets = [LocationPacket.from_data(packet) for packet in location_packets]
+        run = cls(location_packets, run_info)
+        return run
 
     @classmethod
     def from_data(cls, data):
@@ -55,9 +51,9 @@ class RecentRoute:
         Generates Recent Route class from database data
         Jason Yu
         """
-        location_packets = [Location.from_data(packet) for packet in data['location_packets']]
-        recent_route = cls(location_packets, data['run_info'], route)
-        return recent_route
+        location_packets = [LocationPacket.from_data(packet) for packet in data['location_packets']]
+        run = cls(location_packets, data['run_info'])
+        return run
 
     def to_dict(self):
         return {
@@ -66,19 +62,19 @@ class RecentRoute:
         }
 
 
-class SavedRoute(RecentRoute):
+class SavedRun(Run):
     """
-    A route that has been saved by the user to be shared on feed
+    A run that has been saved by the user to be shared on feed
     Jason Yu
     """
 
-    def __init__(self, route_id, name, description, route_image, run_info, location_packets, route):
+    def __init__(self, run_id, name, description, run_info, location_packets, likes, comments):
         super.__init__(location_packets, run_info)
-        self.id = route_id
+        self.id = run_id
         self.name = name
         self.description = description
-        self.route_image = route_image
-        self.route = route
+        self.likes = likes
+        self.comments = comments
 
     @classmethod
     def from_data(cls, data):
@@ -86,23 +82,21 @@ class SavedRoute(RecentRoute):
         Generates Saved Route class from database data
         Jason Yu
         """
-        route_id = data.pop("id")
+        run_id = data.pop("id")
         data["location_packets"] = [LocationPacket.from_data(packet) for packet in data["location_packets"]]
-        data["route"] = Route.from_data(data['route'])
-        saved_route = cls(route_id, **data)
-        return saved_route
+        saved_run = cls(run_id, **data)
+        return saved_run
 
     @classmethod
-    def from_real_time_route(cls, name, description, route_image, run_info, location_packets):
+    def from_real_time_route(cls, name, description, run_info, location_packets, likes, comments):
         """
         Generates Saved Route class from real time data
         This is generally the first initialization, therefore route id is generated here
         Jason Yu
         """
-        points = run_stats(real_time_route.current_distance, real_time_route.current_duration)
         route_id = str(snowflake())
         location_packets = [LocationPacket.from_data(packet) for packet in location_packets]
-        saved_route = cls(route_id, name, description, route_image, run_info, location_packets)
+        saved_route = cls(route_id, name, description, run_info, location_packets, likes, comments)
         return saved_route
 
     def to_dict(self):
@@ -110,8 +104,43 @@ class SavedRoute(RecentRoute):
             "id": self.id,
             "name": self.name,
             "description": self.description,
-            "route_image", route_image,
             "location_packets": [packet.to_dict() for packet in self.location_packets],
             "run_info": self.run_info,
-            "route": self.route.to_dict()
+            "likes":self.likes,
+            "comments":self.comments,
+        }
+
+class SavedRoute:
+    """
+    When a user generates a route and chooses to save it, they can reuse route again in the future.
+    Jason Yu
+    """
+    def __init__(self, route_id, name, description, route):
+        self.id = route_id
+        self.name = name
+        self.description = description
+        self.route = route
+
+    @classmethod
+    def from_data(cls, data):
+        distance = data['route']['distance']
+        route    = data['route']['route']
+        runningRoute = Route.from_data(route, distance)
+        return cls(data['route_id'], data['name'], data['description'],runningRoute)
+
+    @classmethod
+    def from_real_time_route(cls, route, name, description):
+        """
+        Generate Saved Route with id
+        """
+        route_id = str(snowflake())
+        saved_route = cls(route_id, name, description, route)
+        return saved_route
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name':self.name,
+            'route':self.route.to_dict(),
+            'description':self.description,
         }

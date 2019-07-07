@@ -10,10 +10,11 @@ from sanic.exceptions import abort
 from sanic.log import logger
 
 from core.route_generation import Route, Point, Node, Way
-from core.route import RealTimeRoute, RunningSession, SavedRoute, RecentRoute
+from core.route import SavedRoute, SavedRun, Run
 from core.misc import Overpass, Color
 from core.user import User
 from core.decorators import jsonrequired, memoized, authrequired
+from core.points import run_stats
 
 
 api = Blueprint("api", url_prefix="/api")
@@ -195,24 +196,14 @@ Update Info API Calls
 @authrequired
 async def save_route(request, user):
     """
-    Sends current Route of user
+    Saves route for later use
     Jason Yu
     """
     data = request.json
     name = data.get("name")
     description = data.get("description")
-    run_info = data.get('run_info')
-    run_info['route'] = Route.from_data(run_info['route'], run_info['estimated_distance']) # Rebuild route with estimated distance
-    location_packets = data.get('location_packets')
-    route_image = run_info.route.generateStaticMap()
-    await request.app.db.images.insert_one({
-        'user_id': user.id,
-        'route_name': name,
-        'route_image': route_image
-    })
-    saved_route = SavedRoute.from_real_time_route(name, description, route_image, run_info, location_packets)
-    new_point_total = user.stats.points + saved_route.points
-    await user.set_to_dict_field('stats','points', new_point_total)
+    route = Route.from_data(data.get('run_info'))
+    saved_route = SavedRoute.from_real_time_route(name, description, route)
     await user.set_to_dict_field('saved_routes',saved_route.id,saved_route.to_dict())
     resp = {
         'success': True,
@@ -220,20 +211,41 @@ async def save_route(request, user):
     return response.json(resp)
 
 
-@api.post("/save_recent_route")
+@api.post("/save_run")
 @authrequired
-async def save_recent_route(request, user):
+async def save_run(request, user):
     """
-    Sends current Route of user
+    Saves run of user and adds to feed
+    Jason Yu
+    """
+    data = request.json
+    name = data.get("name")
+    description = data.get("description")
+    run_info = data.get('run_info')
+    location_packets = data.get('location_packets')
+    saved_run = SavedRun.from_real_time_route(name,description,run_info,location_packets)
+    points = run_stats(run_info.distance, run_info.duration)
+    await user.set_to_dict_field('stats','points', user.stats.points + points) # Adding new point total
+    await user.set_to_dict_field('saved_runs', saved_run.id, saved_run.to_dict()) # Adding saved routes
+    resp = {
+        'success': True,
+    }
+    return response.json(resp)
+
+@api.post("/add_run")
+@authrequired
+async def add_run(request, user):
+    """
+    Add run to history
     Jason Yu
     """
     data = request.json
     run_info = data.get('run_info')
     location_packets = data.get('location_packets')
-    recent_route = RecentRoute.from_real_time_route(location_packets, run_info)
-    new_point_total = user.stats.points + recent_route.points
-    await user.set_to_dict_field('stats','points', new_point_total) # Adding new point total
-    await user.push_to_field('recent_routes',recent_route.to_dict()) # Adding recent routes
+    run = Run.from_real_time_route(location_packets, run_info)
+    points = run_stats(run_info.distance, run_info.duration)
+    await user.set_to_dict_field('stats','points', user.stats.points + points) # Adding new point total
+    await user.push_to_field('runs', run.to_dict()) # Pushing run
     resp = {
         'success': True,
     }
@@ -328,10 +340,13 @@ async def get_info(request, user):
             'following': info['following'],
             'stats': info['stats'],
             'bio': info['bio'],
+            'saved_routes': info['saved_routes'],
+            'saved_runs': info['saved_runs'],
+            'runs': info['runs'],
+
         }
     }
     return response.json(resp)
-
 
 @api.post("/find_friends")
 @authrequired
@@ -349,50 +364,6 @@ async def find_friends(request, user):
     ]
 
     return response.json(results)
-
-
-@api.post("/get_saved_routes")
-@authrequired
-@jsonrequired
-async def get_saved_routes(request, user):
-    """
-    Gets saved routes of user
-    Jason Yu
-    """
-    saved_routes_json = [saved_route.to_dict() for saved_route in user.saved_routes]
-    resp = {"success": True, "saved_routes_json": saved_routes_json}
-    return response.json(resp)
-
-
-@api.post("/get_recent_routes")
-@authrequired
-@jsonrequired
-async def get_recent_routes(request, user):
-    """
-    Gets recent routes of user
-    Jason Yu
-    """
-    recent_routes = [recent_route.to_dict() for recent_route in user.recent_routes]
-    resp = {"success": True, "recent_routes": recent_routes}
-    return response.json(resp)
-
-
-@api.post("/get_run_info")
-@authrequired
-@jsonrequired
-async def get_run_info(request, user):
-    """
-    Gets pace of user
-    Jason Yu
-    """
-    data = request.json
-    period = data.get("period", 5)
-    speed = user.real_time_route.calculate_speed(period)
-    pace = RealTimeRoute.speed_to_pace(speed)
-    distance = user.real_time_route.current_distance
-    resp = {"success": True, "pace": pace, "distance": distance}
-    return response.json(resp)
-
 
 @api.post('/get_feed')
 @authrequired

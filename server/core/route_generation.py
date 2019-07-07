@@ -276,12 +276,14 @@ class Route:
         return {"route": route, "dist": self.distance}
 
     @classmethod
-    def from_data(cls, route, distance):
+    def from_data(cls, data):
         """
         Jason Yu
         Class method that takes array of location objects and distance
         """
-        route = [Point(node_json.latitude, node_json.longitude) for node_json in route]
+        running_route = data['route']
+        distance = data['distance']
+        route = [Point(node_json.latitude, node_json.longitude) for node_json in running_route]
         return cls(route, distance)
 
     @classmethod

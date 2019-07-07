@@ -8,7 +8,7 @@ from sanic import Sanic
 from sanic.exceptions import abort
 
 from .utils import snowflake
-from .route import SavedRoute, RecentRoute, Time
+from .route import SavedRoute, SavedRun, Run
 from .group import Group
 from .feed import Feed
 
@@ -25,10 +25,11 @@ class User:
         self.credentials = kwargs.get('credentials')
         self.username = kwargs.get('username')
         self.full_name = kwargs.get('full_name')
-        self.recent_routes = kwargs.get('recent_routes')
         self.groups = kwargs.get('groups')
         self.stats = kwargs.get('stats')
         self.saved_routes = kwargs.get('saved_routes')
+        self.saved_runs = kwargs.get('saved_runs')
+        self.runs = kwargs.get('runs')
         self.followers = kwargs.get('followers') # list of ids
         self.following = kwargs.get('following') # list of ids
         self.feed = kwargs.get('feed') # list of saved route names/id with corresponding user id
@@ -54,9 +55,13 @@ class User:
             SavedRoute.from_data(saved_route_data)
             for saved_route_data in data["saved_routes"].values()
         ]
-        data["recent_routes"] = [
-            RecentRoute.from_data(recent_route_data)
-            for recent_route_data in data["recent_routes"]
+        data["saved_runs"] = [
+            SavedRun.from_data(saved_run_data)
+            for saved_run_data in data["saved_runs"]
+        ]
+        data["runs"] = [
+            Run.from_data(run_data)
+            for run_data in data["runs"]
         ]
         data["groups"] = {g["_id"]: Group(app, g) for g in data.get("groups", [])}
         data["credentials"] = Credentials(**(data["credentials"]))
@@ -198,13 +203,17 @@ class User:
             "full_name": self.full_name,
             "username": self.username,
             "avatar_url": self.avatar_url,
-            "recent_routes": [
-                recent_route.to_dict() for recent_route in self.recent_routes
-            ],
+            "saved_runs": dict(
+                (saved_run.id, saved_run.to_dict())
+                for saved_run in self.saved_runs
+            ),
             "saved_routes": dict(
                 (saved_route.id, saved_route.to_dict())
                 for saved_route in self.saved_routes
             ),
+            "runs": [
+                run.to_dict() for run in self.runs
+            ],
             "stats": self.stats.to_dict(),
             "credentials": self.credentials.to_dict(),
             "groups": self.groups,
@@ -328,8 +337,9 @@ class UserBase:
         # Generates document for DB
         document = {
             "_id": user_id,
-            "recent_routes": [],
+            "saved_runs": dict(),
             "saved_routes": dict(),
+            "runs": []
             "full_name": full_name,
             "username": username,
             "stats": initial_stats.to_dict(),
