@@ -339,7 +339,7 @@ class UserBase:
             "_id": user_id,
             "saved_runs": dict(),
             "saved_routes": dict(),
-            "runs": []
+            "runs": [],
             "full_name": full_name,
             "username": username,
             "stats": initial_stats.to_dict(),
