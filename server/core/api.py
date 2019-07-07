@@ -325,7 +325,7 @@ Account Info API Calls
 @authrequired
 async def get_info(request, user):
     """
-    Get user info
+    Get user info. Useful call that can be called to retrieve user/route information
     Jason Yu/Sunny Yan
     """
     info = user.to_dict()
@@ -436,6 +436,10 @@ Image API Calls
 
 @api.get("/route_images/<user_id>/<route_name>")
 async def get_route_image(request, user_id, route_name):
+    """
+    Deprecated until further use. 
+    Fetch route image. Now we generate image from coords in route on client side
+    """
     doc = await request.app.db.images.find_one(
         {"user_id": user_id, "route_name": route_name}
     )

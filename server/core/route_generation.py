@@ -553,19 +553,11 @@ class Route:
     def bounding_points_to_string(points):
         return " ".join(f"{p.latitude} {p.longitude}" for p in points)
 
-    async def save_route(self, db, user_id):
-        """
-        Adds to database of routes
-        """
-        document = {
-            "author": user_id,
-            "route": {"route": self.route, "distance": self.distance},
-        }
-        self.id = await db.routes.insert_one(document).inserted_id
-
     def generateStaticMap(self):
         """
         Generate static 100x100 PNG of the route, encoded in Base64
+        Deprecated until further use. 
+        Fetch route image. Now we generate image from coords in route on client side
         """
         m = StaticMap(100, 100)
         route = list(map(lambda pt: list(pt), self.route))
