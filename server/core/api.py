@@ -2,6 +2,7 @@ import asyncio
 import functools
 import bson
 import dateutil.parser
+import bcrypt
 
 from io import BytesIO
 
