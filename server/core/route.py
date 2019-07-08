@@ -36,7 +36,7 @@ class Run:
         self.run_info = run_info
 
     @classmethod
-    def from_real_time_route(cls, location_packets, run_info):
+    def from_real_time_data(cls, location_packets, run_info):
         """
         Generates Recent Route class from real time data
         Jason Yu
@@ -88,7 +88,7 @@ class SavedRun(Run):
         return saved_run
 
     @classmethod
-    def from_real_time_route(cls, name, description, run_info, location_packets, likes, comments):
+    def from_real_time_data(cls, name, description, run_info, location_packets, likes, comments):
         """
         Generates Saved Route class from real time data
         This is generally the first initialization, therefore route id is generated here
@@ -127,7 +127,7 @@ class SavedRoute:
         return cls(data['route_id'], data['name'], data['description'],runningRoute)
 
     @classmethod
-    def from_real_time_route(cls, route, name, description):
+    def from_real_time_data(cls, route, name, description):
         """
         Generate Saved Route with id
         """

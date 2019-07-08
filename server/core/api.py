@@ -225,8 +225,8 @@ async def save_run(request, user):
     description = data.get("description")
     run_info = data.get('run_info')
     location_packets = data.get('location_packets')
-    saved_run = SavedRun.from_real_time_route(name,description,run_info,location_packets)
-    points = run_stats(run_info.distance, run_info.duration)
+    saved_run = SavedRun.from_real_time_data(name,description,run_info,location_packets)
+    points = run_stats(run_info['final_distance'], run_info['final_duration'])
     await user.set_to_dict_field('stats','points', user.stats.points + points) # Adding new point total
     await user.set_to_dict_field('saved_runs', saved_run.id, saved_run.to_dict()) # Adding saved routes
     resp = {
@@ -246,7 +246,7 @@ async def add_run(request, user):
     run_info = data.get('run_info')
     location_packets = data.get('location_packets')
     run = Run.from_real_time_route(location_packets, run_info)
-    points = run_stats(run_info.distance, run_info.duration)
+    points = run_stats(run_info['final_distance'], run_info['final_duration'])
     await user.set_to_dict_field('stats','points', user.stats.points + points) # Adding new point total
     await user.push_to_field('runs', run.to_dict()) # Pushing run
     resp = {
