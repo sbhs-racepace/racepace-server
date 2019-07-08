@@ -213,6 +213,7 @@ async def save_route(request, user):
 
 
 @api.post("/save_run")
+@jsonrequired
 @authrequired
 async def save_run(request, user):
     """
@@ -234,6 +235,7 @@ async def save_run(request, user):
     return response.json(resp)
 
 @api.post("/add_run")
+@jsonrequired
 @authrequired
 async def add_run(request, user):
     """
@@ -323,6 +325,7 @@ Account Info API Calls
 
 
 @api.post("/get_info")
+@jsonrequired
 @authrequired
 async def get_info(request, user):
     """
