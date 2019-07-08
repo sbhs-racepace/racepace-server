@@ -123,9 +123,7 @@ class SavedRoute:
 
     @classmethod
     def from_data(cls, data):
-        distance = data['route']['distance']
-        route    = data['route']['route']
-        runningRoute = Route.from_data(route, distance)
+        runningRoute = Route.from_data(data)
         return cls(data['route_id'], data['name'], data['description'],runningRoute)
 
     @classmethod
