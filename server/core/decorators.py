@@ -39,17 +39,17 @@ def authrequired(func):
 
     @wraps(func)
     async def wrapper(request, *args, **kwargs):
-        if not request.token:
-            abort(401, "No token provided.")
-        user_id = jwt.decode(request.token, request.app.secret)["sub"]
+        try:
+            user_id = jwt.decode(request.token, request.app.secret)["sub"]
+        except jwt.DecodeError:
+            abort(401, "Malformed Token")
+
         user = await request.app.users.find_account(_id=user_id)
         if user:
             return await func(request, user, *args, **kwargs)
         else:
             abort(401, "Invalid token")
-
     return wrapper
-
 
 def memoized(func):
     """
