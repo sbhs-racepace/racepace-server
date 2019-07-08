@@ -204,7 +204,7 @@ async def save_route(request, user):
     name = data.get("name")
     description = data.get("description")
     route = Route.from_data(data.get('run_info'))
-    saved_route = SavedRoute.from_real_time_route(name, description, route)
+    saved_route = SavedRoute.from_real_time_data(name, description, route)
     await user.set_to_dict_field('saved_routes',saved_route.id,saved_route.to_dict())
     resp = {
         'success': True,
@@ -245,7 +245,7 @@ async def add_run(request, user):
     data = request.json
     run_info = data.get('run_info')
     location_packets = data.get('location_packets')
-    run = Run.from_real_time_route(location_packets, run_info)
+    run = Run.from_real_time_data(location_packets, run_info)
     points = run_stats(run_info['final_distance'], run_info['final_duration'])
     await user.set_to_dict_field('stats','points', user.stats.points + points) # Adding new point total
     await user.push_to_field('runs', run.to_dict()) # Pushing run
