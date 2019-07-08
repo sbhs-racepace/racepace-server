@@ -312,7 +312,8 @@ async def update_profile(request, user):
         await user.set_field('full_name', full_name)
     if password is not None: 
         salt = bcrypt.gensalt()
-        await user.set_to_dict_field('credentials', 'password', salt)
+        hashed = bcrypt.hashpw(password, salt)
+        await user.set_field('credentials.password', hashed)
     resp = {
         'success': True,
     }
