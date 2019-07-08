@@ -39,6 +39,8 @@ def authrequired(func):
 
     @wraps(func)
     async def wrapper(request, *args, **kwargs):
+        if not request.token:
+            abort(401, "No token provided.")
         user_id = jwt.decode(request.token, request.app.secret)["sub"]
         user = await request.app.users.find_account(_id=user_id)
         if user:
