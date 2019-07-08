@@ -297,7 +297,7 @@ async def unfollow(request, user):
 async def update_profile(request, user):
     """
     Updates user profile with args
-    Jason Yu
+    Jason Yu/Calvin Chang
     """
     data      = request.json
     password  = data.get('password')
