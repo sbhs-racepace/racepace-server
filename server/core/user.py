@@ -8,7 +8,7 @@ from sanic import Sanic
 from sanic.exceptions import abort
 
 from .utils import snowflake
-from .route import SavedRoute, RecentRoute, RealTimeRoute, Time
+from .route import SavedRoute, SavedRun, Run
 from .group import Group
 from .feed import Feed
 
@@ -23,14 +23,13 @@ class User:
         self.app = app
         self.id = user_id
         self.credentials = kwargs.get('credentials')
-        self.dob = kwargs.get('dob')
         self.username = kwargs.get('username')
         self.full_name = kwargs.get('full_name')
-        self.recent_routes = kwargs.get('recent_routes')
         self.groups = kwargs.get('groups')
         self.stats = kwargs.get('stats')
         self.saved_routes = kwargs.get('saved_routes')
-        self.real_time_route = kwargs.get('real_time_route')
+        self.saved_runs = kwargs.get('saved_runs')
+        self.runs = kwargs.get('runs')
         self.followers = kwargs.get('followers') # list of ids
         self.following = kwargs.get('following') # list of ids
         self.feed = kwargs.get('feed') # list of saved route names/id with corresponding user id
@@ -52,18 +51,21 @@ class User:
         """
 
         user_id = data.pop("_id")
-        data["saved_routes"] = [
-            SavedRoute.from_data(saved_route_data)
+        data["saved_routes"] = {
+            (saved_route_data['id'], SavedRoute.from_data(saved_route_data))
             for saved_route_data in data["saved_routes"].values()
-        ]
-        data["recent_routes"] = [
-            RecentRoute.from_data(recent_route_data)
-            for recent_route_data in data["recent_routes"]
+        }
+        data["saved_runs"] = {
+            (saved_run_data['id'], SavedRun.from_data(saved_run_data))
+            for saved_run_data in data["saved_runs"].values()
+        }
+        data["runs"] = [
+            Run.from_data(run_data)
+            for run_data in data["runs"]
         ]
         data["groups"] = {g["_id"]: Group(app, g) for g in data.get("groups", [])}
         data["credentials"] = Credentials(**(data["credentials"]))
         data["stats"] = UserStats(**(data["stats"]))
-        data["real_time_route"] = RealTimeRoute.from_data(data["real_time_route"])
         data["feed"] = Feed.from_data(data["feed"])
 
         user = cls(app, user_id, **data)
@@ -201,17 +203,19 @@ class User:
             "full_name": self.full_name,
             "username": self.username,
             "avatar_url": self.avatar_url,
-            "dob": self.dob,
-            "recent_routes": [
-                recent_route.to_dict() for recent_route in self.recent_routes
-            ],
+            "saved_runs": dict(
+                (saved_run.id, saved_run.to_dict())
+                for saved_run in self.saved_runs
+            ),
             "saved_routes": dict(
                 (saved_route.id, saved_route.to_dict())
                 for saved_route in self.saved_routes
             ),
+            "runs": [
+                run.to_dict() for run in self.runs
+            ],
             "stats": self.stats.to_dict(),
             "credentials": self.credentials.to_dict(),
-            "real_time_route": self.real_time_route.to_dict(),
             "groups": self.groups,
             "followers": self.followers,
             "following": self.following,
@@ -298,16 +302,19 @@ class UserBase:
         Registers user to database
         Abdur Raqeeb/ Jason Yu
         """
-        data = request.json
+
+        if type(request) == dict:
+            data = request
+        else:
+            data = request.json
+
         # Extracting fields
         email = data.get("email")
         password = data.get("password")
-        dob = data.get("dob")
         full_name = data.get("full_name")
         username = data.get("username")
         # Creating intial fields
         initial_stats = UserStats()
-        real_time_route = RealTimeRoute()
         feed = Feed([])
         # Reading Default Avatar Image
         with open("server/core/resources/avatar.png", "rb") as img:
@@ -330,14 +337,13 @@ class UserBase:
         # Generates document for DB
         document = {
             "_id": user_id,
-            "recent_routes": [],
+            "saved_runs": dict(),
             "saved_routes": dict(),
+            "runs": [],
             "full_name": full_name,
             "username": username,
-            "dob": dob,
             "stats": initial_stats.to_dict(),
             "credentials": credentials.to_dict(),
-            "real_time_route": real_time_route.to_dict(),
             "groups": [],
             "followers": [],
             "following": [],

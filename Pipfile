@@ -14,7 +14,7 @@ dhooks = "*"
 python-decouple = "*"
 pillow = "*"
 staticmap = "*"
-python-socketio = "*"
+python-socketio = {extras = ["asyncio_client"],version = "*"}
 python-dateutil = "*"
 jinja2 = "*"
 sanic-session = "*"

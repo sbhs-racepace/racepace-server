@@ -2,6 +2,7 @@ import asyncio
 import functools
 import bson
 import dateutil.parser
+import bcrypt
 
 from io import BytesIO
 
@@ -10,10 +11,11 @@ from sanic.exceptions import abort
 from sanic.log import logger
 
 from core.route_generation import Route, Point, Node, Way
-from core.route import RealTimeRoute, RunningSession, SavedRoute, RecentRoute
+from core.route import SavedRoute, SavedRun, Run
 from core.misc import Overpass, Color
 from core.user import User
 from core.decorators import jsonrequired, memoized, authrequired
+from core.points import run_stats
 
 
 api = Blueprint("api", url_prefix="/api")
@@ -164,22 +166,20 @@ async def google_login(request):
     Sunny
     """
     idToken = request.json.get('idToken')
-    request = request.app.fetch(
+    tokenRequest = request.app.fetch(
         "https://oauth2.googleapis.com/tokeninfo?id_token=" + idToken
     )
-    resp = await asyncio.gather(request)
+    resp = (await asyncio.gather(tokenRequest))[0]
     if resp.get("error"):
         abort(403,"Google token invalid")
     user = await request.app.users.find_account(**{'credentials.email': resp['email']})
     if user is None:
-        user = request.app.users.register(
+        user = await request.app.users.register(
             {
-                "json": {
-                    "email": resp["email"],
-                    "password": "<GOOGLE ONLY>",
-                    "full_name": resp["name"],
-                    "username": resp["email"],
-                }
+                "email": resp["email"],
+                "password": "<GOOGLE ONLY>",
+                "full_name": resp["name"],
+                "username": resp["email"],
             }
         )
     token = await request.app.users.issue_token(user)
@@ -197,24 +197,14 @@ Update Info API Calls
 @authrequired
 async def save_route(request, user):
     """
-    Sends current Route of user
+    Saves route for later use
     Jason Yu
     """
     data = request.json
     name = data.get("name")
     description = data.get("description")
-    # Retrieving user real time route
-    real_time_route = user.real_time_route
-    # Saving Route Image
-    route_image = real_time_route.route.generateStaticMap()
-    await request.app.db.images.insert_one({
-        'user_id': user.id,
-        'route_name': name,
-        'route_image': route_image
-    })
-    saved_route = SavedRoute.from_real_time_route(name, description, route_image, real_time_route)
-    new_point_total = user.stats.points + saved_route.points
-    await user.set_to_dict_field('stats','points', new_point_total)
+    route = Route.from_data(data.get('run_info'))
+    saved_route = SavedRoute.from_real_time_route(name, description, route)
     await user.set_to_dict_field('saved_routes',saved_route.id,saved_route.to_dict())
     resp = {
         'success': True,
@@ -222,22 +212,45 @@ async def save_route(request, user):
     return response.json(resp)
 
 
-@api.post("/save_recent_route")
+@api.post("/save_run")
 @authrequired
-async def save_recent_route(request, user):
+async def save_run(request, user):
     """
-    Sends current location of user
+    Saves run of user and adds to feed
     Jason Yu
     """
-    recent_route = RecentRoute.from_real_time_route(user.real_time_route)
-    new_point_total = user.stats.points + recent_route.points
-    await user.set_to_dict_field('stats','points', new_point_total)
-    await user.push_to_field('recent_routes',recent_route.to_dict())
+    data = request.json
+    name = data.get("name")
+    description = data.get("description")
+    run_info = data.get('run_info')
+    location_packets = data.get('location_packets')
+    saved_run = SavedRun.from_real_time_route(name,description,run_info,location_packets)
+    points = run_stats(run_info.distance, run_info.duration)
+    await user.set_to_dict_field('stats','points', user.stats.points + points) # Adding new point total
+    await user.set_to_dict_field('saved_runs', saved_run.id, saved_run.to_dict()) # Adding saved routes
     resp = {
         'success': True,
     }
     return response.json(resp)
 
+@api.post("/add_run")
+@authrequired
+async def add_run(request, user):
+    """
+    Add run to history
+    Jason Yu
+    """
+    data = request.json
+    run_info = data.get('run_info')
+    location_packets = data.get('location_packets')
+    run = Run.from_real_time_route(location_packets, run_info)
+    points = run_stats(run_info.distance, run_info.duration)
+    await user.set_to_dict_field('stats','points', user.stats.points + points) # Adding new point total
+    await user.push_to_field('runs', run.to_dict()) # Pushing run
+    resp = {
+        'success': True,
+    }
+    return response.json(resp)
 
 @api.post("/follow")
 @authrequired
@@ -314,7 +327,7 @@ Account Info API Calls
 @authrequired
 async def get_info(request, user):
     """
-    Get user info
+    Get user info. Useful call that can be called to retrieve user/route information
     Jason Yu/Sunny Yan
     """
     info = user.to_dict()
@@ -329,17 +342,20 @@ async def get_info(request, user):
             'following': info['following'],
             'stats': info['stats'],
             'bio': info['bio'],
+            'saved_routes': info['saved_routes'],
+            'saved_runs': info['saved_runs'],
+            'runs': info['runs'],
+
         }
     }
     return response.json(resp)
-
 
 @api.post("/find_friends")
 @authrequired
 @jsonrequired
 async def find_friends(request, user):
-    text = request.json.name
-    query = {"$text": text}
+    text = request.json['name']
+    query = {"$text":  {"$search": text}}
 
     projection = {"_id": 1, "username": 1, "bio": 1}
 
@@ -350,50 +366,6 @@ async def find_friends(request, user):
     ]
 
     return response.json(results)
-
-
-@api.post("/get_saved_routes")
-@authrequired
-@jsonrequired
-async def get_saved_routes(request, user):
-    """
-    Gets saved routes of user
-    Jason Yu
-    """
-    saved_routes_json = [saved_route.to_dict() for saved_route in user.saved_routes]
-    resp = {"success": True, "saved_routes_json": saved_routes_json}
-    return response.json(resp)
-
-
-@api.post("/get_recent_routes")
-@authrequired
-@jsonrequired
-async def get_recent_routes(request, user):
-    """
-    Gets recent routes of user
-    Jason Yu
-    """
-    recent_routes = [recent_route.to_dict() for recent_route in user.recent_routes]
-    resp = {"success": True, "recent_routes": recent_routes}
-    return response.json(resp)
-
-
-@api.post("/get_run_info")
-@authrequired
-@jsonrequired
-async def get_run_info(request, user):
-    """
-    Gets pace of user
-    Jason Yu
-    """
-    data = request.json
-    period = data.get("period", 5)
-    speed = user.real_time_route.calculate_speed(period)
-    pace = RealTimeRoute.speed_to_pace(speed)
-    distance = user.real_time_route.current_distance
-    resp = {"success": True, "pace": pace, "distance": distance}
-    return response.json(resp)
-
 
 @api.post('/get_feed')
 @authrequired
@@ -466,6 +438,10 @@ Image API Calls
 
 @api.get("/route_images/<user_id>/<route_name>")
 async def get_route_image(request, user_id, route_name):
+    """
+    Deprecated until further use. 
+    Fetch route image. Now we generate image from coords in route on client side
+    """
     doc = await request.app.db.images.find_one(
         {"user_id": user_id, "route_name": route_name}
     )

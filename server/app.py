@@ -25,7 +25,6 @@ from jinja2 import Environment, PackageLoader
 from core.api import api
 from core.stats import stats
 from core.route_generation import Route
-from core.route import RealTimeRoute
 from core.misc import Overpass, Color
 from core.user import User, UserBase
 from core.group import Message
@@ -195,28 +194,28 @@ async def on_message(sid, data):
 @sio.on("start_run")
 async def on_start_run(sid, data):
     user = (await sio.get_session(sid))["user"]
-    if user.real_time_route.active == False:
-        start_time = data.get('start_time')
-        route = data.get('route', None) # If no route is given, none is returned, None value is handled
-        real_time_route = RealTimeRoute.setup_run(start_time, route)
-        await user.set_field('real_time_route', real_time_route.to_dict())
+    # if user.real_time_route.active == False:
+    #     start_time = data.get('start_time')
+    #     route = data.get('route', None) # If no route is given, none is returned, None value is handled
+    #     real_time_route = RealTimeRoute.setup_run(start_time, route)
+    #     await user.set_field('real_time_route', real_time_route.to_dict())
 
 
 @sio.on("end_run")
 async def on_end_run(sid):
     user = (await sio.get_session(sid))['user']
-    await user.set_to_dict_field('real_time_route','active', False)
+    # await user.set_to_dict_field('real_time_route','active', False)
 
 
 @sio.on("location_update")
 async def on_location_update(sid, data):
     user = (await sio.get_session(sid))["user"]
-    location = data.get("location")
-    latitude = location["latitude"]
-    longitude = location["longitude"]
-    time = data.get("time", None)
-    user.real_time_route.update_location_history(latitude, longitude, time)
-    await user.set_field('real_time_route', user.real_time_route.to_dict())
+    # location = data.get("location")
+    # latitude = location["latitude"]
+    # longitude = location["longitude"]
+    # time = data.get("time", None)
+    # user.real_time_route.update_location_history(latitude, longitude, time)
+    # await user.set_field('real_time_route', user.real_time_route.to_dict())
 
 
 @sio.on("disconnect")

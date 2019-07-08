@@ -27,6 +27,12 @@ class Point:
         lat, long = string.split(",")
         return cls(lat, long)
 
+    def to_dict(self):
+        return {
+            'latitude': self.latitude, 
+            'longitude': self.longitude
+            }
+
     def distance(self, other: Point) -> float:
         """
         Uses spherical geometry to calculate the surface distance between two points.
@@ -270,12 +276,14 @@ class Route:
         return {"route": route, "dist": self.distance}
 
     @classmethod
-    def from_data(cls, route, distance):
+    def from_data(cls, data):
         """
         Jason Yu
         Class method that takes array of location objects and distance
         """
-        route = [Point(node_json.latitude, node_json.longitude) for node_json in route]
+        running_route = data['route']
+        distance = data['distance']
+        route = [Point(node_json.latitude, node_json.longitude) for node_json in running_route]
         return cls(route, distance)
 
     @classmethod
@@ -392,15 +400,6 @@ class Route:
             ]
         convex_hull = [starting_point] + right + list(reversed(left))
         return convex_hull
-
-    @classmethod
-    async def from_database(cls, db, route_id):
-        """
-        Creates a route object from a route stored in the database
-        Abdur
-        """
-        route = await db.find_one({"id_": route_id})
-        return cls(route_id, **route["route"])
 
     @classmethod
     def generate_route(
@@ -554,19 +553,11 @@ class Route:
     def bounding_points_to_string(points):
         return " ".join(f"{p.latitude} {p.longitude}" for p in points)
 
-    async def save_route(self, db, user_id):
-        """
-        Adds to database of routes
-        """
-        document = {
-            "author": user_id,
-            "route": {"route": self.route, "distance": self.distance},
-        }
-        self.id = await db.routes.insert_one(document).inserted_id
-
     def generateStaticMap(self):
         """
         Generate static 100x100 PNG of the route, encoded in Base64
+        Deprecated until further use. 
+        Fetch route image. Now we generate image from coords in route on client side
         """
         m = StaticMap(100, 100)
         route = list(map(lambda pt: list(pt), self.route))
