@@ -115,13 +115,14 @@ class SavedRoute:
     When a user generates a route and chooses to save it, they can reuse route again in the future.
     Jason Yu
     """
-    def __init__(self, route_id, name, description, route, start_name, end_name):
+    def __init__(self, route_id, name, description, route, start_name, end_name, distance):
         self.id = route_id # Unique Route Id
         self.name = name
         self.description = description
         self.route = route
         self.start_name = start_name
         self.end_name = end_name
+        self.distance = distance
 
     @classmethod
     def from_data(cls, data):
