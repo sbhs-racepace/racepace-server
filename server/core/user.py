@@ -55,20 +55,6 @@ class User:
             (key, SavedRoute.from_data(saved_route_data))
             for key,saved_route_data in data["saved_routes"].items()
         )
-        print(list(data["saved_runs"]))
-        print('fsdaafsdfds')
-        print(list(data))
-        print('fsdafasd')
-        print(list(data.items()))
-        print('fasdfsdsadf')
-        print(dict(
-            (key, SavedRun.from_data(saved_run_data))
-            for key,saved_run_data in (data["saved_runs"].items())
-        ))
-
-        print('fasdfasdfadsfasd')
-        for key,saved_run_data in data['saved_runs'].items():
-            print(key,saved_run_data)
         data["saved_runs"] = dict(
             (key, SavedRun.from_data(saved_run_data))
             for key,saved_run_data in (data["saved_runs"].items())
@@ -216,12 +202,12 @@ class User:
             "username": self.username,
             "avatar_url": self.avatar_url,
             "saved_runs": dict(
-                (saved_run.id, saved_run.to_dict())
-                for saved_run in self.saved_runs
+                (run_id, saved_run.to_dict())
+                for run_id,saved_run in self.saved_runs.items()
             ),
             "saved_routes": dict(
-                (saved_route.id, saved_route.to_dict())
-                for saved_route in self.saved_routes
+                (route_id, saved_route.to_dict())
+                for route_id,saved_route in self.saved_routes.items()
             ),
             "runs": [
                 run.to_dict() for run in self.runs
