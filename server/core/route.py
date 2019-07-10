@@ -82,9 +82,9 @@ class SavedRun(Run):
         Generates Saved Route class from database data
         Jason Yu
         """
-        run_id = data.pop("id")
+        data['run_id'] = data.pop("id") # Using Arg Name, id is reserved
         data["location_packets"] = [LocationPacket.from_data(packet) for packet in data["location_packets"]]
-        saved_run = cls(run_id, **data)
+        saved_run = cls(**data)
         return saved_run
 
     @classmethod
@@ -115,24 +115,27 @@ class SavedRoute:
     When a user generates a route and chooses to save it, they can reuse route again in the future.
     Jason Yu
     """
-    def __init__(self, route_id, name, description, route):
+    def __init__(self, route_id, name, description, route, start_name, end_name):
         self.id = route_id
         self.name = name
         self.description = description
         self.route = route
+        self.start_name = start_name
+        self.end_name = end_name
 
     @classmethod
     def from_data(cls, data):
-        runningRoute = Route.from_data(data)
-        return cls(data['route_id'], data['name'], data['description'],runningRoute)
+        data['route_id'] = data.pop('id') # Using Arg Name, id is reserved
+        data['runningRoute'] = Route.from_data(data)
+        return cls(**data)
 
     @classmethod
-    def from_real_time_data(cls, route, name, description):
+    def from_real_time_data(cls, route, name, description, start_name, end_name):
         """
         Generate Saved Route with id
         """
         route_id = str(snowflake())
-        saved_route = cls(route_id, name, description, route)
+        saved_route = cls(route_id, name, description, route, start_name, end_name)
         return saved_route
 
     def to_dict(self):
@@ -141,4 +144,6 @@ class SavedRoute:
             'name':self.name,
             'route':self.route.to_dict(),
             'description':self.description,
+            'start_name': self.start_name,
+            'end_name': self.end_name,
         }

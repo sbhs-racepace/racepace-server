@@ -202,9 +202,11 @@ async def save_route(request, user):
     """
     data = request.json
     name = data.get("name")
+    start_name = data.get("start_name")
+    end_name = data.get("end_name")
     description = data.get("description")
     route = Route.from_data(data.get('route'), data.get('distance'))
-    saved_route = SavedRoute.from_real_time_data(name, description, route)
+    saved_route = SavedRoute.from_real_time_data(name, description, route, start_name, end_name)
     await user.set_to_dict_field('saved_routes',saved_route.id,saved_route.to_dict())
     resp = {
         'success': True,
