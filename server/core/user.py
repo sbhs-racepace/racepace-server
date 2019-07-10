@@ -51,17 +51,28 @@ class User:
         """
 
         user_id = data.pop("_id")
-        data["saved_routes"] = {
-            saved_route_data['id'] : SavedRoute.from_data(saved_route_data)
-            for saved_route_data in data["saved_routes"].values()
-        }
-        print(list(saved_run_data['id'] for saved_run_data in list(data["saved_runs"].values())))
-        print()
-        print(list(saved_run_data for saved_run_data in list(data["saved_runs"].values())))
-        data["saved_runs"] = {
-            saved_run_data['id'] : SavedRun.from_data(saved_run_data)
-            for saved_run_data in list(data["saved_runs"].values())
-        }
+        data["saved_routes"] = dict(
+            (key, SavedRoute.from_data(saved_route_data))
+            for key,saved_route_data in data["saved_routes"].items())
+        )
+        print(list(data["saved_runs"]))
+        print('fsdaafsdfds')
+        print(list(data))
+        print('fsdafasd')
+        print(list(data.items()))
+        print('fasdfsdsadf')
+        print(dict(
+            (key, SavedRun.from_data(saved_run_data))
+            for key,saved_run_data in (data["saved_runs"].items())
+        ))
+
+        print('fasdfasdfadsfasd')
+        for key,saved_run_data in data['saved_runs'].items():
+            print(key,saved_run_data)
+        data["saved_runs"] = dict(
+            (key, SavedRun.from_data(saved_run_data))
+            for key,saved_run_data in (data["saved_runs"].items())
+        )
         data["runs"] = [
             Run.from_data(run_data)
             for run_data in data["runs"]
