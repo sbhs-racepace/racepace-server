@@ -32,8 +32,8 @@ class Run:
     """
 
     def __init__(self, location_packets, run_info):
-        self.location_packets = location_packets
-        self.run_info = run_info
+        self.location_packets = location_packets # Location packets
+        self.run_info = run_info # Stores all run info generated on phone
 
     @classmethod
     def from_real_time_data(cls, location_packets, run_info):
@@ -69,8 +69,8 @@ class SavedRun(Run):
     """
 
     def __init__(self, run_id, name, description, run_info, location_packets, likes, comments):
-        super.__init__(location_packets, run_info)
-        self.id = run_id
+        super().__init__(location_packets, run_info)
+        self.id = run_id # Unqiue Run Id
         self.name = name
         self.description = description
         self.likes = likes
@@ -116,7 +116,7 @@ class SavedRoute:
     Jason Yu
     """
     def __init__(self, route_id, name, description, route, start_name, end_name):
-        self.id = route_id
+        self.id = route_id # Unique Route Id
         self.name = name
         self.description = description
         self.route = route
