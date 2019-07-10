@@ -202,9 +202,11 @@ async def save_route(request, user):
     """
     data = request.json
     name = data.get("name")
+    start_name = data.get("start_name")
+    end_name = data.get("end_name")
     description = data.get("description")
-    route = Route.from_data(data.get('run_info'))
-    saved_route = SavedRoute.from_real_time_route(name, description, route)
+    route = Route.from_data(data.get('route'), data.get('distance'))
+    saved_route = SavedRoute.from_real_time_data(name, description, route, start_name, end_name)
     await user.set_to_dict_field('saved_routes',saved_route.id,saved_route.to_dict())
     resp = {
         'success': True,
@@ -225,8 +227,10 @@ async def save_run(request, user):
     description = data.get("description")
     run_info = data.get('run_info')
     location_packets = data.get('location_packets')
-    saved_run = SavedRun.from_real_time_route(name,description,run_info,location_packets)
-    points = run_stats(run_info.distance, run_info.duration)
+    likes = 0
+    comments = []
+    saved_run = SavedRun.from_real_time_data(name,description,run_info,location_packets, likes, comments)
+    points = run_stats(run_info['final_distance'], run_info['final_duration'])
     await user.set_to_dict_field('stats','points', user.stats.points + points) # Adding new point total
     await user.set_to_dict_field('saved_runs', saved_run.id, saved_run.to_dict()) # Adding saved routes
     resp = {
@@ -245,8 +249,8 @@ async def add_run(request, user):
     data = request.json
     run_info = data.get('run_info')
     location_packets = data.get('location_packets')
-    run = Run.from_real_time_route(location_packets, run_info)
-    points = run_stats(run_info.distance, run_info.duration)
+    run = Run.from_real_time_data(location_packets, run_info)
+    points = run_stats(run_info['final_distance'], run_info['final_duration'])
     await user.set_to_dict_field('stats','points', user.stats.points + points) # Adding new point total
     await user.push_to_field('runs', run.to_dict()) # Pushing run
     resp = {
@@ -297,7 +301,7 @@ async def unfollow(request, user):
 async def update_profile(request, user):
     """
     Updates user profile with args
-    Jason Yu
+    Jason Yu/Calvin Chang
     """
     data      = request.json
     password  = data.get('password')
@@ -319,6 +323,25 @@ async def update_profile(request, user):
     }
     return response.json(resp)
 
+@api.post('update_run')
+@authrequired
+@jsonrequired
+async def update_run(request, user):
+    data    = request.json
+    owner   = data.get("owner") #Owner's user ID
+    runID   = data.get("runID") #Run ID
+    like    = data.get("like") #Boolean
+    comment = data.get("comment") #Comment message
+    if owner is None or runID is None:
+        abort(400,"Bad request: Missing required parameters (owner & runID)")
+    if like is not None:
+        if like:
+            user.push_to_field(f"saved_runs.{runID}.likes",user.id)
+        else:
+            user.remove_from_array_field(f"saved_runs.{runID}.likes",user.id)
+    if comment is not None:
+        user.push_to_field(f"saved_runs.{runID}.comments",[user.full_name,comment])
+    return response.json({'success': True})
 
 """
 Account Info API Calls

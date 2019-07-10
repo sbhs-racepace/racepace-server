@@ -32,11 +32,11 @@ class Run:
     """
 
     def __init__(self, location_packets, run_info):
-        self.location_packets = location_packets
-        self.run_info = run_info
+        self.location_packets = location_packets # Location packets
+        self.run_info = run_info # Stores all run info generated on phone
 
     @classmethod
-    def from_real_time_route(cls, location_packets, run_info):
+    def from_real_time_data(cls, location_packets, run_info):
         """
         Generates Recent Route class from real time data
         Jason Yu
@@ -69,8 +69,8 @@ class SavedRun(Run):
     """
 
     def __init__(self, run_id, name, description, run_info, location_packets, likes, comments):
-        super.__init__(location_packets, run_info)
-        self.id = run_id
+        super().__init__(location_packets, run_info)
+        self.id = run_id # Unqiue Run Id
         self.name = name
         self.description = description
         self.likes = likes
@@ -82,13 +82,13 @@ class SavedRun(Run):
         Generates Saved Route class from database data
         Jason Yu
         """
-        run_id = data.pop("id")
+        data['run_id'] = data.pop("id") # Using Arg Name, id is reserved
         data["location_packets"] = [LocationPacket.from_data(packet) for packet in data["location_packets"]]
-        saved_run = cls(run_id, **data)
+        saved_run = cls(**data)
         return saved_run
 
     @classmethod
-    def from_real_time_route(cls, name, description, run_info, location_packets, likes, comments):
+    def from_real_time_data(cls, name, description, run_info, location_packets, likes, comments):
         """
         Generates Saved Route class from real time data
         This is generally the first initialization, therefore route id is generated here
@@ -115,24 +115,27 @@ class SavedRoute:
     When a user generates a route and chooses to save it, they can reuse route again in the future.
     Jason Yu
     """
-    def __init__(self, route_id, name, description, route):
-        self.id = route_id
+    def __init__(self, route_id, name, description, route, start_name, end_name):
+        self.id = route_id # Unique Route Id
         self.name = name
         self.description = description
         self.route = route
+        self.start_name = start_name
+        self.end_name = end_name
 
     @classmethod
     def from_data(cls, data):
-        runningRoute = Route.from_data(data)
-        return cls(data['route_id'], data['name'], data['description'],runningRoute)
+        data['route_id'] = data.pop('id') # Using Arg Name, id is reserved
+        data['runningRoute'] = Route.from_data(data)
+        return cls(**data)
 
     @classmethod
-    def from_real_time_route(cls, route, name, description):
+    def from_real_time_data(cls, route, name, description, start_name, end_name):
         """
         Generate Saved Route with id
         """
         route_id = str(snowflake())
-        saved_route = cls(route_id, name, description, route)
+        saved_route = cls(route_id, name, description, route, start_name, end_name)
         return saved_route
 
     def to_dict(self):
@@ -141,4 +144,6 @@ class SavedRoute:
             'name':self.name,
             'route':self.route.to_dict(),
             'description':self.description,
+            'start_name': self.start_name,
+            'end_name': self.end_name,
         }
