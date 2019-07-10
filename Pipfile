@@ -18,6 +18,7 @@ python-socketio = {extras = ["asyncio_client"],version = "*"}
 python-dateutil = "*"
 jinja2 = "*"
 sanic-session = "*"
+websockets = "*"
 
 [dev-packages]
 requests = "*"

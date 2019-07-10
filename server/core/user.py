@@ -53,7 +53,7 @@ class User:
         user_id = data.pop("_id")
         data["saved_routes"] = dict(
             (key, SavedRoute.from_data(saved_route_data))
-            for key,saved_route_data in data["saved_routes"].items())
+            for key,saved_route_data in data["saved_routes"].items()
         )
         print(list(data["saved_runs"]))
         print('fsdaafsdfds')
