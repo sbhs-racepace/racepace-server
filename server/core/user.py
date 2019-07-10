@@ -56,7 +56,8 @@ class User:
             saved_route_data['id'] : SavedRoute.from_data(saved_route_data)
             for saved_route_data in data["saved_routes"].values()
         }
-        print(data["saved_runs"].values())
+        print(data["saved_runs"].values()[0])
+        print(saved_run_data['id'] for saved_run_data in data["saved_runs"].values())
         data["saved_runs"] = {
             saved_run_data['id'] : SavedRun.from_data(saved_run_data)
             for saved_run_data in data["saved_runs"].values()
