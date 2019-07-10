@@ -51,16 +51,16 @@ class User:
         """
 
         user_id = data.pop("_id")
-        print(data["saved_routes"].values())
         data["saved_routes"] = {
             saved_route_data['id'] : SavedRoute.from_data(saved_route_data)
             for saved_route_data in data["saved_routes"].values()
         }
-        print(list(data["saved_runs"].values())[0])
-        print(saved_run_data['id'] for saved_run_data in data["saved_runs"].values())
+        print(saved_run_data['id'] for saved_run_data in list(data["saved_runs"].values()))
+        print()
+        print(saved_run_data for saved_run_data in list(data["saved_runs"].values()))
         data["saved_runs"] = {
             saved_run_data['id'] : SavedRun.from_data(saved_run_data)
-            for saved_run_data in data["saved_runs"].values()
+            for saved_run_data in list(data["saved_runs"].values())
         }
         data["runs"] = [
             Run.from_data(run_data)
