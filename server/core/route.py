@@ -126,7 +126,7 @@ class SavedRoute:
     @classmethod
     def from_data(cls, data):
         data['route_id'] = data.pop('id') # Using Arg Name, id is reserved
-        data['runningRoute'] = Route.from_data(data)
+        data['route'] = Route.from_data(data['route'])
         return cls(**data)
 
     @classmethod
