@@ -141,14 +141,16 @@ async def register(request):
 async def login(request):
     """
     Logs in user into the database
-    Abdur Raqueeb
+    Abdur Raqueeb/Sunny Yan
     """
     data = request.json
     email = data.get('email')
     password = data.get('password')
     user = await request.app.users.find_account(**{'credentials.email': email})
     if user is None:
-        abort(403, "Credentials invalid.")
+        abort(403, "Username not found.")
+    elif user.check_password("<GOOGLE ONLY">):
+        abort(403, "No password found for this account. Please login with Google. If you wish to login without Google, please login, then change your password"
     elif user.check_password(password) == False:
         abort(403, "Credentials invalid.")
     token = await request.app.users.issue_token(user)
