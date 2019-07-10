@@ -283,8 +283,17 @@ class Route:
         """
         running_route = data['route']
         distance = data['distance']
-        route = [Point(node_json.latitude, node_json.longitude) for node_json in running_route]
+        route = [Point(node_json['latitude'], node_json['longitude']) for node_json in running_route]
         return cls(route, distance)
+
+    @classmethod
+    def from_real_time_data(cls, route, distance):
+        """
+        Jason Yu
+        Class method that takes array of location objects and distance
+        """
+        running_route = [Point(node_json['latitude'], node_json['longitude']) for node_json in route]
+        return cls(running_route, distance)
 
     @classmethod
     def rectangle_bounding_box(
