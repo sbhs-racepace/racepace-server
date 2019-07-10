@@ -224,7 +224,7 @@ async def on_disconnect(sid):
 
 
 if __name__ == "__main__":
-    if os.getenv("development"):
+    if config.DEV_MODE:
         app.run(debug=True)
     else:
         app.run(host=os.getenv("HOST", "0.0.0.0"), port=os.getenv("PORT", 80))
