@@ -321,6 +321,25 @@ async def update_profile(request, user):
     }
     return response.json(resp)
 
+@api.post('update_run')
+@authrequired
+@jsonrequired
+async def update_run(request, user):
+    data    = request.json
+    owner   = data.get("owner") #Owner's user ID
+    runID   = data.get("runID") #Run ID
+    like    = data.get("like") #Boolean
+    comment = data.get("comment") #Comment message
+    if owner is None or runID is None:
+        abort(400,"Bad request: Missing required parameters (owner & runID)")
+    if like is not None:
+        if like:
+            user.push_to_field(f"saved_runs.{runID}.likes",user.id)
+        else:
+            user.remove_from_array_field(f"saved_runs.{runID}.likes",user.id)
+    if comment is not None:
+        user.push_to_field(f"saved_runs.{runID}.comments",[user.full_name,comment])
+    return response.json({'success': True})
 
 """
 Account Info API Calls
