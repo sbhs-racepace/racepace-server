@@ -41,7 +41,8 @@ def authrequired(func):
     async def wrapper(request, *args, **kwargs):
         try:
             user_id = jwt.decode(request.token, request.app.secret)["sub"]
-        except jwt.DecodeError:
+        except jwt.exceptions.DecodeError:
+            print('Token: ', request.token)
             abort(401, "Malformed Token")
 
         user = await request.app.users.find_account(_id=user_id)
