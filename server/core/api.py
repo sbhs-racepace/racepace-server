@@ -141,14 +141,16 @@ async def register(request):
 async def login(request):
     """
     Logs in user into the database
-    Abdur Raqueeb
+    Abdur Raqueeb/Sunny Yan
     """
     data = request.json
     email = data.get('email')
     password = data.get('password')
     user = await request.app.users.find_account(**{'credentials.email': email})
     if user is None:
-        abort(403, "Credentials invalid.")
+        abort(403, "Username not found.")
+    elif user.check_password("<GOOGLE ONLY>"):
+        abort(403, "No password found for this account. Please login with Google.")
     elif user.check_password(password) == False:
         abort(403, "Credentials invalid.")
     token = await request.app.users.issue_token(user)
@@ -157,7 +159,7 @@ async def login(request):
         'token': token.decode("utf-8"),
         'user_id': user.id
     })
-	
+
 @api.post('/google_login')
 @jsonrequired
 async def google_login(request):
@@ -220,7 +222,7 @@ async def save_route(request, user):
 async def save_run(request, user):
     """
     Saves run of user and adds to feed
-    Jason Yu
+    Jason Yu/Sunny Yan
     """
     data = request.json
     name = data.get("name")
@@ -230,9 +232,15 @@ async def save_run(request, user):
     likes = 0
     comments = []
     saved_run = SavedRun.from_real_time_data(name,description,run_info,location_packets, likes, comments)
+    #Update database
     points = run_stats(run_info['final_distance'], run_info['final_duration'])
     await user.set_to_dict_field('stats','points', user.stats.points + points) # Adding new point total
     await user.set_to_dict_field('saved_runs', saved_run.id, saved_run.to_dict()) # Adding saved routes
+    #Insert run into followers' feeds
+    for userID in user.followers:
+        follower = request.app.users.find_account(user_id=userID)
+        follower.push_to_field('feed', {"user_id":user.id, "saved_run_id":saved_run.id})
+
     resp = {
         'success': True,
     }
@@ -308,13 +316,13 @@ async def update_profile(request, user):
     username  = data.get('username')
     full_name = data.get('full_name')
     bio       = data.get('bio')
-    if bio is not None: 
+    if bio is not None:
         await user.set_field('bio', bio)
-    if username is not None: 
+    if username is not None:
         await user.set_field('username', username)
-    if full_name is not None: 
+    if full_name is not None:
         await user.set_field('full_name', full_name)
-    if password is not None: 
+    if password is not None:
         salt = bcrypt.gensalt()
         hashed = bcrypt.hashpw(password, salt)
         await user.set_field('credentials.password', hashed)
@@ -403,6 +411,14 @@ async def get_feed(request, user):
     Jason Yu
     """
     feed_items = [feed_item.to_dict() for feed_item in user.feed.get_latest_ten()]
+    async def get_route_from_id(userID,routeID):
+        user = await request.app.users.find_account(user_id=userID)
+        return {
+            "user_id":userID,
+            "user_name":user.full_name,
+            "route":user.saved_runs[routeID]
+        }
+    feed_items = [await get_route_from_id(*item.values()) for item in feed_items]
     resp = {"success": True, "feed_items": feed_items}
     return response.json(resp)
 
@@ -465,7 +481,7 @@ Image API Calls
 @api.get("/route_images/<user_id>/<route_name>")
 async def get_route_image(request, user_id, route_name):
     """
-    Deprecated until further use. 
+    Deprecated until further use.
     Fetch route image. Now we generate image from coords in route on client side
     """
     doc = await request.app.db.images.find_one(
