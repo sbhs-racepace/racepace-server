@@ -258,19 +258,19 @@ async def add_run(request, user):
     }
     return response.json(resp)
 
-@api.post("/follow")
+@api.post("/sendFollowRequest")
 @authrequired
 @jsonrequired
-async def follow(request, user):
+async def sendFollowRequest(request, user):
     """
     Follows user
     Jason Yu
     """
     data = request.json
     other_user_id = data.get("other_user_id")
-    other_user = await request.app.db.users.find_account(**{'_id': other_user_id})
-    await user.push_to_field('following', other_user.id)
-    await other_user.push_to_field('followers', user.id)
+    other_user = await request.app.users.find_account(user_id=other_user_id)
+    await user.push_to_field('pending_follows', other_user.id) # Adding other user to users pending follows
+    await other_user.push_to_field('follow_requests', user.id) # Adding user to other users follow requests
     resp = {
         'success': True,
     }
@@ -287,9 +287,47 @@ async def unfollow(request, user):
     """
     data = request.json
     other_user_id = data.get("other_user_id")
-    other_user = await request.app.db.users.find_account(**{'_id': other_user_id})
+    other_user = await request.app.users.find_account(user_id=other_user_id)
     await user.remove_from_array_field('following', other_user.id)
     await user.remove_from_array_field('followers', user.id)
+    resp = {
+        'success': True,
+    }
+    return response.json(resp)
+
+@api.post("/acceptFollowRequest")
+@authrequired
+@jsonrequired
+async def acceptFollowRequest(request, user):
+    """
+    Accepts requests from other user
+    Jason Yu
+    """
+    data = request.json
+    other_user_id = data.get("other_user_id")
+    other_user = await request.app.users.find_account(user_id=other_user_id)
+    # await user.push_to_field('followers', other_user.id) # Adding other user to followers
+    # await user.remove_from_array_field('follow_requests', other_user.id) # Removing other user from follow requests
+    # await other_user.push_to_field('following', user.id) # Adding user to other users following
+    # await other_user.remove_from_array_field('pending_follows', user.id) # Removing user from others users pending follows
+    resp = {
+        'success': True,
+    }
+    return response.json(resp)
+
+@api.post("/declineRequest")
+@authrequired
+@jsonrequired
+async def declineRequest(request, user):
+    """
+    Declines requests from other user
+    Jason Yu
+    """
+    data = request.json
+    other_user_id = data.get("other_user_id")
+    other_user = await request.app.users.find_account(user_id=other_user_id)
+    await user.remove_from_array_field('follow_requests', other_user.id) # Removing other user from follow requests
+    await other_user.remove_from_array_field('pending_follows', user.id) # Removing user from others users pending follows
     resp = {
         'success': True,
     }
@@ -366,12 +404,13 @@ async def get_info(request, user):
             'points': info['stats']['points'],
             'followers': info['followers'],
             'following': info['following'],
+            'follow_requests': info['follow_requests'],
+            'pending_follows': info['pending_follows'],
             'stats': info['stats'],
             'bio': info['bio'],
             'saved_routes': info['saved_routes'],
             'saved_runs': info['saved_runs'],
             'runs': info['runs'],
-
         }
     }
     return response.json(resp)
@@ -492,3 +531,26 @@ async def update_user_image(request, user):
         {"user_id": user.id}, {"$set": {"avatar": avatar}}
     )
     return response.json({"success": True})
+
+"""
+Other User Api Call
+"""
+
+@api.get("/get_other_info/<other_user_id>")
+async def get_other_info(request, other_user_id):
+    """
+    Api call for another user
+    """
+    user = await request.app.users.find_account(user_id=other_user_id)
+    if not user:
+        abort(404)
+    else:
+        resp = {
+            'success': True,
+            'info' : {
+                'full_name': user['full_name'],
+                'email': user['credentials']['email'],
+                'username': user['username'],
+            }
+        }
+        return response.json(resp)
