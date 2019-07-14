@@ -16,7 +16,7 @@ def authrequired(func):
             return response.redirect("/login")
         token = request["session"].get("token")
         user_id = jwt.decode(token, request.app.secret)["sub"]
-        user = await request.app.users.find_account(_id=user_id)
+        user = await request.app.users.find_account(user_id=user_id)
         if user:
             return await func(request, user, *args, **kwargs)
         else:

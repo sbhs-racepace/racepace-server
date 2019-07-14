@@ -45,7 +45,7 @@ def authrequired(func):
             print('Token: ', request.token)
             abort(401, "Malformed Token")
 
-        user = await request.app.users.find_account(_id=user_id)
+        user = await request.app.users.find_account(user_id=user_id)
         if user:
             return await func(request, user, *args, **kwargs)
         else:
