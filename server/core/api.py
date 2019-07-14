@@ -252,7 +252,7 @@ async def add_run(request, user):
     run = Run.from_real_time_data(location_packets, run_info)
     points = run_stats(run_info['final_distance'], run_info['final_duration'])
     await user.set_to_dict_field('stats','points', user.stats.points + points) # Adding new point total
-    await user.push_to_field('runs', run.to_dict()) # Pushing run
+    await user.push_to_array_field('runs', run.to_dict()) # Pushing run
     resp = {
         'success': True,
     }
@@ -268,9 +268,9 @@ async def sendFollowRequest(request, user):
     """
     data = request.json
     other_user_id = data.get("other_user_id")
-    other_user = await request.app.users.find_account(user_id=other_user_id)
-    await user.push_to_field('pending_follows', other_user.id) # Adding other user to users pending follows
-    await other_user.push_to_field('follow_requests', user.id) # Adding user to other users follow requests
+    other_user = await request.app.users.find_account(_id=other_user_id)
+    await user.push_to_array_field('pending_follows', other_user.id) # Adding other user to users pending follows
+    await other_user.push_to_array_field('follow_requests', user.id) # Adding user to other users follow requests
     resp = {
         'success': True,
     }
@@ -287,7 +287,7 @@ async def unfollow(request, user):
     """
     data = request.json
     other_user_id = data.get("other_user_id")
-    other_user = await request.app.users.find_account(user_id=other_user_id)
+    other_user = await request.app.users.find_account(_id=other_user_id)
     await user.remove_from_array_field('following', other_user.id)
     await user.remove_from_array_field('followers', user.id)
     resp = {
@@ -305,11 +305,11 @@ async def acceptFollowRequest(request, user):
     """
     data = request.json
     other_user_id = data.get("other_user_id")
-    other_user = await request.app.users.find_account(user_id=other_user_id)
-    # await user.push_to_field('followers', other_user.id) # Adding other user to followers
-    # await user.remove_from_array_field('follow_requests', other_user.id) # Removing other user from follow requests
-    # await other_user.push_to_field('following', user.id) # Adding user to other users following
-    # await other_user.remove_from_array_field('pending_follows', user.id) # Removing user from others users pending follows
+    other_user = await request.app.users.find_account(_id=other_user_id)
+    await user.push_to_array_field('followers', other_user.id) # Adding other user to followers
+    await user.remove_from_array_field('follow_requests', [other_user.id]) # Removing other user from follow requests
+    await other_user.push_to_array_field('following', user.id) # Adding user to other users following
+    await other_user.remove_from_array_field('pending_follows', [user.id]) # Removing user from others users pending follows
     resp = {
         'success': True,
     }
@@ -325,7 +325,7 @@ async def declineRequest(request, user):
     """
     data = request.json
     other_user_id = data.get("other_user_id")
-    other_user = await request.app.users.find_account(user_id=other_user_id)
+    other_user = await request.app.users.find_account(_id=other_user_id)
     await user.remove_from_array_field('follow_requests', other_user.id) # Removing other user from follow requests
     await other_user.remove_from_array_field('pending_follows', user.id) # Removing user from others users pending follows
     resp = {
@@ -374,11 +374,11 @@ async def update_run(request, user):
         abort(400,"Bad request: Missing required parameters (owner & runID)")
     if like is not None:
         if like:
-            user.push_to_field(f"saved_runs.{runID}.likes",user.id)
+            user.push_to_array_field(f"saved_runs.{runID}.likes",user.id)
         else:
             user.remove_from_array_field(f"saved_runs.{runID}.likes",user.id)
     if comment is not None:
-        user.push_to_field(f"saved_runs.{runID}.comments",[user.full_name,comment])
+        user.push_to_array_field(f"saved_runs.{runID}.comments",[user.full_name,comment])
     return response.json({'success': True})
 
 """
@@ -541,16 +541,17 @@ async def get_other_info(request, other_user_id):
     """
     Api call for another user
     """
-    user = await request.app.users.find_account(user_id=other_user_id)
+    user = await request.app.users.find_account(_id=other_user_id)
+    info = user.to_dict()
     if not user:
         abort(404)
     else:
         resp = {
             'success': True,
             'info' : {
-                'full_name': user['full_name'],
-                'email': user['credentials']['email'],
-                'username': user['username'],
+                'full_name': info['full_name'],
+                'email': info['credentials']['email'],
+                'username': info['username'],
             }
         }
         return response.json(resp)

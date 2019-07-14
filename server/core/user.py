@@ -92,7 +92,7 @@ class User:
         document = self.to_dict()
         await self.app.db.users.replace_one({'_id': self.id}, document)
 
-    async def push_to_field(self, field, item):
+    async def push_to_array_field(self, field, item):
         """
         Pushes item to array field
         Jason Yu
@@ -134,16 +134,16 @@ class User:
     async def remove_from_array_field(self, field, items):
         """
         Removes Items from array field
+        Takes Items in array form
         Jason Yu
         """
         await self.app.db.users.update_one(
             { '_id': self.id },
             { '$pull': 
                 { 
-                    field: { '$in': [items] } 
+                    field: { '$in': items } 
                 }
             }, 
-            { 'multi': True },
         )
 
     
@@ -288,8 +288,8 @@ class UserBase:
         Abdur Raqeeb
         """
         # Checks if user can be retrieved from cache
-        if len(query) == 1 and "user_id" in query:
-            user = self.user_cache.get(query["user_id"])
+        if len(query) == 1 and "_id" in query:
+            user = self.user_cache.get(query["_id"])
             if user:
                 return user
         data = await self.app.db.users.find_one(query)
