@@ -139,12 +139,18 @@ class User:
         """
         await self.app.db.users.update_one(
             { '_id': self.id },
-            { '$pull': 
-                { 
+            { '$pull': { 
                     field: { '$in': items } 
                 }
             }, 
         )
+
+    async def remove_item_from_array_field(self, field, item):
+        """
+        Removes Item from array field
+        Jason Yu
+        """
+        await self.remove_from_array_field(field, [item])
 
     
     async def delete(self):

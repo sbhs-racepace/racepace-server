@@ -288,8 +288,8 @@ async def unfollow(request, user):
     data = request.json
     other_user_id = data.get("other_user_id")
     other_user = await request.app.users.find_account(_id=other_user_id)
-    await user.remove_from_array_field('following', other_user.id)
-    await user.remove_from_array_field('followers', user.id)
+    await user.remove_item_from_array_field('following', other_user.id)
+    await user.remove_item_from_array_field('followers', user.id)
     resp = {
         'success': True,
     }
@@ -307,18 +307,18 @@ async def acceptFollowRequest(request, user):
     other_user_id = data.get("other_user_id")
     other_user = await request.app.users.find_account(_id=other_user_id)
     await user.push_to_array_field('followers', other_user.id) # Adding other user to followers
-    await user.remove_from_array_field('follow_requests', [other_user.id]) # Removing other user from follow requests
+    await user.remove_item_from_array_field('follow_requests', other_user.id) # Removing other user from follow requests
     await other_user.push_to_array_field('following', user.id) # Adding user to other users following
-    await other_user.remove_from_array_field('pending_follows', [user.id]) # Removing user from others users pending follows
+    await other_user.remove_item_from_array_field('pending_follows', user.id) # Removing user from others users pending follows
     resp = {
         'success': True,
     }
     return response.json(resp)
 
-@api.post("/declineRequest")
+@api.post("/declineFollowRequest")
 @authrequired
 @jsonrequired
-async def declineRequest(request, user):
+async def declineFollowRequest(request, user):
     """
     Declines requests from other user
     Jason Yu
@@ -326,8 +326,8 @@ async def declineRequest(request, user):
     data = request.json
     other_user_id = data.get("other_user_id")
     other_user = await request.app.users.find_account(_id=other_user_id)
-    await user.remove_from_array_field('follow_requests', other_user.id) # Removing other user from follow requests
-    await other_user.remove_from_array_field('pending_follows', user.id) # Removing user from others users pending follows
+    await user.remove_item_from_array_field('follow_requests', other_user.id) # Removing other user from follow requests
+    await other_user.remove_item_from_array_field('pending_follows', user.id) # Removing user from others users pending follows
     resp = {
         'success': True,
     }
@@ -376,7 +376,7 @@ async def update_run(request, user):
         if like:
             user.push_to_array_field(f"saved_runs.{runID}.likes",user.id)
         else:
-            user.remove_from_array_field(f"saved_runs.{runID}.likes",user.id)
+            user.remove_item_from_array_field(f"saved_runs.{runID}.likes",user.id)
     if comment is not None:
         user.push_to_array_field(f"saved_runs.{runID}.comments",[user.full_name,comment])
     return response.json({'success': True})
