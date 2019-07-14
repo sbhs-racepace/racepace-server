@@ -32,6 +32,8 @@ class User:
         self.runs = kwargs.get('runs')
         self.followers = kwargs.get('followers') # list of ids
         self.following = kwargs.get('following') # list of ids
+        self.follow_requests = kwargs.get('follow_requests')
+        self.pending_follows = kwargs.get('pending_follows')
         self.feed = kwargs.get('feed') # list of saved route names/id with corresponding user id
         self.bio = kwargs.get('bio')
 
@@ -217,6 +219,8 @@ class User:
             "groups": self.groups,
             "followers": self.followers,
             "following": self.following,
+            "follow_requests": self.follow_requests,
+            "pending_follows": self.pending_follows,
             "feed": self.feed.to_dict(),
             "bio": self.bio,
         }
@@ -345,6 +349,8 @@ class UserBase:
             "groups": [],
             "followers": [],
             "following": [],
+            "follow_requests": [],
+            "pending_follows": [],
             "feed": feed.to_dict(),
             "bio": "Biography :)"
         }
