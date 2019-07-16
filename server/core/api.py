@@ -439,9 +439,17 @@ async def get_feed(request, user):
     """
     Gets feed for user
     Returns 10 feed items
-    Jason Yu
+    Jason Yu/Sunny Yan
     """
     feed_items = [feed_item.to_dict() for feed_item in user.feed.get_latest_ten()]
+    async def get_route_from_id(userID,routeID):
+        user = await request.app.users.find_account(user_id=userID)
+        return {
+            "user_id":userID,
+            "user_name":user.full_name,
+            "route":user.saved_runs[routeID]
+        }
+    feed_items = [await get_route_from_id(*item.values()) for item in feed_items]
     resp = {"success": True, "feed_items": feed_items}
     return response.json(resp)
 
