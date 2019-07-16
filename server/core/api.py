@@ -157,7 +157,7 @@ async def login(request):
         'token': token.decode("utf-8"),
         'user_id': user.id
     })
-	
+
 @api.post('/google_login')
 @jsonrequired
 async def google_login(request):
@@ -227,7 +227,7 @@ async def save_run(request, user):
     description = data.get("description")
     run_info = data.get('run_info')
     location_packets = data.get('location_packets')
-    likes = 0
+    likes = []
     comments = []
     saved_run = SavedRun.from_real_time_data(name,description,run_info,location_packets, likes, comments)
     points = run_stats(run_info['final_distance'], run_info['final_duration'])
@@ -346,13 +346,13 @@ async def update_profile(request, user):
     username  = data.get('username')
     full_name = data.get('full_name')
     bio       = data.get('bio')
-    if bio is not None: 
+    if bio is not None:
         await user.set_field('bio', bio)
-    if username is not None: 
+    if username is not None:
         await user.set_field('username', username)
-    if full_name is not None: 
+    if full_name is not None:
         await user.set_field('full_name', full_name)
-    if password is not None: 
+    if password is not None:
         salt = bcrypt.gensalt()
         hashed = bcrypt.hashpw(password, salt)
         await user.set_field('credentials.password', hashed)
@@ -504,7 +504,7 @@ Image API Calls
 @api.get("/route_images/<user_id>/<route_name>")
 async def get_route_image(request, user_id, route_name):
     """
-    Deprecated until further use. 
+    Deprecated until further use.
     Fetch route image. Now we generate image from coords in route on client side
     """
     doc = await request.app.db.images.find_one(
