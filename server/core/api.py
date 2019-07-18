@@ -16,6 +16,7 @@ from core.misc import Overpass, Color
 from core.user import User
 from core.decorators import jsonrequired, memoized, authrequired
 from core.points import run_stats
+from core import config
 
 
 api = Blueprint("api", url_prefix="/api")
@@ -555,3 +556,18 @@ async def get_other_info(request, other_user_id):
             }
         }
         return response.json(resp)
+
+"""
+Key Retrieval
+"""
+@api.post("/get_keys")
+async def get_keys(request, user):
+    """
+    Gets keys
+    Jason Yu
+    """
+    resp = {
+        'success': True,
+        'google_maps_api': config.GOOGLE_MAPS_API,
+    }
+    return response.json(resp)
