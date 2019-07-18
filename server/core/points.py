@@ -14,6 +14,20 @@ def levelcalc(points):
     level = math.floor(levelpoints)
     return level
 
+def levelToPoints(level):
+    points = math.floor(((level / 0.6) ** 2))
+    return points
+
+def calculateLevelProgress(points):
+    currentLevel = levelcalc(points)
+    currentLevelPoints = levelToPoints(currentLevel)
+    nextLevelPoints = levelToPoints(currentLevel + 1)
+    level_total = abs(nextLevelPoints - currentLevelPoints)
+    level_progress = abs(points - currentLevelPoints)
+    progress = level_progress / level_total
+    return progress
+
+
 
 if __name__ == "__main__":
     result = run_stats(60, 360)

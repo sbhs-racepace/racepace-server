@@ -11,7 +11,7 @@ from .utils import snowflake
 from .route import SavedRoute, SavedRun, Run
 from .group import Group
 from .feed import Feed
-from .points import run_stats
+from .points import run_stats, levelcalc, calculateLevelProgress
 
 
 class User:
@@ -254,8 +254,9 @@ class UserStats:
     Class to hold user running stats
     Jason Yu
     """
-
+    level: int = 0
     points: int = 0
+    level_progress: float = 0
     num_runs: int = 0
     total_distance: int = 0
     longest_distance_ran: int = 0

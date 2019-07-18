@@ -448,9 +448,9 @@ class Route:
                         nodes[node_id], vert_unit, hor_unit
                     )
                     unvisited_node_costs[node_id] = heuristic_cost
-                    next_node, cost = min(
-                        unvisited_node_costs.items(), key=lambda item: item[1]
-                    )
+                next_node, cost = min(
+                    unvisited_node_costs.items(), key=lambda item: item[1]
+                )
                 if cost == inf:
                     raise Exception("End node cannot be reached")
                 else:
