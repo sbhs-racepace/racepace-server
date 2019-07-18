@@ -11,6 +11,7 @@ from .utils import snowflake
 from .route import SavedRoute, SavedRun, Run
 from .group import Group
 from .feed import Feed
+from .points import run_stats
 
 
 class User:
@@ -257,7 +258,7 @@ class UserStats:
     points: int = 0
     num_runs: int = 0
     total_distance: int = 0
-    longest_distance_ran: int = None
+    longest_distance_ran: int = 0
     fastest_km: int = None
     fastest_5km: int = None
     fastest_10km: int = None
@@ -281,6 +282,13 @@ class UserStats:
             "cadence": self.cadence,
         }
 
+
+    def update_stats(self, run_info):
+        self.points += run_stats(float(run_info['final_distance']), float(run_info['final_duration']))
+        self.num_runs += 1
+        self.total_distance += float(run_info['final_distance'])
+        self.longest_distance_ran += max(float(run_info['final_distance']), self.longest_distance_ran)
+        return self
 
 class UserBase:
     def __init__(self, app):
