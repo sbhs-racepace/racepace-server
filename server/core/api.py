@@ -443,7 +443,7 @@ async def get_feed(request, user):
     """
     feed_items = [feed_item.to_dict() for feed_item in user.feed.get_latest_ten()]
     async def get_route_from_id(userID,routeID):
-        user = await request.app.users.find_account(user_id=userID)
+        user = await request.app.users.find_account(_id=userID)
         return {
             "user_id":userID,
             "user_name":user.full_name,
