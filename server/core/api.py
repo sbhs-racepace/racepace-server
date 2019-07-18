@@ -561,7 +561,7 @@ async def get_other_info(request, other_user_id):
 Key Retrieval
 """
 @api.post("/get_keys")
-async def get_keys(request, user):
+async def get_keys(request):
     """
     Gets keys
     Jason Yu

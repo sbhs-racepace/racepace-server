@@ -5,3 +5,5 @@ MONGO_URI = config("mongo_uri")
 HOST = config("host")
 SECRET = config("secret")
 WEBHOOK_URL = config("webhook_url")
+GOOGLE_MAPS_API = config("google_maps_api")
+
