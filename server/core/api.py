@@ -569,5 +569,7 @@ async def get_keys(request):
     resp = {
         'success': True,
         'google_maps_api': config.GOOGLE_MAPS_API,
+        'google_android_login_id': config.GOOGLE_ANDROID_LOGIN_ID,
+        'google_ios_login_id': config.GOOGLE_IOS_LOGIN_ID,
     }
     return response.json(resp)
