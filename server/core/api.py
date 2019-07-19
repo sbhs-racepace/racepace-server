@@ -347,13 +347,13 @@ async def update_profile(request, user):
     username  = data.get('username')
     full_name = data.get('full_name')
     bio       = data.get('bio')
-    if bio is not None: 
+    if bio != '': 
         await user.set_field('bio', bio)
-    if username is not None: 
+    if username != '': 
         await user.set_field('username', username)
-    if full_name is not None: 
+    if full_name != '': 
         await user.set_field('full_name', full_name)
-    if password is not None: 
+    if password != '': 
         salt = bcrypt.gensalt()
         hashed = bcrypt.hashpw(password, salt)
         await user.set_field('credentials.password', hashed)
