@@ -9,8 +9,8 @@ class LocationPacket:
     Jason Yu
     """
 
-    def __init__(self, latitude, longitude, timestamp, speed):
-        self.location = Point(latitude, longitude)
+    def __init__(self, location, timestamp, speed):
+        self.location = Point(**location)
         self.timestamp = timestamp
         self.speed = speed
 

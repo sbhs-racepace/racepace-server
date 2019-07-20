@@ -158,7 +158,7 @@ async def login(request):
         'token': token.decode("utf-8"),
         'user_id': user.id
     })
-	
+
 @api.post('/google_login')
 @jsonrequired
 async def google_login(request):
@@ -228,7 +228,7 @@ async def save_run(request, user):
     description = data.get("description")
     run_info = data.get('run_info')
     location_packets = data.get('location_packets')
-    likes = 0
+    likes = []
     comments = []
     saved_run = SavedRun.from_real_time_data(name,description,run_info,location_packets, likes, comments)
     new_stats = user.stats.update_stats(saved_run.run_info)
@@ -347,6 +347,7 @@ async def update_profile(request, user):
     username  = data.get('username')
     full_name = data.get('full_name')
     bio       = data.get('bio')
+<<<<<<< HEAD
     if bio != '': 
         await user.set_field('bio', bio)
     if username != '': 
@@ -354,6 +355,15 @@ async def update_profile(request, user):
     if full_name != '': 
         await user.set_field('full_name', full_name)
     if password != '': 
+=======
+    if bio is not None:
+        await user.set_field('bio', bio)
+    if username is not None:
+        await user.set_field('username', username)
+    if full_name is not None:
+        await user.set_field('full_name', full_name)
+    if password is not None:
+>>>>>>> SY
         salt = bcrypt.gensalt()
         hashed = bcrypt.hashpw(password, salt)
         await user.set_field('credentials.password', hashed)
@@ -440,9 +450,17 @@ async def get_feed(request, user):
     """
     Gets feed for user
     Returns 10 feed items
-    Jason Yu
+    Jason Yu/Sunny Yan
     """
     feed_items = [feed_item.to_dict() for feed_item in user.feed.get_latest_ten()]
+    async def get_route_from_id(userID,routeID):
+        user = await request.app.users.find_account(_id=userID)
+        return {
+            "user_id":userID,
+            "user_name":user.full_name,
+            "route":user.saved_runs[routeID]
+        }
+    feed_items = [await get_route_from_id(*item.values()) for item in feed_items]
     resp = {"success": True, "feed_items": feed_items}
     return response.json(resp)
 
@@ -505,7 +523,7 @@ Image API Calls
 @api.get("/route_images/<user_id>/<route_name>")
 async def get_route_image(request, user_id, route_name):
     """
-    Deprecated until further use. 
+    Deprecated until further use.
     Fetch route image. Now we generate image from coords in route on client side
     """
     doc = await request.app.db.images.find_one(
@@ -556,6 +574,7 @@ async def get_other_info(request, other_user_id):
             }
         }
         return response.json(resp)
+<<<<<<< HEAD
 
 """
 Key Retrieval
@@ -573,3 +592,5 @@ async def get_keys(request):
         'google_ios_login_id': config.GOOGLE_IOS_LOGIN_ID,
     }
     return response.json(resp)
+=======
+>>>>>>> SY
