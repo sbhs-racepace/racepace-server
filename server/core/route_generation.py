@@ -29,7 +29,7 @@ class Point:
 
     def to_dict(self):
         return {
-            'latitude': self.latitude, 
+            'latitude': self.latitude,
             'longitude': self.longitude
             }
 
@@ -273,7 +273,7 @@ class Route:
             {"latitude": node.latitude, "longitude": node.longitude}
             for node in self.route
         ]
-        return {"route": route, "dist": self.distance}
+        return {"route": route, "distance": self.distance}
 
     @classmethod
     def from_data(cls, data):
@@ -565,7 +565,7 @@ class Route:
     def generateStaticMap(self):
         """
         Generate static 100x100 PNG of the route, encoded in Base64
-        Deprecated until further use. 
+        Deprecated until further use.
         Fetch route image. Now we generate image from coords in route on client side
         """
         m = StaticMap(100, 100)
