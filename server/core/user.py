@@ -367,7 +367,7 @@ class UserBase:
             "follow_requests": [],
             "pending_follows": [],
             "feed": feed.to_dict(),
-            "bio": "Biography :)"
+            "bio": ""
         }
         # Adds user to DB
         await self.app.db.users.insert_one(document)
