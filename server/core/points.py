@@ -3,7 +3,7 @@ import math
 
 def run_stats(distance, time):
     """returns 10 points per km, and 1 point per minute"""
-    x = distance * 10
+    x = (distance * 10) / 1000
     y = time * 1
     result = x + y
     return result

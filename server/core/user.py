@@ -285,7 +285,9 @@ class UserStats:
 
 
     def update_stats(self, run_info):
-        self.points += run_stats(float(run_info['final_distance']), float(run_info['final_duration']))
+        final_duration = run_info['final_duration']
+        duration = (final_duration['hours'] * 60 + final_duration['minutes']) * 60 + final_duration
+        self.points += run_stats(float(run_info['final_distance']), duration)
         self.num_runs += 1
         self.total_distance += float(run_info['final_distance'])
         self.longest_distance_ran += max(float(run_info['final_distance']), self.longest_distance_ran)
