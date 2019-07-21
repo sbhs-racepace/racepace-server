@@ -545,26 +545,36 @@ async def update_user_image(request, user):
 Other User Api Call
 """
 
-@api.get("/get_other_info/<other_user_id>")
-async def get_other_info(request, other_user_id):
+@api.get("/get_info/<other_user_id>")
+@authrequired
+async def get_other_info(request, user, other_user_id):
     """
     Api call for another user
     """
     user = await request.app.users.find_account(_id=other_user_id)
-    info = user.to_dict()
     if not user:
         abort(404)
-    else:
-        resp = {
-            'success': True,
-            'info' : {
-                'full_name': info['full_name'],
-                'email': info['credentials']['email'],
-                'username': info['username'],
-            }
-        }
-        return response.json(resp)
+    info = user.to_dict()
 
+    resp = {
+        'success': True,
+        'info' : {
+            'full_name': info['full_name'],
+            'email': info['credentials']['email'],
+            'username': info['username'],
+            'points': info['stats']['points'],
+            'followers': info['followers'],
+            'following': info['following'],
+            'follow_requests': info['follow_requests'],
+            'pending_follows': info['pending_follows'],
+            'stats': info['stats'],
+            'bio': info['bio'],
+            'saved_routes': info['saved_routes'],
+            'saved_runs': info['saved_runs'],
+            'runs': info['runs'],
+        }
+    }
+    return response.json(resp)
 """
 Key Retrieval
 """
