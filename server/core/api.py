@@ -260,16 +260,14 @@ async def add_run(request, user):
     }
     return response.json(resp)
 
-@api.post("/sendFollowRequest")
+@api.post("/sendFollowRequest/<other_user_id>")
 @authrequired
 @jsonrequired
-async def sendFollowRequest(request, user):
+async def sendFollowRequest(request, user, other_user_id):
     """
     Follows user
     Jason Yu
     """
-    data = request.json
-    other_user_id = data.get("other_user_id")
     other_user = await request.app.users.find_account(_id=other_user_id)
     await user.push_to_array_field('pending_follows', other_user.id) # Adding other user to users pending follows
     await other_user.push_to_array_field('follow_requests', user.id) # Adding user to other users follow requests
@@ -279,16 +277,15 @@ async def sendFollowRequest(request, user):
     return response.json(resp)
 
 
-@api.post("/unfollow")
+@api.post("/unfollow/<other_user_id>")
 @authrequired
 @jsonrequired
-async def unfollow(request, user):
+async def unfollow(request, user, other_user_id):
     """
     Unfollows user
     Jason Yu
     """
     data = request.json
-    other_user_id = data.get("other_user_id")
     other_user = await request.app.users.find_account(_id=other_user_id)
     await user.remove_item_from_array_field('following', other_user.id)
     await user.remove_item_from_array_field('followers', user.id)
