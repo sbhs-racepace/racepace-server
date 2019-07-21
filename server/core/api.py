@@ -241,7 +241,6 @@ async def save_run(request, user):
     return response.json(resp)
 
 @api.post("/add_run")
-@jsonrequired
 @authrequired
 async def add_run(request, user):
     """
@@ -262,7 +261,6 @@ async def add_run(request, user):
 
 @api.post("/sendFollowRequest/<other_user_id>")
 @authrequired
-@jsonrequired
 async def sendFollowRequest(request, user, other_user_id):
     """
     Follows user
