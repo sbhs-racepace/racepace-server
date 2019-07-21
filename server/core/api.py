@@ -3,6 +3,7 @@ import functools
 import bson
 import dateutil.parser
 import bcrypt
+import base64
 
 from io import BytesIO
 
@@ -536,6 +537,7 @@ async def get_user_image(request, user_id):
 @authrequired
 async def update_user_image(request, user):
     avatar = request.body
+    avatar = base64.b64decode(avatar)
     await request.app.db.images.update_one(
         {"user_id": user.id}, {"$set": {"avatar": avatar}}
     )
