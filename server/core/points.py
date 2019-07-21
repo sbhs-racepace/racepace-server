@@ -6,7 +6,7 @@ def run_stats(distance, time):
     x = (distance * 10) / 1000
     y = (time * 1 / 120)
     result = x + y
-    return result
+    return math.floor(result)
 
 
 def levelcalc(points):
