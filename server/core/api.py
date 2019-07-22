@@ -268,8 +268,10 @@ async def sendFollowRequest(request, user, other_user_id):
     Jason Yu
     """
     other_user = await request.app.users.find_account(_id=other_user_id)
-    await user.push_to_array_field('pending_follows', other_user.id) # Adding other user to users pending follows
-    await other_user.push_to_array_field('follow_requests', user.id) # Adding user to other users follow requests
+    if (other_user_id not in user.pending_follows):
+        await user.push_to_array_field('pending_follows', other_user.id) # Adding other user to users pending follows
+    if (user.id not in other_user.follow_requests):
+        await other_user.push_to_array_field('follow_requests', user.id) # Adding user to other users follow requests
     resp = {
         'success': True,
     }
@@ -299,9 +301,11 @@ async def acceptFollowRequest(request, user, other_user_id):
     Jason Yu
     """
     other_user = await request.app.users.find_account(_id=other_user_id)
-    await user.push_to_array_field('followers', other_user.id) # Adding other user to followers
+    if (other_user_id not in user.followers):
+        await user.push_to_array_field('followers', other_user.id) # Adding other user to followers
     await user.remove_item_from_array_field('follow_requests', other_user.id) # Removing other user from follow requests
-    await other_user.push_to_array_field('following', user.id) # Adding user to other users following
+    if (user.id not in other_user.following):
+        await other_user.push_to_array_field('following', user.id) # Adding user to other users following
     await other_user.remove_item_from_array_field('pending_follows', user.id) # Removing user from others users pending follows
     resp = {
         'success': True,
