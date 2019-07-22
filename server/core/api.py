@@ -260,7 +260,7 @@ async def add_run(request, user):
     }
     return response.json(resp)
 
-@api.post("/sendFollowRequest/<other_user_id>")
+@api.get("/sendFollowRequest/<other_user_id>")
 @authrequired
 async def sendFollowRequest(request, user, other_user_id):
     """
@@ -278,7 +278,7 @@ async def sendFollowRequest(request, user, other_user_id):
     return response.json(resp)
 
 
-@api.post("/unfollow/<other_user_id>")
+@api.get("/unfollow/<other_user_id>")
 @authrequired
 async def unfollow(request, user, other_user_id):
     """
@@ -293,7 +293,7 @@ async def unfollow(request, user, other_user_id):
     }
     return response.json(resp)
 
-@api.post("/acceptFollowRequest/<other_user_id>")
+@api.get("/acceptFollowRequest/<other_user_id>")
 @authrequired
 async def acceptFollowRequest(request, user, other_user_id):
     """
@@ -312,7 +312,7 @@ async def acceptFollowRequest(request, user, other_user_id):
     }
     return response.json(resp)
 
-@api.post("/declineFollowRequest/<other_user_id>")
+@api.get("/declineFollowRequest/<other_user_id>")
 @authrequired
 async def declineFollowRequest(request, user, other_user_id):
     """
