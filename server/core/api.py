@@ -291,14 +291,13 @@ async def unfollow(request, user, other_user_id):
     }
     return response.json(resp)
 
-@api.post("/acceptFollowRequest")
+@api.post("/acceptFollowRequest/<other_user_id>")
 @authrequired
-async def acceptFollowRequest(request, user):
+async def acceptFollowRequest(request, user, other_user_id):
     """
     Accepts requests from other user
     Jason Yu
     """
-    other_user_id = data.get("other_user_id")
     other_user = await request.app.users.find_account(_id=other_user_id)
     await user.push_to_array_field('followers', other_user.id) # Adding other user to followers
     await user.remove_item_from_array_field('follow_requests', other_user.id) # Removing other user from follow requests
@@ -309,14 +308,13 @@ async def acceptFollowRequest(request, user):
     }
     return response.json(resp)
 
-@api.post("/declineFollowRequest")
+@api.post("/declineFollowRequest/<other_user_id>")
 @authrequired
-async def declineFollowRequest(request, user):
+async def declineFollowRequest(request, user, other_user_id):
     """
     Declines requests from other user
     Jason Yu
     """
-    other_user_id = data.get("other_user_id")
     other_user = await request.app.users.find_account(_id=other_user_id)
     await user.remove_item_from_array_field('follow_requests', other_user.id) # Removing other user from follow requests
     await other_user.remove_item_from_array_field('pending_follows', user.id) # Removing user from others users pending follows
