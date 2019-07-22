@@ -380,8 +380,7 @@ Account Info API Calls
 """
 
 
-@api.post("/get_info")
-@jsonrequired
+@api.get("/get_info")
 @authrequired
 async def get_info(request, user):
     """
