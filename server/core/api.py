@@ -277,7 +277,6 @@ async def sendFollowRequest(request, user, other_user_id):
 
 @api.post("/unfollow/<other_user_id>")
 @authrequired
-@jsonrequired
 async def unfollow(request, user, other_user_id):
     """
     Unfollows user
@@ -294,7 +293,6 @@ async def unfollow(request, user, other_user_id):
 
 @api.post("/acceptFollowRequest")
 @authrequired
-@jsonrequired
 async def acceptFollowRequest(request, user):
     """
     Accepts requests from other user
@@ -314,7 +312,6 @@ async def acceptFollowRequest(request, user):
 
 @api.post("/declineFollowRequest")
 @authrequired
-@jsonrequired
 async def declineFollowRequest(request, user):
     """
     Declines requests from other user
