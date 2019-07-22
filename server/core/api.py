@@ -291,7 +291,7 @@ async def unfollow(request, user):
     other_user_id = data.get("other_user_id")
     other_user = await request.app.users.find_account(_id=other_user_id)
     await user.remove_item_from_array_field('following', other_user.id)
-    await user.remove_item_from_array_field('followers', user.id)
+    await other_user.remove_item_from_array_field('followers', user.id)
     resp = {
         'success': True,
     }
@@ -554,6 +554,7 @@ async def get_other_info(request, user, other_user_id):
     Api call for another user
     """
     user = await request.app.users.find_account(_id=other_user_id)
+
     if not user:
         abort(404)
     info = user.to_dict()
