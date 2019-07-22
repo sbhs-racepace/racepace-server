@@ -241,6 +241,7 @@ async def save_run(request, user):
     return response.json(resp)
 
 @api.post("/add_run")
+@jsonrequired
 @authrequired
 async def add_run(request, user):
     """
@@ -282,7 +283,6 @@ async def unfollow(request, user, other_user_id):
     Unfollows user
     Jason Yu
     """
-    data = request.json
     other_user = await request.app.users.find_account(_id=other_user_id)
     await user.remove_item_from_array_field('following', other_user.id)
     await other_user.remove_item_from_array_field('followers', user.id)
@@ -298,7 +298,6 @@ async def acceptFollowRequest(request, user):
     Accepts requests from other user
     Jason Yu
     """
-    data = request.json
     other_user_id = data.get("other_user_id")
     other_user = await request.app.users.find_account(_id=other_user_id)
     await user.push_to_array_field('followers', other_user.id) # Adding other user to followers
@@ -317,7 +316,6 @@ async def declineFollowRequest(request, user):
     Declines requests from other user
     Jason Yu
     """
-    data = request.json
     other_user_id = data.get("other_user_id")
     other_user = await request.app.users.find_account(_id=other_user_id)
     await user.remove_item_from_array_field('follow_requests', other_user.id) # Removing other user from follow requests
