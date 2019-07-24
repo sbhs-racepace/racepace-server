@@ -209,7 +209,10 @@ async def save_route(request, user):
     description = data.get("description")
     route = Route.from_real_time_data(data.get('route'), data.get('distance'))
     saved_route = SavedRoute.from_real_time_data(route, name, description, start_name, end_name)
+
     await user.set_to_dict_field('saved_routes',saved_route.id,saved_route.to_dict())
+    user.saved_routes[saved_route.id] = saved_route
+
     resp = {
         'success': True,
     }
@@ -233,8 +236,13 @@ async def save_run(request, user):
     comments = []
     saved_run = SavedRun.from_real_time_data(name,description,run_info,location_packets, likes, comments)
     new_stats = user.stats.update_stats(saved_run.run_info)
+
     await user.set_field('stats', new_stats.to_dict()) # Adding new stats
+    user.stats = new_stats
+
     await user.set_to_dict_field('saved_runs', saved_run.id, saved_run.to_dict()) # Adding saved routes
+    user.saved_runs[saved_run.id] = saved_run
+
     resp = {
         'success': True,
     }
@@ -253,75 +261,126 @@ async def add_run(request, user):
     location_packets = data.get('location_packets')
     run = Run.from_real_time_data(location_packets, run_info)
     new_stats = user.stats.update_stats(run.run_info)
+
     await user.set_field('stats', new_stats.to_dict()) # Adding new stats
+    user.stats = new_stats
+
     await user.push_to_array_field('runs', run.to_dict()) # Pushing run
+    user.runs.append(run)
+
     resp = {
         'success': True,
     }
     return response.json(resp)
 
-@api.get("/sendFollowRequest/<other_user_id>")
+@api.post("/sendFollowRequest")
+@jsonrequired
 @authrequired
-async def sendFollowRequest(request, user, other_user_id):
+async def sendFollowRequest(request, user):
     """
     Follows user
     Jason Yu
     """
+    data = request.json
+    other_user_id = data.get('other_user_id')
     other_user = await request.app.users.find_account(_id=other_user_id)
+
     if (other_user_id not in user.pending_follows):
         await user.push_to_array_field('pending_follows', other_user.id) # Adding other user to users pending follows
+        user.pending_follows.append(other_user.id)
+
     if (user.id not in other_user.follow_requests):
         await other_user.push_to_array_field('follow_requests', user.id) # Adding user to other users follow requests
+        other_user.follow_requests.append(user.id)
+
     resp = {
         'success': True,
     }
     return response.json(resp)
 
 
-@api.get("/unfollow/<other_user_id>")
+@api.post("/unfollow")
+@jsonrequired
 @authrequired
 async def unfollow(request, user, other_user_id):
     """
     Unfollows user
     Jason Yu
     """
+    data = request.json
+    other_user_id = data.get('other_user_id')
     other_user = await request.app.users.find_account(_id=other_user_id)
+
     await user.remove_item_from_array_field('following', other_user.id)
+    try:
+        user.following.remove(other_user.id)
+    except: pass # Other user not in user following
+
     await other_user.remove_item_from_array_field('followers', user.id)
+    try:
+        other_user.followers.remove(user.id)
+    except: pass # User not in other user followers
+
     resp = {
         'success': True,
     }
     return response.json(resp)
 
-@api.get("/acceptFollowRequest/<other_user_id>")
+@api.post("/acceptFollowRequest")
+@jsonrequired
 @authrequired
 async def acceptFollowRequest(request, user, other_user_id):
     """
     Accepts requests from other user
     Jason Yu
     """
+    data = request.json
+    other_user_id = data.get('other_user_id')
     other_user = await request.app.users.find_account(_id=other_user_id)
+
     if (other_user_id not in user.followers):
         await user.push_to_array_field('followers', other_user.id) # Adding other user to followers
+        user.followers.append(other_user.id)
+
     await user.remove_item_from_array_field('follow_requests', other_user.id) # Removing other user from follow requests
+    try:
+        user.follow_requests.remove(other_user.id)
+    except: pass # Other user not in user follow_requests
+
     if (user.id not in other_user.following):
         await other_user.push_to_array_field('following', user.id) # Adding user to other users following
+        other_user.following.append(user.id)
+
     await other_user.remove_item_from_array_field('pending_follows', user.id) # Removing user from others users pending follows
+    try:
+        other_user.pending_follows.remove(user.id)
+    except: pass # User not in other user pending_follows
+
     resp = {
         'success': True,
     }
     return response.json(resp)
 
-@api.get("/declineFollowRequest/<other_user_id>")
+@api.post("/declineFollowRequest")
+@jsonrequired
 @authrequired
 async def declineFollowRequest(request, user, other_user_id):
     """
     Declines requests from other user
     Jason Yu
     """
+    data = request.json
+    other_user_id = data.get('other_user_id')
     other_user = await request.app.users.find_account(_id=other_user_id)
     await user.remove_item_from_array_field('follow_requests', other_user.id) # Removing other user from follow requests
+    try:
+        user.follow_requests.remove(other_user.id)
+    except: pass # Other user not in user follow_requests
+    
     await other_user.remove_item_from_array_field('pending_follows', user.id) # Removing user from others users pending follows
+    try:
+        other_user.pending_follows.remove(user.id)
+    except: pass # User not in other user pending_follows
     resp = {
         'success': True,
     }
@@ -342,14 +401,18 @@ async def update_profile(request, user):
     bio       = data.get('bio')
     if bio != '':
         await user.set_field('bio', bio)
+        user.bio = bio
     if username != '':
         await user.set_field('username', username)
+        user.username = username
     if full_name != '':
         await user.set_field('full_name', full_name)
+        user.full_name = full_name
     if password != '':
         salt = bcrypt.gensalt()
         hashed = bcrypt.hashpw(password, salt)
         await user.set_field('credentials.password', hashed)
+        user.credentials.password = hashed
     resp = {
         'success': True,
     }
@@ -380,7 +443,7 @@ Account Info API Calls
 """
 
 
-@api.get("/get_info")
+@api.post("/get_info")
 @authrequired
 async def get_info(request, user):
     """
@@ -538,12 +601,15 @@ async def update_user_image(request, user):
 Other User Api Call
 """
 
-@api.get("/get_info/<other_user_id>")
+@api.post("/get_other_info")
+@jsonrequired
 @authrequired
-async def get_other_info(request, user, other_user_id):
+async def get_other_info(request, user):
     """
     Api call for another user
     """
+    data = request.json
+    other_user_id = data.get('other_user_id')
     user = await request.app.users.find_account(_id=other_user_id)
 
     if not user:
@@ -569,6 +635,7 @@ async def get_other_info(request, user, other_user_id):
         }
     }
     return response.json(resp)
+
 """
 Key Retrieval
 """
