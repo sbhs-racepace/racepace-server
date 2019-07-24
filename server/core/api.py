@@ -260,73 +260,65 @@ async def add_run(request, user):
     }
     return response.json(resp)
 
-@api.post("/sendFollowRequest")
+@api.get("/sendFollowRequest/<other_user_id>")
 @authrequired
-@jsonrequired
-async def sendFollowRequest(request, user):
+async def sendFollowRequest(request, user, other_user_id):
     """
     Follows user
     Jason Yu
     """
-    data = request.json
-    other_user_id = data.get("other_user_id")
     other_user = await request.app.users.find_account(_id=other_user_id)
-    await user.push_to_array_field('pending_follows', other_user.id) # Adding other user to users pending follows
-    await other_user.push_to_array_field('follow_requests', user.id) # Adding user to other users follow requests
+    if (other_user_id not in user.pending_follows):
+        await user.push_to_array_field('pending_follows', other_user.id) # Adding other user to users pending follows
+    if (user.id not in other_user.follow_requests):
+        await other_user.push_to_array_field('follow_requests', user.id) # Adding user to other users follow requests
     resp = {
         'success': True,
     }
     return response.json(resp)
 
 
-@api.post("/unfollow")
+@api.get("/unfollow/<other_user_id>")
 @authrequired
-@jsonrequired
-async def unfollow(request, user):
+async def unfollow(request, user, other_user_id):
     """
     Unfollows user
     Jason Yu
     """
-    data = request.json
-    other_user_id = data.get("other_user_id")
     other_user = await request.app.users.find_account(_id=other_user_id)
     await user.remove_item_from_array_field('following', other_user.id)
-    await user.remove_item_from_array_field('followers', user.id)
+    await other_user.remove_item_from_array_field('followers', user.id)
     resp = {
         'success': True,
     }
     return response.json(resp)
 
-@api.post("/acceptFollowRequest")
+@api.get("/acceptFollowRequest/<other_user_id>")
 @authrequired
-@jsonrequired
-async def acceptFollowRequest(request, user):
+async def acceptFollowRequest(request, user, other_user_id):
     """
     Accepts requests from other user
     Jason Yu
     """
-    data = request.json
-    other_user_id = data.get("other_user_id")
     other_user = await request.app.users.find_account(_id=other_user_id)
-    await user.push_to_array_field('followers', other_user.id) # Adding other user to followers
+    if (other_user_id not in user.followers):
+        await user.push_to_array_field('followers', other_user.id) # Adding other user to followers
     await user.remove_item_from_array_field('follow_requests', other_user.id) # Removing other user from follow requests
-    await other_user.push_to_array_field('following', user.id) # Adding user to other users following
+    if (user.id not in other_user.following):
+        await other_user.push_to_array_field('following', user.id) # Adding user to other users following
     await other_user.remove_item_from_array_field('pending_follows', user.id) # Removing user from others users pending follows
     resp = {
         'success': True,
     }
     return response.json(resp)
 
-@api.post("/declineFollowRequest")
+@api.get("/declineFollowRequest/<other_user_id>")
 @authrequired
-@jsonrequired
-async def declineFollowRequest(request, user):
+async def declineFollowRequest(request, user, other_user_id):
     """
     Declines requests from other user
     Jason Yu
     """
-    data = request.json
-    other_user_id = data.get("other_user_id")
     other_user = await request.app.users.find_account(_id=other_user_id)
     await user.remove_item_from_array_field('follow_requests', other_user.id) # Removing other user from follow requests
     await other_user.remove_item_from_array_field('pending_follows', user.id) # Removing user from others users pending follows
@@ -391,8 +383,7 @@ Account Info API Calls
 """
 
 
-@api.post("/get_info")
-@jsonrequired
+@api.get("/get_info")
 @authrequired
 async def get_info(request, user):
     """
@@ -557,6 +548,7 @@ async def get_other_info(request, user, other_user_id):
     Api call for another user
     """
     user = await request.app.users.find_account(_id=other_user_id)
+
     if not user:
         abort(404)
     info = user.to_dict()
