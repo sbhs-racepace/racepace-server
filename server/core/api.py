@@ -243,6 +243,11 @@ async def save_run(request, user):
     await user.set_to_dict_field('saved_runs', saved_run.id, saved_run.to_dict()) # Adding saved routes
     user.saved_runs[saved_run.id] = saved_run
 
+    for follower_id in user.followers:
+        follower = await request.app.users.find_account(_id=follower_id)
+        follower.feed.add_item(user.id, saved_run.id) # Adding saved run to follower
+        await follower.set_field('feed', follower.feed.to_dict()) # Adding saved run to follower on db
+
     resp = {
         'success': True,
     }
