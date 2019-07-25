@@ -317,12 +317,12 @@ async def unfollow(request, user):
     await user.remove_item_from_array_field('following', other_user.id)
     try:
         user.following.remove(other_user.id)
-    except: pass # Other user not in user following
+    except: raise Exception('Other user not in user following')
 
     await other_user.remove_item_from_array_field('followers', user.id)
     try:
         other_user.followers.remove(user.id)
-    except: pass # User not in other user followers
+    except: raise Exception('User not in other user followers')
 
     resp = {
         'success': True,
@@ -348,7 +348,7 @@ async def acceptFollowRequest(request, user):
     await user.remove_item_from_array_field('follow_requests', other_user.id) # Removing other user from follow requests
     try:
         user.follow_requests.remove(other_user.id)
-    except: pass # Other user not in user follow_requests
+    except: raise Exception('Other user not in user follow_requests')
 
     if (user.id not in other_user.following):
         await other_user.push_to_array_field('following', user.id) # Adding user to other users following
@@ -357,7 +357,7 @@ async def acceptFollowRequest(request, user):
     await other_user.remove_item_from_array_field('pending_follows', user.id) # Removing user from others users pending follows
     try:
         other_user.pending_follows.remove(user.id)
-    except: pass # User not in other user pending_follows
+    except: raise Exception('User not in other user pending_follows')
 
     resp = {
         'success': True,
@@ -378,12 +378,12 @@ async def declineFollowRequest(request, user):
     await user.remove_item_from_array_field('follow_requests', other_user.id) # Removing other user from follow requests
     try:
         user.follow_requests.remove(other_user.id)
-    except: pass # Other user not in user follow_requests
+    except: raise Exception('Other user not in user follow_requests')
     
     await other_user.remove_item_from_array_field('pending_follows', user.id) # Removing user from others users pending follows
     try:
         other_user.pending_follows.remove(user.id)
-    except: pass # User not in other user pending_follows
+    except: raise Exception('User not in other user pending_follows')
     resp = {
         'success': True,
     }
@@ -437,10 +437,13 @@ async def update_run(request, user):
     if like is not None:
         if like:
             await owner.push_to_array_field(f"saved_runs.{runID}.likes",user.id)
+            owner.saved_runs[runID].likes.append(user.id)
         else:
             await owner.remove_item_from_array_field(f"saved_runs.{runID}.likes",user.id)
+            owner.saved_runs[runID].likes.remove(user.id)
     if comment is not None:
         await owner.push_to_array_field(f"saved_runs.{runID}.comments",[user.full_name,comment])
+        owner.saved_runs[runID].comments.append([user.full_name,comment])
     request.app.users.clear_cache(owner)
     return response.json({'success': True})
 
