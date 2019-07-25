@@ -421,7 +421,7 @@ async def update_profile(request, user):
     }
     return response.json(resp)
 
-@api.post('update_run')
+@api.post('/update_run')
 @authrequired
 @jsonrequired
 async def update_run(request, user):
@@ -432,13 +432,16 @@ async def update_run(request, user):
     comment = data.get("comment") #Comment message
     if owner is None or runID is None:
         abort(400,"Bad request: Missing required parameters (owner & runID)")
+    else:
+        owner = await request.app.users.find_account(_id=owner)
     if like is not None:
         if like:
-            user.push_to_array_field(f"saved_runs.{runID}.likes",user.id)
+            await owner.push_to_array_field(f"saved_runs.{runID}.likes",user.id)
         else:
-            user.remove_item_from_array_field(f"saved_runs.{runID}.likes",user.id)
+            await owner.remove_item_from_array_field(f"saved_runs.{runID}.likes",user.id)
     if comment is not None:
-        user.push_to_array_field(f"saved_runs.{runID}.comments",[user.full_name,comment])
+        await owner.push_to_array_field(f"saved_runs.{runID}.comments",[user.full_name,comment])
+    request.app.users.clear_cache(owner)
     return response.json({'success': True})
 
 """

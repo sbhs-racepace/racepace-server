@@ -100,7 +100,7 @@ class User:
         """
         await self.app.db.users.update_one(
             { '_id': self.id },
-            { '$push': { 
+            { '$push': {
                 field : item
             }
         }
@@ -113,7 +113,7 @@ class User:
         """
         await self.app.db.users.update_one(
             { '_id': self.id },
-            { '$set': { 
+            { '$set': {
                 f"{field}.{key}" : item
             }
         }
@@ -126,7 +126,7 @@ class User:
         """
         await self.app.db.users.update_one(
             { '_id': self.id },
-            { '$set': { 
+            { '$set': {
                 field : item
             }
         }
@@ -140,10 +140,10 @@ class User:
         """
         await self.app.db.users.update_one(
             { '_id': self.id },
-            { '$pull': { 
-                    field: { '$in': items } 
+            { '$pull': {
+                    field: { '$in': items }
                 }
-            }, 
+            },
         )
 
     async def remove_item_from_array_field(self, field, item):
@@ -153,14 +153,14 @@ class User:
         """
         await self.remove_from_array_field(field, [item])
 
-    
+
     async def delete(self):
         """
         Deletes user from database
         Abdur Raqeeb
         """
         await self.app.db.users.delete_one({'_id': self.id})
-    
+
     async def create_group(self, name):
 
         group_id = snowflake()
@@ -391,3 +391,6 @@ class UserBase:
         )
 
         return token
+
+    async def clear_cache(self, user):
+        del self.user_cache[user.id]
