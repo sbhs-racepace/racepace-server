@@ -75,6 +75,6 @@ class Message:
         
 
         data = msg.to_dict()
-        data['created_at'] = datetime.utcfromtimestamp(data['created_at'])
+        data['created_at'] = datetime.datetime.utcfromtimestamp(data['created_at'])
         await app.db.messages.insert_one(data)
         return msg
