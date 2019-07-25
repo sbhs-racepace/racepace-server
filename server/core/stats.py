@@ -28,9 +28,21 @@ def authrequired(func):
 stats = Blueprint("stats")
 
 
+@stats.get('/')
+async def index(request):
+    return request.app.render_template("index")
+
+
+@stats.get("/logout")
+async def login(request):
+    request['session'].clear()
+    return response.redirect('/')
+
+
 @stats.get("/login")
 async def login(request):
     return request.app.render_template("login")
+
 
 
 @stats.post("/login")
@@ -46,10 +58,10 @@ async def post_login(request):
     user = await request.app.users.find_account(**query)
     if user is None:
         print("User not found")
-        abort(403, "Credentials invalid.")
+        return request.app.render_template("invalid")
     elif user.check_password(password) == False:
         print("Invalid password")
-        abort(403, "Credentials invalid.")
+        return request.app.render_template("invalid")
 
     token = await request.app.users.issue_token(user)
 
@@ -62,4 +74,5 @@ async def post_login(request):
 @stats.get("/stats")
 @authrequired
 async def show_stats(request, user):
+    print(user.followers)
     return request.app.render_template("stats", stats=user.stats.to_dict(), user=user)

@@ -151,16 +151,6 @@ async def on_error(request, exception):
 
     return response.json(resp, status=500)
 
-
-@app.get("/")
-async def index(request):
-    data = {
-        'message': 'Welcome to the RacePace API',
-        'success': True,
-        }
-
-    return response.json(data)
-
 @sio.on('connect')
 async def on_connect(sid, environ):
 

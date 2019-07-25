@@ -26,7 +26,7 @@
       <nav class="navbar navbar-expand-lg navbar-transparent navbar-absolute fixed-top ">
         <div class="container-fluid">
           <div class="navbar-wrapper">
-            <a class="navbar-brand" href="#pablo">Hey {{ user.username }}!</a>
+            <a class="navbar-brand" href="#pablo">Welcome!</a>
           </div>
           <button class="navbar-toggler" type="button" data-toggle="collapse" aria-controls="navigation-index" aria-expanded="false" aria-label="Toggle navigation">
             <span class="sr-only">Toggle navigation</span>
@@ -55,87 +55,39 @@
                     Account
                   </p>
                 </a>
+                {% if request.session.logged_in %}
                 <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdownProfile">
                   <a class="dropdown-item" href="/logout">Log out</a>
                 </div>
+                {% else %}
+                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdownProfile">
+                    <a class="dropdown-item" href="/login">Log in</a>
+                </div>
+                {% endif %}
               </li>
             </ul>
           </div>
         </div>
       </nav>
       <!-- End Navbar -->
-      <div class="content">
-        <div class="container-fluid">
-          <div class="row">
-            <div class="col-lg-3 col-md-6 col-sm-6">
-              <div class="card card-stats">
-                <div class="card-header card-header-warning card-header-icon">
-                  <div class="card-icon">
-                    <i class="material-icons">star_border</i>
-                  </div>
-                  <p class="card-category">Points</p>
-                  <h3 class="card-title">{{ user.stats.points }}
-                  </h3>
-                </div>
-                <div class="card-footer">
-                  <div class="stats">
-                      Your racepace points
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="col-lg-3 col-md-6 col-sm-6">
-              <div class="card card-stats">
-                <div class="card-header card-header-success card-header-icon">
-                  <div class="card-icon">
-                    <i class="material-icons">directions_run</i>
-                  </div>
-                  <p class="card-category">Runs Completed</p>
-                  <h3 class="card-title"> {{ user.stats.num_runs }}</h3>
-                </div>
-                <div class="card-footer">
-                  <div class="stats">
-                    <i class="material-icons">date_range</i> All time
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="col-lg-3 col-md-6 col-sm-6">
-              <div class="card card-stats">
-                <div class="card-header card-header-danger card-header-icon">
-                  <div class="card-icon">
-                    <i class="material-icons">terrain</i>
-                  </div>
-                  <p class="card-category">Total Distance Ran</p>
-                  <h3 class="card-title">{{ user.stats.total_distance }} <small>km</small></h3>
-                </div>
-                <div class="card-footer">
-                  <div class="stats">
-                        <i class="material-icons">date_range</i> All time
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="col-lg-3 col-md-6 col-sm-6">
-              <div class="card card-stats">
-                <div class="card-header card-header-info card-header-icon">
-                  <div class="card-icon">
-                    <i class="fa fa-twitter"></i>
-                  </div>
-                  <p class="card-category">Followers</p>
-                  <h3 class="card-title">{{ user.followers | length }}</h3>
-                </div>
-                <div class="card-footer">
-                  <div class="stats">
-                    <i class="material-icons">update</i> Just Updated
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+
+      <style>
+          .centered {
+            display: -webkit-flex;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            /* more style: */
+            height: 90vh;
+            }
+      </style>
+
+      <div class='centered'>
+          <h1>RacePace</h1>
+          <p>app</p>
       </div>
-    </div>
-  </div>
+    </body>
 
   <!--   Core JS Files   -->
   <script src="/static/assets/js/core/jquery.min.js"></script>
