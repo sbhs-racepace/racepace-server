@@ -183,7 +183,8 @@ async def on_message(sid, data):
 
 @sio.on("start_run")
 async def on_start_run(sid, data):
-    user = (await sio.get_session(sid))["user"]
+    pass
+    # user = (await sio.get_session(sid))["user"]
     # if user.real_time_route.active == False:
     #     start_time = data.get('start_time')
     #     route = data.get('route', None) # If no route is given, none is returned, None value is handled
@@ -193,13 +194,15 @@ async def on_start_run(sid, data):
 
 @sio.on("end_run")
 async def on_end_run(sid):
-    user = (await sio.get_session(sid))['user']
+    pass
+    # user = (await sio.get_session(sid))['user']
     # await user.set_to_dict_field('real_time_route','active', False)
 
 
 @sio.on("location_update")
 async def on_location_update(sid, data):
-    user = (await sio.get_session(sid))["user"]
+    pass
+    # user = (await sio.get_session(sid))["user"]
     # location = data.get("location")
     # latitude = location["latitude"]
     # longitude = location["longitude"]

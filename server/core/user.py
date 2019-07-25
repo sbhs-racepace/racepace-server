@@ -291,7 +291,6 @@ class UserStats:
         self.num_runs += 1
         self.total_distance += float(run_info['final_distance'])
         self.longest_distance_ran += max(float(run_info['final_distance']), self.longest_distance_ran)
-        return self
 
 class UserBase:
     def __init__(self, app):
